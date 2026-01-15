@@ -29,9 +29,6 @@ export async function POST(req: NextRequest) {
     const supabase = createServerSupabaseClient()
     const adminSupabase = createAdminSupabaseClient()
 
-    // Normalize phone number
-    const normalizedPhone = normalizePhoneNumber(phone)
-
     // Find and verify OTP
     const { data: otpRecord, error: otpError } = await adminSupabase
       .from('otps')
