@@ -269,7 +269,7 @@ const DeveloperRegistration: React.FC = () => {
   const renderPhone = () => (
     <div className="p-8 animate-fadeIn">
       <h2 className="text-2xl font-bold text-reach-navy mt-4">Enter your phone Number</h2>
-      <p className="text-gray-500 mt-2 mb-8">We'll send you a quick verification code</p>
+      <p className="text-gray-500 mt-2 mb-8">We&apos;ll send you a quick verification code</p>
       
       {renderError()}
       
@@ -345,7 +345,7 @@ const DeveloperRegistration: React.FC = () => {
         ))}
       </div>
       <p className="text-center text-sm text-gray-400 mb-2">
-        Didn't get code? <span className="text-reach-red font-semibold cursor-pointer">Resend</span>
+        Didn&apos;t get code? <span className="text-reach-red font-semibold cursor-pointer">Resend</span>
       </p>
       <button
         onClick={handleNext}
@@ -778,7 +778,7 @@ const DeveloperRegistration: React.FC = () => {
           </div>
           <h2 className="text-3xl font-bold text-gray-900 text-center mb-4">Account Created!</h2>
           <p className="text-gray-600 text-center mb-8">
-            Your company documents are being reviewed. We'll update your status as soon as possible.
+            Your company documents are being reviewed. We&apos;ll update your status as soon as possible.
           </p>
           <button
             onClick={handleFinish}
@@ -790,7 +790,7 @@ const DeveloperRegistration: React.FC = () => {
                 <Loader2 className="w-5 h-5 animate-spin" />
                 Setting up...
               </>
-            ) : "Let's go"}
+            ) : "Let&apos;s go"}
           </button>
         </div>
       </div>

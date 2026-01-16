@@ -46,7 +46,7 @@ const VerificationFlow: React.FC = () => {
   const renderPhone = () => (
     <div className="p-8 animate-fadeIn">
       <h2 className="text-2xl font-bold text-reach-navy mt-4">Enter your phone Number</h2>
-      <p className="text-gray-500 mt-2 mb-8">We'll send you a quick verification code</p>
+      <p className="text-gray-500 mt-2 mb-8">We&apos;ll send you a quick verification code</p>
       
       <div className="space-y-4">
          <div className="border border-gray-200 rounded-xl p-4 flex items-center bg-white">
@@ -90,7 +90,7 @@ const VerificationFlow: React.FC = () => {
           />
         ))}
       </div>
-      <p className="text-center text-sm text-gray-400">Didn't get code? <span className="text-reach-red font-semibold">Resend in 33s</span></p>
+      <p className="text-center text-sm text-gray-400">Didn&apos;t get code? <span className="text-reach-red font-semibold">Resend in 33s</span></p>
       <button onClick={handleNext} className="w-full py-4 mt-12 bg-reach-navy text-white rounded-2xl font-bold shadow-lg">
         Continue
       </button>
@@ -169,13 +169,13 @@ const VerificationFlow: React.FC = () => {
         </div>
         <h2 className="text-3xl font-bold text-white text-center">Verification in progress</h2>
         <p className="text-blue-100 text-center mt-4 mb-12 max-w-[280px]">
-          Your company documents are being reviewed. We'll update your status as soon as possible.
+          Your company documents are being reviewed. We&apos;ll update your status as soon as possible.
         </p>
         <button 
           onClick={handleFinish}
           className="w-full py-4 bg-white text-reach-navy rounded-2xl font-bold shadow-lg hover:bg-gray-50 transition-all"
         >
-          Let's go
+          Let&apos;s go
         </button>
     </div>
   );

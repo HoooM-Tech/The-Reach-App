@@ -190,7 +190,7 @@ function LeadFormModal({ isOpen, onClose, propertyId, propertyTitle, sourceCode 
             </div>
             <h3 className="text-xl font-semibold mb-2">Interest Submitted!</h3>
             <p className="text-gray-600 mb-6">
-              Thank you for your interest in "{propertyTitle}". The property developer will contact you soon.
+              Thank you for your interest in &quot;{propertyTitle}&quot;. The property developer will contact you soon.
             </p>
             <button
               onClick={onClose}
@@ -202,7 +202,7 @@ function LeadFormModal({ isOpen, onClose, propertyId, propertyTitle, sourceCode 
         ) : (
           <form onSubmit={handleSubmit} className="p-6 space-y-4">
             <p className="text-sm text-gray-600 mb-4">
-              Fill in your details to express interest in "{propertyTitle}"
+              Fill in your details to express interest in &quot;{propertyTitle}&quot;
             </p>
 
             <div>
@@ -363,7 +363,7 @@ function InspectionModal({ isOpen, onClose, propertyId, propertyTitle }: Inspect
             </div>
             <h3 className="text-xl font-semibold mb-2">Inspection Booked!</h3>
             <p className="text-gray-600 mb-6">
-              Your inspection for "{propertyTitle}" has been scheduled. You'll receive a confirmation shortly.
+              Your inspection for &quot;{propertyTitle}&quot; has been scheduled. You&apos;ll receive a confirmation shortly.
             </p>
             <button
               onClick={onClose}
@@ -608,7 +608,7 @@ export default function PropertyDetailPage() {
             onClick={() => setIsLeadModalOpen(true)}
             className="flex-1 py-3 bg-[#0A1628] text-white rounded-xl font-medium hover:bg-[#0A1628]/90 transition-colors"
           >
-            I'm Interested
+            I&apos;m Interested
           </button>
           <button
             onClick={() => setIsInspectionModalOpen(true)}

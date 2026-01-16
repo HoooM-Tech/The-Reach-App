@@ -446,7 +446,7 @@ export default function NewPropertyPage() {
                     1. Purpose of this contract:
                   </p>
                   <p className="text-sm text-gray-700">
-                    This contract authorizes Reach to market and sell the Developer's verified property under agreed commercial terms.
+                    This contract authorizes Reach to market and sell the Developer&apos;s verified property under agreed commercial terms.
                   </p>
                 </div>
 

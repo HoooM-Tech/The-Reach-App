@@ -186,7 +186,7 @@ export default function BuyerSavedPage() {
           <Heart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">No saved properties yet</h3>
           <p className="text-gray-500 mb-6">
-            Save properties you're interested in to view them here later
+            Save properties you&apos;re interested in to view them here later
           </p>
           <button
             onClick={() => router.push('/properties')}

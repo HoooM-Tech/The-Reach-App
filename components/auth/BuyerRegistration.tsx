@@ -244,7 +244,7 @@ const BuyerRegistration: React.FC = () => {
                   <span className="text-red-500">✗</span>
                 )}
                 <span className={passwordValidation.doesntIncludeName && passwordValidation.doesntIncludeEmail ? 'text-gray-600' : 'text-gray-400'}>
-                  Can't include name or email address.
+                  Can&apos;t include name or email address.
                 </span>
               </div>
             </div>
@@ -266,7 +266,7 @@ const BuyerRegistration: React.FC = () => {
               className="mt-1 w-5 h-5 rounded border-gray-300 text-reach-red focus:ring-reach-red"
             />
             <p className="text-xs text-gray-600">
-              By selecting Submit, I agree to Reach's{' '}
+              By selecting Submit, I agree to Reach&apos;s{' '}
               <span className="text-reach-red underline">Terms & Services</span>,{' '}
               <span className="text-reach-red underline">payment terms and service</span> and{' '}
               <span className="text-reach-red underline">privacy policy</span>.
@@ -289,7 +289,7 @@ const BuyerRegistration: React.FC = () => {
   const renderPhone = () => (
     <div className="p-8 animate-fadeIn">
       <h2 className="text-2xl font-bold text-reach-navy mt-4">Enter your phone Number</h2>
-      <p className="text-gray-500 mt-2 mb-8">We'll send you a quick verification code</p>
+      <p className="text-gray-500 mt-2 mb-8">We&apos;ll send you a quick verification code</p>
       
       {renderError()}
       
@@ -362,7 +362,7 @@ const BuyerRegistration: React.FC = () => {
         ))}
       </div>
       <p className="text-center text-sm text-gray-400 mb-2">
-        Didn't get code? <span className="text-reach-red font-semibold cursor-pointer">Resend</span>
+        Didn&apos;t get code? <span className="text-reach-red font-semibold cursor-pointer">Resend</span>
       </p>
       <p className="text-center text-sm text-reach-red mb-8 cursor-pointer" onClick={() => setStep(VerifyStep.PHONE)}>
         Change phone number
@@ -417,7 +417,7 @@ const BuyerRegistration: React.FC = () => {
                 <Loader2 className="w-5 h-5 animate-spin" />
                 Setting up...
               </>
-            ) : "Let's go"}
+            ) : "Let&apos;s go"}
           </button>
         </div>
       </div>

@@ -297,7 +297,7 @@ export default function LoginPage() {
 
           {/* Sign Up Link */}
           <p className="mt-8 text-center text-gray-500">
-            Don't have an account?{' '}
+            Don&apos;t have an account?{' '}
             <Link href="/role-selection" className="text-reach-navy font-bold hover:underline">
               Create Account
             </Link>

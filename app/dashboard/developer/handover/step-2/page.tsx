@@ -231,7 +231,7 @@ export default function HandoverStep2Page() {
             
             <div className="px-6 pb-8">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold text-gray-900">Schedule a date you're available</h3>
+                <h3 className="text-xl font-bold text-gray-900">Schedule a date you&apos;re available</h3>
                 <button
                   onClick={() => setShowScheduleModal(false)}
                   className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"

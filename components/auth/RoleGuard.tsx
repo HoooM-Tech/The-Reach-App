@@ -72,7 +72,7 @@ function UnauthorizedScreen({ onRedirect }: { onRedirect: () => void }) {
           </svg>
         </div>
         <h2 className="text-xl font-bold text-gray-900">Access Denied</h2>
-        <p className="text-gray-600">You don't have permission to access this page.</p>
+        <p className="text-gray-600">You don&apos;t have permission to access this page.</p>
         <p className="text-sm text-gray-400">Redirecting you to the appropriate page...</p>
       </div>
     </div>
