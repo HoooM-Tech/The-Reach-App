@@ -79,6 +79,7 @@ export default function DeveloperPropertyDetailPage() {
   const [property, setProperty] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [stats, setStats] = useState({ views: 0, leads: 0 });
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Fetch property from real API
@@ -100,9 +101,34 @@ export default function DeveloperPropertyDetailPage() {
     try {
       const property = await developerApi.getProperty(propertyId);
       
+      // Fetch stats (views and leads) for this property
+      let viewsCount = 0;
+      let leadsCount = 0;
+      
+      try {
+        const statsResponse = await fetch(`/api/properties/${propertyId}/stats`, {
+          signal: abortController.signal,
+        });
+        
+        if (statsResponse.ok) {
+          const statsData = await statsResponse.json();
+          viewsCount = statsData.views || 0;
+          leadsCount = statsData.leads || 0;
+        } else {
+          const errorData = await statsResponse.json().catch(() => ({}));
+          console.warn('Failed to fetch property stats:', errorData);
+        }
+      } catch (statsError: any) {
+        // Don't fail the whole request if stats fail
+        if (!statsError.name || statsError.name !== 'AbortError') {
+          console.warn('Error fetching property stats:', statsError);
+        }
+      }
+      
       // Only update state if request wasn't aborted
       if (!abortController.signal.aborted) {
         setProperty(property);
+        setStats({ views: viewsCount, leads: leadsCount });
       }
     } catch (err) {
       // Don't set error if request was aborted
@@ -310,11 +336,15 @@ export default function DeveloperPropertyDetailPage() {
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-2">
                 <Eye size={18} className="text-gray-400" />
-                <span className="text-sm font-medium text-gray-700">Views</span>
+                <span className="text-sm font-medium text-gray-700">
+                  <span className="font-semibold text-gray-900">{stats.views}</span> Views
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <Users size={18} className="text-gray-400" />
-                <span className="text-sm font-medium text-gray-700">Leads</span>
+                <span className="text-sm font-medium text-gray-700">
+                  <span className="font-semibold text-gray-900">{stats.leads}</span> Leads
+                </span>
               </div>
             </div>
           </div>

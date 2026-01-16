@@ -33,32 +33,32 @@ function LeadCard({ lead, onClick }: LeadCardProps) {
       onClick={onClick}
       className="w-full bg-white rounded-2xl p-5 border border-gray-100 hover:shadow-lg transition-all text-left group"
     >
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-[#0A1628]/10 rounded-full flex items-center justify-center">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-3 flex-1 min-w-0">
+          <div className="w-12 h-12 bg-[#0A1628]/10 rounded-full flex items-center justify-center flex-shrink-0">
             <span className="text-lg font-bold text-[#0A1628]">
               {lead.buyer_name?.[0]?.toUpperCase() || 'B'}
             </span>
           </div>
-          <div>
-            <h3 className="font-semibold text-gray-900 group-hover:text-[#E54D4D] transition-colors">
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-gray-900 group-hover:text-[#E54D4D] transition-colors truncate">
               {lead.buyer_name}
             </h3>
-            <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
-              <span className="flex items-center gap-1">
-                <Phone size={12} />
-                {lead.buyer_phone}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-1 text-sm text-gray-500">
+              <span className="flex items-center gap-1 min-w-0">
+                <Phone size={12} className="flex-shrink-0" />
+                <span className="truncate">{lead.buyer_phone}</span>
               </span>
               {lead.buyer_email && (
-                <span className="flex items-center gap-1">
-                  <Mail size={12} />
-                  {lead.buyer_email}
+                <span className="flex items-center gap-1 min-w-0">
+                  <Mail size={12} className="flex-shrink-0" />
+                  <span className="truncate">{lead.buyer_email}</span>
                 </span>
               )}
             </div>
           </div>
         </div>
-        <ChevronRight className="text-gray-400 group-hover:text-[#E54D4D] transition-colors" size={20} />
+        <ChevronRight className="text-gray-400 group-hover:text-[#E54D4D] transition-colors flex-shrink-0" size={20} />
       </div>
 
       <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">

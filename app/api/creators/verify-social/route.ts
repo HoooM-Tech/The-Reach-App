@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase/client'
 import { requireCreator } from '@/lib/utils/auth'
 import { ValidationError, handleError } from '@/lib/utils/errors'
-import { SocialMediaAnalytics, parseSocialLinks } from '@/lib/services/social-media/analytics'
+import { SociaVaultService } from '@/lib/social-media/sociavault'
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,82 +20,73 @@ export async function POST(req: NextRequest) {
     const supabase = createServerSupabaseClient()
     const adminSupabase = createAdminSupabaseClient()
 
-    // Parse social media URLs
-    const profiles = parseSocialLinks(socialLinks)
-
-    if (profiles.length === 0) {
+    // Validate at least one social link is provided
+    if (!socialLinks.instagram && !socialLinks.tiktok && !socialLinks.twitter) {
       return NextResponse.json(
-        { error: 'At least one valid social media profile is required' },
+        { error: 'At least one social media profile is required' },
         { status: 400 }
       )
     }
 
-    // Verify all profiles and calculate tier
-    console.log('Verifying profiles:', profiles.map(p => ({ platform: p.platform, username: p.username })))
-    const verificationResult = await SocialMediaAnalytics.verifyCreatorProfiles(profiles)
+    // Use SociaVault to verify creator profiles
+    console.log('Verifying profiles with SociaVault:', {
+      instagram: socialLinks.instagram ? 'provided' : 'missing',
+      tiktok: socialLinks.tiktok ? 'provided' : 'missing',
+      twitter: socialLinks.twitter ? 'provided' : 'missing',
+      receivedData: {
+        instagram: socialLinks.instagram,
+        tiktok: socialLinks.tiktok,
+        twitter: socialLinks.twitter,
+      },
+    })
+
+    const verificationResult = await SociaVaultService.verifyCreator(socialLinks)
 
     console.log('Verification result:', {
       success: verificationResult.success,
       tier: verificationResult.tier,
       analyticsKeys: Object.keys(verificationResult.analytics),
       errors: verificationResult.errors,
-      analytics: verificationResult.analytics
+      qualityScore: verificationResult.qualityScore,
     })
 
     // Allow partial success - if at least one platform succeeds, proceed
     if (!verificationResult.success || Object.keys(verificationResult.analytics).length === 0) {
-      // Check if errors are profile-not-found vs API endpoint issues
+      // Check if errors are profile-not-found vs API configuration issues
       const hasProfileNotFoundErrors = verificationResult.errors.some(err =>
         err.toLowerCase().includes('profile not found') ||
-        err.toLowerCase().includes('account may not exist') ||
+        err.toLowerCase().includes('not found') ||
         err.toLowerCase().includes('may be private')
       )
 
-      const hasApiEndpointErrors = verificationResult.errors.some(err =>
-        err.includes('404') && (err.includes('endpoint') || err.includes('API')) ||
-        err.includes('not available') ||
-        err.includes('not included in your RapidAPI subscription')
+      const hasApiConfigErrors = verificationResult.errors.some(err =>
+        err.includes('SOCIAVAULT_API_KEY') ||
+        err.includes('not set')
       )
-
-      const isTwitterOnlyError = profiles.length === 1 && 
-        profiles[0].platform === 'twitter' &&
-        verificationResult.errors.some(err => err.includes('Twitter verification is not available'))
 
       return NextResponse.json(
         {
           success: false,
-          error: isTwitterOnlyError
-            ? 'Twitter verification is not available. Please use Instagram or TikTok for verification, or use the manual social account linking feature.'
+          error: hasApiConfigErrors
+            ? 'Social media verification service is not configured. Please contact support.'
             : hasProfileNotFoundErrors
-              ? 'Social media profile not found. Please verify your username is correct and the account exists.'
-              : hasApiEndpointErrors
-                ? 'Social media API endpoints not found. Please check your RapidAPI configuration. The API endpoints may not be available in your subscription, or the endpoint paths may be incorrect.'
-                : 'Failed to verify social profiles',
+              ? 'Social media profile not found. Please verify your username is correct and the account exists and is public.'
+              : 'Failed to verify social profiles',
           details: verificationResult.errors.length > 0
             ? verificationResult.errors
             : ['No valid social media profiles could be verified'],
-          troubleshooting: isTwitterOnlyError ? {
-            message: 'Twitter Verification Not Available',
+          troubleshooting: hasApiConfigErrors ? {
+            message: 'Service Configuration Issue',
             steps: [
-              '1. Twitter API is not available in the current RapidAPI subscription',
-              '2. Please use Instagram or TikTok for verification instead',
-              '3. You can also use the manual social account linking feature',
-              '4. Contact support if you need Twitter verification enabled'
-            ]
-          } : hasApiEndpointErrors ? {
-            message: 'RapidAPI Configuration Issue',
-            steps: [
-              '1. Verify your RAPIDAPI_KEY is set correctly in .env.local',
-              '2. Check that your RapidAPI subscription includes the social media analytics APIs',
-              '3. Verify the RAPIDAPI_HOST matches the API you subscribed to',
-              '4. Check the RapidAPI documentation for the correct endpoint paths',
-              '5. Consider using the manual social account linking feature as an alternative'
+              '1. SociaVault service is not properly configured',
+              '2. Please contact support to enable social media verification',
+              '3. You can use the manual social account linking feature as an alternative'
             ]
           } : hasProfileNotFoundErrors ? {
             message: 'Profile Not Found',
             steps: [
               '1. Double-check that your username is spelled correctly',
-              '2. Verify the account exists and is public',
+              '2. Verify the account exists and is public (not private)',
               '3. Try using the full profile URL instead of just the username',
               '4. If you recently created the account, wait a few hours for it to be indexed'
             ]
@@ -128,41 +119,41 @@ export async function POST(req: NextRequest) {
     }
 
     // Store social accounts in database
-    for (const profile of profiles) {
-      const analytics = verificationResult.analytics[profile.platform]
-      if (analytics) {
-        // Check if account already exists
-        const { data: existing } = await adminSupabase
-          .from('social_accounts')
-          .select('*')
-          .eq('user_id', creator.id)
-          .eq('platform', profile.platform)
-          .single()
+    for (const [platform, analytics] of Object.entries(verificationResult.analytics)) {
+      // Extract username from analytics data
+      const username = analytics.username || '';
+      
+      // Check if account already exists
+      const { data: existing } = await adminSupabase
+        .from('social_accounts')
+        .select('*')
+        .eq('user_id', creator.id)
+        .eq('platform', platform)
+        .single()
 
-        if (existing) {
-          // Update existing
-          await adminSupabase
-            .from('social_accounts')
-            .update({
-              handle: profile.username,
-              followers: analytics.followers,
-              engagement_rate: analytics.engagementRate,
-              verified_at: new Date().toISOString(),
-            })
-            .eq('id', existing.id)
-        } else {
-          // Create new
-          await adminSupabase
-            .from('social_accounts')
-            .insert({
-              user_id: creator.id,
-              platform: profile.platform,
-              handle: profile.username,
-              followers: analytics.followers,
-              engagement_rate: analytics.engagementRate,
-              verified_at: new Date().toISOString(),
-            })
-        }
+      if (existing) {
+        // Update existing
+        await adminSupabase
+          .from('social_accounts')
+          .update({
+            handle: username,
+            followers: analytics.followers,
+            engagement_rate: analytics.engagementRate,
+            verified_at: new Date().toISOString(),
+          })
+          .eq('id', existing.id)
+      } else {
+        // Create new
+        await adminSupabase
+          .from('social_accounts')
+          .insert({
+            user_id: creator.id,
+            platform: platform as 'instagram' | 'tiktok' | 'twitter',
+            handle: username,
+            followers: analytics.followers,
+            engagement_rate: analytics.engagementRate,
+            verified_at: new Date().toISOString(),
+          })
       }
     }
 
@@ -187,9 +178,19 @@ export async function POST(req: NextRequest) {
       created_at: new Date().toISOString(),
     })
 
+    // Calculate commission rate
+    const commissionRates: Record<number, string> = {
+      1: '3.0%',
+      2: '2.5%',
+      3: '2.0%',
+      4: '1.5%',
+    };
+
     return NextResponse.json({
       success: true,
       tier: verificationResult.tier,
+      qualityScore: verificationResult.qualityScore,
+      commission: commissionRates[verificationResult.tier] || '0%',
       analytics: verificationResult.analytics,
       warnings: verificationResult.errors.length > 0 ? verificationResult.errors : undefined,
       message: `Congratulations! You've been verified as a Tier ${verificationResult.tier} creator`,

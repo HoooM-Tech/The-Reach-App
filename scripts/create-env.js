@@ -52,6 +52,14 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 # Document Signing Secret
 # Generate a random secret: openssl rand -base64 32
 SIGNING_SECRET=your-signing-secret-for-contracts-replace-with-random-32-char-string
+
+# SociaVault API (for social media verification)
+# Get from: https://sociavault.com/dashboard/api
+SOCIAVAULT_API_KEY=your_sociavault_api_key_here
+
+# Cron Secret (for scheduled tasks)
+# Generate a random secret: openssl rand -base64 32
+CRON_SECRET=your-cron-secret-for-scheduled-tasks-replace-with-random-32-char-string
 `;
 
 const envPath = path.join(process.cwd(), '.env.local');
