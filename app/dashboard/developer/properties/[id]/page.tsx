@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useUser } from '@/contexts/UserContext';
-import { developerApi, ApiError } from '@/lib/api/client';
+import { developerApi, ApiError, getAccessToken } from '@/lib/api/client';
 import { 
   ArrowLeft, 
   Edit, 
@@ -106,8 +106,16 @@ export default function DeveloperPropertyDetailPage() {
       let leadsCount = 0;
       
       try {
+        // Get access token for authentication
+        const token = getAccessToken();
+        
         const statsResponse = await fetch(`/api/properties/${propertyId}/stats`, {
           signal: abortController.signal,
+          credentials: 'include', // Include cookies for authentication
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` }),
+          },
         });
         
         if (statsResponse.ok) {

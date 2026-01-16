@@ -34,21 +34,67 @@ export async function GET(
 
     const propertyIds = properties?.map((p) => p.id) || []
 
-    // Get leads - use admin client to bypass RLS (leads can be created by anonymous users)
-    const { data: leads } = await adminSupabase
-      .from('leads')
-      .select('*, properties(id, title)')
-      .in('property_id', propertyIds)
-      .order('created_at', { ascending: false })
+    // Initialize leadsByProperty with all properties (ensures properties with 0 leads are included)
+    // Get property titles from properties query for accurate display
+    const propertyTitles: Record<string, string> = {}
+    properties?.forEach((prop) => {
+      propertyTitles[prop.id] = '' // Will be filled from properties query
+    })
 
-    const leadsByProperty = leads?.reduce((acc: any, lead: any) => {
-      const propId = lead.property_id
-      if (!acc[propId]) {
-        acc[propId] = { property_id: propId, property_title: lead.properties?.title, count: 0 }
+    // Get full property data to populate titles
+    const { data: fullProperties } = await supabase
+      .from('properties')
+      .select('id, title')
+      .eq('developer_id', developerId)
+
+    fullProperties?.forEach((prop: any) => {
+      if (propertyTitles[prop.id] !== undefined) {
+        propertyTitles[prop.id] = prop.title || ''
       }
-      acc[propId].count++
-      return acc
-    }, {}) || {}
+    })
+
+    const leadsByProperty: Record<string, { property_id: string; property_title: string; count: number }> = {}
+    properties?.forEach((prop) => {
+      leadsByProperty[prop.id] = {
+        property_id: prop.id,
+        property_title: propertyTitles[prop.id] || '',
+        count: 0,
+      }
+    })
+
+    // Get leads - use admin client to bypass RLS (leads can be created by anonymous users)
+    // Count leads per property using database aggregation (database is source of truth)
+    let recentLeads: any[] = []
+    
+    if (propertyIds.length > 0) {
+      // Get all leads to count per property
+      const { data: leads, error: leadsError } = await adminSupabase
+        .from('leads')
+        .select('property_id')
+        .in('property_id', propertyIds)
+
+      if (leadsError) {
+        console.error('Error fetching leads:', leadsError)
+      } else if (leads) {
+        // Count leads per property (database is source of truth)
+        leads.forEach((lead: any) => {
+          const propId = lead.property_id
+          if (leadsByProperty[propId]) {
+            leadsByProperty[propId].count++
+          }
+        })
+      }
+
+      // Get recent leads for display (limit to 10) with full details
+      const { data: recentLeadsData } = await adminSupabase
+        .from('leads')
+        .select('*, properties(id, title)')
+        .in('property_id', propertyIds)
+        .order('created_at', { ascending: false })
+        .limit(10)
+
+      recentLeads = recentLeadsData || []
+    }
 
     // Get inspections - use admin client to bypass RLS (inspections can be booked by anonymous users)
     // Order by created_at descending to show most recently booked first
@@ -78,12 +124,18 @@ export async function GET(
       ?.filter((t) => t.status === 'held')
       .reduce((sum, t) => sum + (t.amount || 0), 0) || 0
 
+    // Calculate total leads count from database (source of truth)
+    const totalLeadsCount = Object.values(leadsByProperty).reduce(
+      (sum, prop) => sum + prop.count,
+      0
+    )
+
     return NextResponse.json({
       properties: propertiesSummary,
       leads: {
-        total: leads?.length || 0,
+        total: totalLeadsCount,
         by_property: Object.values(leadsByProperty),
-        recent: leads?.slice(0, 10) || [],
+        recent: recentLeads || [],
       },
       inspections: {
         total_booked: inspections?.length || 0,
