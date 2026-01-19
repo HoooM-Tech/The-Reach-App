@@ -451,7 +451,7 @@ export default function DeveloperPropertyDetailPage() {
             className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-6"
           >
             <p className="text-red-700 text-sm mb-3">
-              This property wasn't approved. one or more details didn't meet our listing requirement, please review the feedback a resubmit
+              This property wasn&apos;t approved. one or more details didn&apos;t meet our listing requirement, please review the feedback a resubmit
             </p>
             <button
               onClick={() => router.push(`/dashboard/developer/properties/${property.id}/edit`)}
@@ -471,7 +471,7 @@ export default function DeveloperPropertyDetailPage() {
             className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 mb-6"
           >
             <p className="text-orange-700 text-sm">
-              This property is undergoing verification. You'll be notified once the status changes.
+              This property is undergoing verification. You&apos;ll be notified once the status changes.
             </p>
           </motion.div>
         )}

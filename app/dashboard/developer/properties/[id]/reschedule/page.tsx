@@ -201,7 +201,7 @@ export default function RescheduleInspectionPage() {
           {/* Schedule Date and Time */}
           <div>
             <label className="block text-sm font-medium text-gray-900 mb-3">
-              Schedule a date you're available
+              Schedule a date you&apos;re available
             </label>
             <div className="grid grid-cols-2 gap-3">
               <div className="relative">

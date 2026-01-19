@@ -471,7 +471,7 @@ export default function DeveloperPropertiesPage() {
               Properties listed will appear here.
             </h3>
             <p className="text-sm text-gray-600 mb-6">
-              To get started click on the "Add property button"
+              To get started click on the &quot;Add property button&quot;
             </p>
             <button
               onClick={() => router.push('/dashboard/developer/properties/new')}
