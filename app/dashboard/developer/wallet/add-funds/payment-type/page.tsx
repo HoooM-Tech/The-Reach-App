@@ -46,10 +46,13 @@ export default function PaymentTypePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FDFBFA]">
+    <div className="min-h-screen bg-[#FFF5F5]">
       {/* Header */}
+      {/*
       <header className="bg-transparent px-6 py-4 flex items-center justify-between sticky top-0 z-40">
         <button
+          aria-label="Back"
+          title="Back"
           onClick={() => router.back()}
           className="w-10 h-10 rounded-full bg-white flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm"
         >
@@ -57,18 +60,23 @@ export default function PaymentTypePage() {
         </button>
         <h1 className="text-lg font-semibold text-gray-900">Select Payment type</h1>
         <button
-          onClick={() => router.push('/notifications')}
+          aria-label="Notifications"
+          title="Notifications"
+          onClick={() => router.push('/notifications')} 
           className="w-10 h-10 rounded-full bg-white flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm"
         >
           <Bell size={20} className="text-gray-700" />
         </button>
       </header>
+      */}
 
       {/* Main Content */}
       <div className="px-6 pt-6 pb-8">
         <div className="space-y-4">
           {/* Direct Bank Transfer Option */}
           <button
+            aria-label="Direct bank transfer"
+            title="Direct bank transfer"
             onClick={() => handleSelectPaymentType('bank-transfer')}
             className="w-full bg-white rounded-2xl p-4 flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow border border-gray-100"
           >
@@ -83,6 +91,8 @@ export default function PaymentTypePage() {
 
           {/* NGN Debit/Credit Card Option */}
           <button
+            aria-label="NGN Debit/Credit Card"
+            title="NGN Debit/Credit Card"
             onClick={() => handleSelectPaymentType('card')}
             className="w-full bg-white rounded-2xl p-4 flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow border border-gray-100"
           >

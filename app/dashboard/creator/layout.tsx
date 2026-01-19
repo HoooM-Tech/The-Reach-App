@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useUser } from '@/contexts/UserContext';
 import { CreatorGuard } from '@/components/auth/RoleGuard';
+import { profileApi, ApiError } from '@/lib/api/client';
 import { 
   LayoutDashboard, 
   Link2, 
@@ -39,6 +40,24 @@ function CreatorLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { user, logout } = useUser();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
+  // Fetch profile data to get avatar
+  const fetchProfile = useCallback(async () => {
+    if (!user?.id) return;
+
+    try {
+      const response = await profileApi.getProfile();
+      setAvatarUrl(response.profile.avatar_url || null);
+    } catch (err) {
+      console.error('Failed to load profile for layout:', err);
+      // Continue without avatar
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
 
   const handleLogout = async () => {
     await logout();
@@ -109,9 +128,15 @@ function CreatorLayoutContent({ children }: { children: React.ReactNode }) {
           <div className="absolute right-0 top-0 h-full w-64 bg-[#1a0a2e] shadow-xl" onClick={e => e.stopPropagation()}>
             <div className="p-4 border-b border-white/10">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">
-                  {user?.full_name?.[0] || user?.email?.[0] || 'C'}
-                </div>
+                {avatarUrl ? (
+                  <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
+                    <img src={avatarUrl} alt={user?.full_name || 'Creator'} className="w-full h-full object-cover" />
+                  </div>
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold flex-shrink-0">
+                    {user?.full_name?.[0] || user?.email?.[0] || 'C'}
+                  </div>
+                )}
                 <div>
                   <p className="font-semibold text-sm text-white">{user?.full_name || 'Creator'}</p>
                   <span className={`text-xs px-2 py-0.5 rounded-full text-white ${tierInfo.color}`}>
@@ -165,9 +190,15 @@ function CreatorLayoutContent({ children }: { children: React.ReactNode }) {
           {/* User Info */}
           <div className="px-4 mb-6">
             <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/10">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">
-                {user?.full_name?.[0] || user?.email?.[0] || 'C'}
-              </div>
+              {avatarUrl ? (
+                <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
+                  <img src={avatarUrl} alt={user?.full_name || 'Creator'} className="w-full h-full object-cover" />
+                </div>
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold flex-shrink-0">
+                  {user?.full_name?.[0] || user?.email?.[0] || 'C'}
+                </div>
+              )}
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-sm truncate text-white">{user?.full_name || 'Creator'}</p>
                 <span className={`text-xs px-2 py-0.5 rounded-full text-white ${tierInfo.color}`}>

@@ -61,6 +61,8 @@ export default function AddFundsPage() {
       {/* Fixed Header */}
       <header className="fixed top-0 left-0 right-0 bg-[#FDFBFA] px-6 py-4 flex items-center justify-between z-50">
         <button
+          aria-label="Back"
+          title="Back"
           onClick={() => router.push('/dashboard/developer/wallet')}
           className="w-10 h-10 rounded-full bg-white flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm"
         >
@@ -68,6 +70,8 @@ export default function AddFundsPage() {
         </button>
         <h1 className="text-lg font-semibold text-gray-900">Deposit to Wallet</h1>
         <button
+          aria-label="Notifications"
+          title="Notifications"
           onClick={() => router.push('/notifications')}
           className="w-10 h-10 rounded-full bg-white flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm"
         >
@@ -135,7 +139,6 @@ export default function AddFundsPage() {
 
       {/* Deposit Button - Light Gray Bottom Bar */}
       <div className="fixed bottom-0 left-0 right-0 bg-[#F3F4F6] rounded-t-3xl p-4 pb-6">
-        <div className="h-0.5 bg-gray-900 w-32 mx-auto mb-3 rounded-full"></div>
         <button
           onClick={handleDeposit}
           disabled={!amount || parseFloat(amount) < minDeposit}

@@ -12,6 +12,11 @@ interface Props {
   user: User;
 }
 
+/**
+ * @deprecated This component uses MOCK_PROPERTIES and appears to be legacy/unused.
+ * The actual developer dashboard is in app/dashboard/developer/page.tsx which uses real APIs.
+ * This component should be removed or updated to use real data from developerApi.getMyProperties().
+ */
 const MOCK_PROPERTIES: Property[] = [
   {
     id: '1',

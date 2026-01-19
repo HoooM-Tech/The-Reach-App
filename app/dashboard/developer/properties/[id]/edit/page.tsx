@@ -286,6 +286,7 @@ export default function EditPropertyPage() {
             onClick={() => router.push('/dashboard/developer/properties')}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             aria-label="Back to properties"
+            title="Back to properties"
           >
             <ArrowLeft size={20} />
           </button>

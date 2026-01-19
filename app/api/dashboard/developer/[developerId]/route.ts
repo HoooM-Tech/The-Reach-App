@@ -19,17 +19,95 @@ export async function GET(
     const supabase = createServerSupabaseClient()
     const adminSupabase = createAdminSupabaseClient() // Use admin client to bypass RLS for leads/inspections
 
-    // Get properties summary
-    const { data: properties } = await supabase
+    // Calculate date 30 days ago for comparison
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+    const thirtyDaysAgoISO = thirtyDaysAgo.toISOString()
+
+    // Get properties summary (current) - Use adminSupabase to ensure we get all properties
+    const { data: properties, error: propertiesError } = await adminSupabase
+      .from('properties')
+      .select('id, verification_status, status, created_at')
+      .eq('developer_id', developerId)
+
+    if (propertiesError) {
+      console.error('[Dashboard API] Error fetching properties:', propertiesError)
+    }
+
+    // Debug: Log all verification_status values to help diagnose issues
+    if (properties && properties.length > 0) {
+      const statusCounts = properties.reduce((acc: Record<string, number>, p: any) => {
+        const status = p.verification_status || 'null'
+        acc[status] = (acc[status] || 0) + 1
+        return acc
+      }, {})
+      console.log(`[Dashboard API] Developer ${developerId} properties status counts:`, statusCounts)
+      
+      // Log individual properties for debugging
+      properties.forEach((p: any) => {
+        console.log(`[Dashboard API] Property ${p.id}: verification_status="${p.verification_status}", status="${p.status}"`)
+      })
+    }
+    
+    // Log pending count calculation
+    console.log(`[Dashboard API] Calculating pending verification count...`)
+
+    // Get properties from 30 days ago for comparison - Use adminSupabase to ensure we get all properties
+    const { data: previousProperties } = await adminSupabase
       .from('properties')
       .select('id, verification_status, status')
       .eq('developer_id', developerId)
+      .lt('created_at', thirtyDaysAgoISO)
+
+    // Calculate current counts
+    const currentTotal = properties?.length || 0
+    const currentVerified = properties?.filter((p) => p.verification_status === 'verified').length || 0
+    const currentActive = properties?.filter((p) => p.verification_status === 'verified' || p.status === 'active').length || 0
+    
+    // Pending verification: includes 'pending_verification', 'submitted', and 'pending' (case-insensitive)
+    const pendingProperties = properties?.filter((p) => {
+      const status = (p.verification_status || '').toLowerCase().trim()
+      const isPending = status === 'pending_verification' || 
+                       status === 'submitted' || 
+                       status === 'pending'
+      if (isPending) {
+        console.log(`[Dashboard API] Found pending property ${p.id} with verification_status="${p.verification_status}"`)
+      }
+      return isPending
+    }) || []
+    const currentPending = pendingProperties.length
+    console.log(`[Dashboard API] Total pending verification count: ${currentPending}`)
+
+    // Calculate previous counts
+    const previousTotal = previousProperties?.length || 0
+    const previousVerified = previousProperties?.filter((p) => p.verification_status === 'verified').length || 0
+    const previousActive = previousProperties?.filter((p) => p.verification_status === 'verified' || p.status === 'active').length || 0
+    
+    // Pending verification: includes 'pending_verification', 'submitted', and 'pending' (case-insensitive)
+    const previousPending = previousProperties?.filter((p) => {
+      const status = (p.verification_status || '').toLowerCase().trim()
+      return status === 'pending_verification' || 
+             status === 'submitted' || 
+             status === 'pending'
+    }).length || 0
+
+    // Calculate percentage changes
+    const calculateChange = (current: number, previous: number) => {
+      if (previous === 0) return current > 0 ? 100 : 0
+      return Math.round(((current - previous) / previous) * 100)
+    }
 
     const propertiesSummary = {
-      total: properties?.length || 0,
-      verified: properties?.filter((p) => p.verification_status === 'verified').length || 0,
-      pending: properties?.filter((p) => p.verification_status === 'pending_verification').length || 0,
+      total: currentTotal,
+      verified: currentVerified,
+      active: currentActive,
+      pending: currentPending,
       draft: properties?.filter((p) => p.status === 'draft').length || 0,
+      changes: {
+        total: calculateChange(currentTotal, previousTotal),
+        active: calculateChange(currentActive, previousActive),
+        pending: calculateChange(currentPending, previousPending),
+      }
     }
 
     const propertyIds = properties?.map((p) => p.id) || []
@@ -130,15 +208,39 @@ export async function GET(
       0
     )
 
+    // Calculate previous leads count (from 30 days ago)
+    let previousLeadsCount = 0
+    if (propertyIds.length > 0) {
+      const previousPropertyIds = previousProperties?.map((p) => p.id) || []
+      if (previousPropertyIds.length > 0) {
+        const { data: previousLeads } = await adminSupabase
+          .from('leads')
+          .select('id')
+          .in('property_id', previousPropertyIds)
+          .lt('created_at', thirtyDaysAgoISO)
+        
+        previousLeadsCount = previousLeads?.length || 0
+      }
+    }
+
+    // Calculate leads change percentage
+    const leadsChange = calculateChange(totalLeadsCount, previousLeadsCount)
+
+    // Count booked inspections (upcoming or confirmed)
+    const bookedInspectionsCount = upcomingInspections.filter(
+      (i) => i.status === 'booked' || i.status === 'confirmed'
+    ).length
+
     return NextResponse.json({
       properties: propertiesSummary,
       leads: {
         total: totalLeadsCount,
+        change: leadsChange,
         by_property: Object.values(leadsByProperty),
         recent: recentLeads || [],
       },
       inspections: {
-        total_booked: inspections?.length || 0,
+        total_booked: bookedInspectionsCount,
         upcoming: upcomingInspections.slice(0, 10),
         recently_booked: recentlyBookedInspections,
         completed: inspections?.filter((i) => i.status === 'completed').length || 0,

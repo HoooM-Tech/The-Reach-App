@@ -203,6 +203,7 @@ export default function NewPropertyPage() {
           <button
             onClick={handleBack}
             className="w-10 h-10 rounded-full bg-white flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm"
+            title="Back to properties"
           >
             <ArrowLeft size={20} className="text-gray-700" />
           </button>
@@ -210,6 +211,7 @@ export default function NewPropertyPage() {
           <button
             onClick={() => router.push('/notifications')}
             className="w-10 h-10 rounded-full bg-white flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm"
+            title="Notifications"
           >
             <Bell size={20} className="text-gray-700" />
           </button>
@@ -272,6 +274,7 @@ export default function NewPropertyPage() {
                   <div className="relative">
                     <select
                       {...register('listingType')}
+                      title="Select category type"
                       className="w-full border border-gray-200 rounded-2xl px-4 py-3 pr-10 appearance-none focus:ring-1 focus:ring-reach-navy focus:border-reach-navy outline-none bg-white"
                     >
                       <option value={ListingType.SALE}>Residential</option>
@@ -286,6 +289,7 @@ export default function NewPropertyPage() {
                   <label className="block text-sm text-gray-600 mb-2">Select property type here</label>
                   <div className="relative">
                     <select
+                      title="Select property type"
                       className="w-full border border-gray-200 rounded-2xl px-4 py-3 pr-10 appearance-none focus:ring-1 focus:ring-reach-navy focus:border-reach-navy outline-none bg-white"
                     >
                       <option>Duplex</option>
@@ -300,6 +304,7 @@ export default function NewPropertyPage() {
                 <div>
                   <label className="block text-sm text-gray-600 mb-2">Description</label>
                   <textarea
+                    title="Description"
                     {...register('description')}
                     rows={4}
                     className="w-full border border-gray-200 rounded-2xl px-4 py-3 focus:ring-1 focus:ring-reach-navy focus:border-reach-navy outline-none resize-none"
@@ -340,6 +345,7 @@ export default function NewPropertyPage() {
                   <select
                     value={visibility}
                     onChange={(e) => setValue('visibility', e.target.value as any)}
+                    title="Visibility"
                     className="w-full border border-gray-200 rounded-2xl px-4 py-3 pr-10 appearance-none focus:ring-1 focus:ring-reach-navy focus:border-reach-navy outline-none bg-white"
                   >
                     <option value="ALL_CREATORS">Public</option>
@@ -373,6 +379,7 @@ export default function NewPropertyPage() {
                 <div>
                   <label className="block text-sm text-gray-600 mb-2">Enter Max price here</label>
                   <input
+                    title="Max price"
                     {...register('askingPrice', { valueAsNumber: true })}
                     type="number"
                     className="w-full border border-gray-200 rounded-2xl px-4 py-3 focus:ring-1 focus:ring-reach-navy focus:border-reach-navy outline-none"
@@ -401,6 +408,7 @@ export default function NewPropertyPage() {
                 <div>
                   <label className="block text-sm text-gray-600 mb-2">Enter Min price here</label>
                   <input
+                    title="Min price"
                     {...register('minAcceptablePrice', { valueAsNumber: true })}
                     type="number"
                     className="w-full border border-gray-200 rounded-2xl px-4 py-3 focus:ring-1 focus:ring-reach-navy focus:border-reach-navy outline-none"
@@ -518,6 +526,7 @@ export default function NewPropertyPage() {
                   Add pictures or videos of the building, to give buyers an overview of the property.
                 </p>
                 <div
+                  title="Upload document"
                   onClick={() => !uploadedDocument && document.getElementById('document-upload')?.click()}
                   className={`border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all ${
                     uploadedDocument 
@@ -568,6 +577,7 @@ export default function NewPropertyPage() {
                         onChange={handleDocumentUpload}
                         accept="image/jpeg,image/png,image/svg+xml"
                         className="hidden"
+                        title="Upload document"
                       />
                     </div>
                   )}

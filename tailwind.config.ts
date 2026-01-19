@@ -11,9 +11,11 @@ const config: Config = {
       // Custom colors matching the Reach App design system
       colors: {
         // Primary brand colors
-        'reach-navy': '#0A1628',    // Deep navy for primary actions
+        'reach-navy': '#0A1628',    // Deep navy for primary actions (legacy)
+        'reach-primary': '#15355A',  // Primary button color
         'reach-red': '#E54D4D',     // Accent red for highlights
-        'reach-light': '#FDFBFA',   // Light background
+        'reach-light': '#FBF0EE',   // Light background for all pages
+        'reach-bg': '#FBF0EE',      // Alias for background
         
         // Extended palette
         'reach-blue': '#1E40AF',

@@ -4,7 +4,7 @@
 
 body {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  background-color: #FDFBFA;
+  background-color: #FBF0EE;
   color: #111827;
 }
 
@@ -26,3 +26,12 @@ body {
   background: #555;
 }
 
+/* Hide scrollbar for filter pills */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}

@@ -93,12 +93,22 @@ export async function middleware(req: NextRequest) {
         isPublicRoute,
       }
       if (process.env.NODE_ENV === 'development') {
-        console.log('Middleware blocked request (no auth):', debugInfo)
+        console.log('[Middleware] Blocked request (no auth):', debugInfo)
       }
       return NextResponse.json({ 
         error: 'Unauthorized',
         debug: process.env.NODE_ENV === 'development' ? debugInfo : undefined
       }, { status: 401 })
+    }
+
+    // Log wallet API requests for debugging
+    if (req.nextUrl.pathname.startsWith('/api/wallet/') && process.env.NODE_ENV === 'development') {
+      console.log('[Middleware] Allowing wallet API request:', {
+        path: req.nextUrl.pathname,
+        hasAuthHeader,
+        hasSession: !!session,
+        hasValidAuth,
+      })
     }
 
     // Admin routes

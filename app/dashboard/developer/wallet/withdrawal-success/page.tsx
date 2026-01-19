@@ -60,12 +60,16 @@ export default function WithdrawalSuccessPage() {
       {/* Action Buttons */}
       <div className="w-full max-w-sm space-y-4">
         <button
+          aria-label="View Transaction"
+          title="View Transaction"
           onClick={() => router.push('/dashboard/developer/wallet/transactions')}
           className="w-full bg-reach-navy text-white font-semibold py-4 rounded-2xl hover:bg-reach-navy/90 transition-colors"
         >
           View Transaction
         </button>
         <button
+          aria-label="Done"
+          title="Done"
           onClick={() => router.push('/dashboard/developer/wallet')}
           className="w-full bg-white border-2 border-gray-200 text-gray-900 font-semibold py-4 rounded-2xl hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
         >

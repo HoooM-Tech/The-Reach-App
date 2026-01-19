@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useUser } from '@/contexts/UserContext';
 import { BuyerGuard } from '@/components/auth/RoleGuard';
+import { profileApi, ApiError } from '@/lib/api/client';
 import { 
   LayoutDashboard, 
   Search, 
@@ -41,6 +42,24 @@ function BuyerLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { user, logout } = useUser();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
+  // Fetch profile data to get avatar
+  const fetchProfile = useCallback(async () => {
+    if (!user?.id) return;
+
+    try {
+      const response = await profileApi.getProfile();
+      setAvatarUrl(response.profile.avatar_url || null);
+    } catch (err) {
+      console.error('Failed to load profile for layout:', err);
+      // Continue without avatar
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
 
   const handleLogout = async () => {
     await logout();
@@ -63,6 +82,8 @@ function BuyerLayoutContent({ children }: { children: React.ReactNode }) {
           <button
             onClick={() => router.back()}
             className="p-2 rounded-full hover:bg-gray-100"
+            aria-label="Go back"
+            title="Go back"
           >
             <ChevronLeft size={20} />
           </button>
@@ -73,12 +94,16 @@ function BuyerLayoutContent({ children }: { children: React.ReactNode }) {
             <button
               onClick={() => router.push('/notifications')}
               className="p-2 rounded-full hover:bg-gray-100 relative"
+              aria-label="Notifications"
+              title="Notifications"
             >
               <Bell size={20} />
             </button>
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="p-2 rounded-full hover:bg-gray-100"
+              aria-label="Toggle menu"
+              title="Menu"
             >
               <Menu size={20} />
             </button>
@@ -144,9 +169,15 @@ function BuyerLayoutContent({ children }: { children: React.ReactNode }) {
           {/* User Info */}
           <div className="px-4 mb-6">
             <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-              <div className="w-10 h-10 rounded-full bg-[#E54D4D] flex items-center justify-center text-white font-bold">
-                {user?.full_name?.[0] || user?.email?.[0] || 'B'}
-              </div>
+              {avatarUrl ? (
+                <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
+                  <img src={avatarUrl} alt={user?.full_name || 'Buyer'} className="w-full h-full object-cover" />
+                </div>
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-[#E54D4D] flex items-center justify-center text-white font-bold flex-shrink-0">
+                  {user?.full_name?.[0] || user?.email?.[0] || 'B'}
+                </div>
+              )}
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-sm truncate">{user?.full_name || 'Buyer'}</p>
                 <p className="text-xs text-gray-500 truncate">{user?.email}</p>

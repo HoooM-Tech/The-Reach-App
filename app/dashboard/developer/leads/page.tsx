@@ -155,17 +155,17 @@ export default function DeveloperLeadsPage() {
   }, [leads, searchQuery]);
 
   return (
-    <div className="p-6 pb-24 lg:pb-6 space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Leads</h1>
-        <p className="text-gray-500 text-sm mt-1">
-          {leads.length} total {leads.length === 1 ? 'lead' : 'leads'}
-        </p>
-      </div>
+    <div className="min-h-screen bg-reach-bg pb-24 lg:pb-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        {/* Header title is handled by DashboardShell */}
+        <div>
+          <p className="text-gray-500 text-sm">
+            {leads.length} total {leads.length === 1 ? 'lead' : 'leads'}
+          </p>
+        </div>
 
-      {/* Search */}
-      <div className="relative">
+        {/* Search */}
+        <div className="relative">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
         <input
           type="text"
@@ -176,8 +176,8 @@ export default function DeveloperLeadsPage() {
         />
       </div>
 
-      {/* Loading */}
-      {isLoading && (
+        {/* Loading */}
+        {isLoading && (
         <div className="space-y-4">
           {[1, 2, 3, 4].map(i => (
             <div key={i} className="bg-white rounded-2xl p-5 animate-pulse">
@@ -209,8 +209,8 @@ export default function DeveloperLeadsPage() {
         </div>
       )}
 
-      {/* Empty State */}
-      {!isLoading && !error && filteredLeads.length === 0 && (
+        {/* Empty State */}
+        {!isLoading && !error && filteredLeads.length === 0 && (
         <div className="bg-white rounded-2xl p-12 text-center border border-gray-100">
           <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -224,8 +224,8 @@ export default function DeveloperLeadsPage() {
         </div>
       )}
 
-      {/* Leads List */}
-      {!isLoading && !error && filteredLeads.length > 0 && (
+        {/* Leads List */}
+        {!isLoading && !error && filteredLeads.length > 0 && (
         <div className="space-y-4">
           {filteredLeads.map(lead => (
             <LeadCard
@@ -236,6 +236,7 @@ export default function DeveloperLeadsPage() {
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }

@@ -57,6 +57,11 @@ export async function uploadFile(
   })
 
   if (error) {
+    console.error(`[File Upload] Bucket: ${bucket}, Error:`, error)
+    // Provide more specific error messages
+    if (error.message?.includes('Bucket not found') || error.message?.includes('does not exist')) {
+      throw new Error(`Storage bucket '${bucket}' does not exist. Please create it in Supabase Storage.`)
+    }
     throw new Error(`Upload failed: ${error.message}`)
   }
 

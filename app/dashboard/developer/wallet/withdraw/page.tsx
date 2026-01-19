@@ -73,6 +73,8 @@ export default function WithdrawPage() {
       {/* Fixed Header */}
       <header className="fixed top-0 left-0 right-0 bg-[#FDFBFA] px-6 py-4 flex items-center justify-between z-50">
         <button
+          aria-label="Back"
+          title="Back"
           onClick={() => router.push('/dashboard/developer/wallet')}
           className="w-10 h-10 rounded-full bg-white flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm"
         >
@@ -80,6 +82,8 @@ export default function WithdrawPage() {
         </button>
         <h1 className="text-lg font-semibold text-gray-900">Withdraw from Wallet</h1>
         <button
+          aria-label="Notifications"
+          title="Notifications"
           onClick={() => router.push('/notifications')}
           className="w-10 h-10 rounded-full bg-white flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm"
         >

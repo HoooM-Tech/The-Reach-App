@@ -423,6 +423,56 @@ export const authApi = {
 // Dashboard APIs - Role Specific
 // ===========================================
 
+// ===========================================
+// Profile API - Shared across all roles
+// ===========================================
+
+export const profileApi = {
+  /** Get current user's profile */
+  async getProfile(): Promise<{
+    profile: {
+      id: string;
+      email: string;
+      phone?: string;
+      full_name?: string;
+      role: string;
+      tier?: number;
+      kyc_status: string;
+      avatar_url?: string;
+      company_name?: string;
+      cac_number?: string;
+      business_address?: string;
+      created_at: string;
+      updated_at: string;
+    };
+    stats?: {
+      earned?: number;
+      sold?: number;
+      rating?: number;
+    };
+  }> {
+    return fetchWithAuth('/api/user/profile');
+  },
+
+  /** Update current user's profile */
+  async updateProfile(data: {
+    full_name?: string;
+    phone?: string;
+    company_name?: string;
+    cac_number?: string;
+    business_address?: string;
+    avatar_url?: string;
+  }): Promise<{
+    message: string;
+    profile: any;
+  }> {
+    return fetchWithAuth('/api/user/profile', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+};
+
 export const developerApi = {
   /** Get developer dashboard data - properties, leads, inspections, payments */
   async getDashboard(developerId: string): Promise<DeveloperDashboardData> {
@@ -658,10 +708,13 @@ export const kycApi = {
 
 export const uploadApi = {
   /** Upload a file */
-  async uploadFile(file: File, type: 'image' | 'document'): Promise<{ url: string; message: string }> {
+  async uploadFile(file: File, type: 'image' | 'document' | 'video', bucket?: string): Promise<{ file_url: string; message: string }> {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('type', type);
+    if (bucket) {
+      formData.append('bucket', bucket);
+    }
 
     const token = getAccessToken();
     const response = await fetch('/api/upload/file', {
@@ -672,7 +725,7 @@ export const uploadApi = {
 
     if (!response.ok) {
       const data = await response.json();
-      throw new ApiError(data.error || 'Upload failed', response.status, data);
+      throw new ApiError(response.status, response.statusText, data);
     }
 
     return response.json();
@@ -698,6 +751,7 @@ export const handoverApi = {
 
 export const api = {
   auth: authApi,
+  profile: profileApi,
   developer: developerApi,
   creator: creatorApi,
   buyer: buyerApi,

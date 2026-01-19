@@ -58,6 +58,8 @@ export default function SelectBankPage() {
       {/* Header */}
       <header className="bg-transparent px-6 py-4 flex items-center justify-between sticky top-0 z-40">
         <button
+          aria-label="Back"
+          title="Back"
           onClick={() => router.back()}
           className="w-10 h-10 rounded-full bg-white flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm"
         >
@@ -70,6 +72,8 @@ export default function SelectBankPage() {
           </p>
         </div>
         <button
+          aria-label="Notifications"
+          title="Notifications"
           onClick={() => router.push('/notifications')}
           className="w-10 h-10 rounded-full bg-white flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm ml-2"
         >

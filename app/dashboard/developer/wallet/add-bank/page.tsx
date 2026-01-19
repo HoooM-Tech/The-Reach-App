@@ -67,11 +67,15 @@ export default function AddBankPage() {
         <button
           onClick={() => router.back()}
           className="w-10 h-10 rounded-full bg-white flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm"
+          aria-label="Back"
+          title="Back"
         >
           <ArrowLeft size={20} className="text-gray-700" />
         </button>
         <h1 className="text-lg font-semibold text-gray-900">Add bank account</h1>
         <button
+          aria-label="Notifications"  
+          title="Notifications"
           onClick={() => router.push('/notifications')}
           className="w-10 h-10 rounded-full bg-white flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm"
         >

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/contexts/UserContext';
-import { ArrowLeft, Bell, Menu, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Bell, Menu, ChevronRight, LogOut } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,7 +24,7 @@ interface ActiveSession {
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { user, isLoading: userLoading } = useUser();
+  const { user, isLoading: userLoading, logout } = useUser();
   
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
   const [notifications, setNotifications] = useState<NotificationSettings>({
@@ -88,6 +88,17 @@ export default function SettingsPage() {
     // In a real app, this would call an API to logout the session
   };
 
+  const handleLogout = async () => {
+    try {
+      await logout();
+      router.push('/');
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Even if logout fails, redirect to home
+      router.push('/');
+    }
+  };
+
   const handleDeleteAccount = () => {
     if (confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
       // In a real app, this would call an API to delete the account
@@ -108,6 +119,7 @@ export default function SettingsPage() {
   return (
     <div className="min-h-screen bg-[#FDFBFA]">
       {/* Header */}
+      {/*
       <header className="bg-transparent px-6 py-4 flex items-center justify-between sticky top-0 z-40">
         <h1 className="text-lg font-semibold text-gray-900">Settings</h1>
         <div className="flex items-center gap-2">
@@ -124,6 +136,7 @@ export default function SettingsPage() {
           </button>
         </div>
       </header>
+      */}
 
       {/* Main Content */}
       <div className="px-6 pb-8 space-y-4">
@@ -155,6 +168,8 @@ export default function SettingsPage() {
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                 twoFactorEnabled ? 'bg-green-500' : 'bg-gray-300'
               }`}
+              aria-label={twoFactorEnabled ? 'Disable Two-Factor Authentication' : 'Enable Two-Factor Authentication'}
+              title={twoFactorEnabled ? 'Disable Two-Factor Authentication' : 'Enable Two-Factor Authentication'}
             >
               <span
                 className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
@@ -170,7 +185,11 @@ export default function SettingsPage() {
               <p className="text-sm font-semibold text-gray-900">Email Address</p>
               <p className="text-xs text-gray-500 mt-0.5">{user?.email || 'rbnsnkngsl@gmail.com'}</p>
             </div>
-            <button className="text-sm text-[#FF6B35] font-semibold hover:text-[#D37D3E] transition-colors">
+            <button 
+              className="text-sm text-[#FF6B35] font-semibold hover:text-[#D37D3E] transition-colors"
+              aria-label="Change email address"
+              title="Change email address"
+            >
               Change
             </button>
           </div>
@@ -219,6 +238,8 @@ export default function SettingsPage() {
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                     value ? 'bg-green-500' : 'bg-gray-300'
                   }`}
+                  aria-label={value ? `Disable ${label} notifications` : `Enable ${label} notifications`}
+                  title={value ? `Disable ${label} notifications` : `Enable ${label} notifications`}
                 >
                   <span
                     className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
@@ -231,14 +252,34 @@ export default function SettingsPage() {
           })}
         </div>
 
-        {/* Delete Account */}
-        <div className="pt-4 pb-8">
+        {/* Logout & Delete Account */}
+        <div className="bg-white rounded-3xl p-6 shadow-sm">
+          <h2 className="text-lg font-bold text-gray-900 mb-4">Account Actions</h2>
+          
+          {/* Logout */}
           <button
-            onClick={handleDeleteAccount}
-            className="text-sm text-red-600 font-semibold hover:text-red-700 transition-colors"
+            onClick={handleLogout}
+            className="w-full flex items-center justify-between py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors rounded-lg px-2 -mx-2"
           >
-            Delete my Account
+            <div className="flex items-center gap-3">
+              <LogOut size={20} className="text-red-600" />
+              <div className="text-left">
+                <p className="text-sm font-semibold text-gray-900">Logout</p>
+                <p className="text-xs text-gray-500">Sign out of your account</p>
+              </div>
+            </div>
+            <ChevronRight size={18} className="text-gray-400" />
           </button>
+
+          {/* Delete Account */}
+          <div className="pt-4">
+            <button
+              onClick={handleDeleteAccount}
+              className="text-sm text-red-600 font-semibold hover:text-red-700 transition-colors"
+            >
+              Delete my Account
+            </button>
+          </div>
         </div>
       </div>
 

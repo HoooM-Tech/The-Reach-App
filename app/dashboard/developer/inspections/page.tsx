@@ -144,43 +144,41 @@ export default function DeveloperInspectionsPage() {
     : inspections.recently_booked;
 
   return (
-    <div className="p-6 pb-24 lg:pb-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="min-h-screen bg-reach-bg pb-24 lg:pb-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        {/* Header title is handled by DashboardShell */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Inspections</h1>
-          <p className="text-gray-500 text-sm mt-1">
+          <p className="text-gray-500 text-sm">
             {inspections.upcoming.length} upcoming, {inspections.completed} completed
           </p>
         </div>
-      </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2">
-        <button
-          onClick={() => setActiveTab('upcoming')}
-          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-            activeTab === 'upcoming'
-              ? 'bg-[#0A1628] text-white'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-          }`}
-        >
-          Upcoming ({inspections.upcoming.length})
-        </button>
-        <button
-          onClick={() => setActiveTab('recent')}
-          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-            activeTab === 'recent'
-              ? 'bg-[#0A1628] text-white'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-          }`}
-        >
-          Recently Booked ({inspections.recently_booked.length})
-        </button>
-      </div>
+        {/* Tabs */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => setActiveTab('upcoming')}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+              activeTab === 'upcoming'
+                ? 'bg-[#0A1628] text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            Upcoming ({inspections.upcoming.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('recent')}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+              activeTab === 'recent'
+                ? 'bg-[#0A1628] text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            Recently Booked ({inspections.recently_booked.length})
+          </button>
+        </div>
 
-      {/* Loading */}
-      {isLoading && (
+        {/* Loading */}
+        {isLoading && (
         <div className="space-y-4">
           {[1, 2, 3].map(i => (
             <div key={i} className="bg-white rounded-2xl p-5 animate-pulse">
@@ -194,10 +192,10 @@ export default function DeveloperInspectionsPage() {
             </div>
           ))}
         </div>
-      )}
+        )}
 
-      {/* Error */}
-      {error && (
+        {/* Error */}
+        {error && (
         <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Failed to load inspections</h3>
@@ -210,10 +208,10 @@ export default function DeveloperInspectionsPage() {
             Try Again
           </button>
         </div>
-      )}
+        )}
 
-      {/* Empty State */}
-      {!isLoading && !error && displayedInspections.length === 0 && (
+        {/* Empty State */}
+        {!isLoading && !error && displayedInspections.length === 0 && (
         <div className="bg-white rounded-2xl p-12 text-center border border-gray-100">
           <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -238,7 +236,8 @@ export default function DeveloperInspectionsPage() {
             />
           ))}
         </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

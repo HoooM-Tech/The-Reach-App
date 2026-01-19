@@ -4,6 +4,11 @@ import { User, Property } from '../../types';
 import PropertyCard from '../../components/dashboard/PropertyCard';
 import { Bell, Menu, Search, SlidersHorizontal, Map } from 'lucide-react';
 
+/**
+ * @deprecated This component uses MOCK_PROPERTIES and appears to be legacy/unused.
+ * The actual buyer dashboard is in app/dashboard/buyer/page.tsx which uses real APIs.
+ * This component should be removed or updated to use real data from buyerApi.getDashboard().
+ */
 const MOCK_PROPERTIES: Property[] = [
   { 
     id: '1', 

@@ -29,18 +29,12 @@ const VerificationFlow: React.FC = () => {
     else if (step === VerifyStep.KYC) setStep(VerifyStep.SUCCESS);
   };
 
-  const handleFinish = () => {
-    const mockUser: User = {
-      id: Math.random().toString(36).substr(2, 9),
-      name: "Robinson Kingsley",
-      role: role,
-      email: "rob@example.com",
-      phone: phone,
-      isVerified: true,
-      kyc_status: 'verified',
-    };
-    setUser(mockUser);
-    router.push('/dashboard');
+  const handleFinish = async () => {
+    // NOTE: This component appears to be legacy/unused.
+    // In a real implementation, this should call the actual auth API to complete verification
+    // For now, redirect to login to ensure users go through proper authentication
+    console.warn('VerificationFlow: This component uses mock data and should be updated to use real auth APIs');
+    router.push('/login');
   };
 
   const renderPhone = () => (

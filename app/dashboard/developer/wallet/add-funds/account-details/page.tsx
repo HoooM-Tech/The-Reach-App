@@ -45,23 +45,27 @@ export default function AccountDetailsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FDFBFA]">
+    <div className="min-h-screen bg-[#FFF5F5]">
       {/* Header */}
-      <header className="bg-transparent px-6 py-4 flex items-center justify-between sticky top-0 z-40">
+      {/* <header className="bg-transparent px-6 py-4 flex items-center justify-between sticky top-0 z-40">
         <button
           onClick={() => router.back()}
           className="w-10 h-10 rounded-full bg-white flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm"
+          aria-label="Back"
+          title="Back"
         >
           <ArrowLeft size={20} className="text-gray-700" />
         </button>
         <h1 className="text-lg font-semibold text-gray-900">Naira account details</h1>
         <button
-          onClick={() => router.push('/notifications')}
+          onClick={() => router.push('/notifications')} 
           className="w-10 h-10 rounded-full bg-white flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm"
+          aria-label="Notifications"
+          title="Notifications"
         >
           <Bell size={20} className="text-gray-700" />
         </button>
-      </header>
+      </header> */}
 
       {/* Main Content */}
       <div className="px-6 pt-6 pb-8">
