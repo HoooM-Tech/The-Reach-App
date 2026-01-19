@@ -725,7 +725,7 @@ export const uploadApi = {
 
     if (!response.ok) {
       const data = await response.json();
-      throw new ApiError(response.status, response.statusText, data);
+      throw new ApiError(data.error || 'Upload failed', response.status, data);
     }
 
     return response.json();
