@@ -197,9 +197,9 @@ export default function NewPropertyPage() {
   }
 
   return (
-      <div className="min-h-screen bg-[#FDFBFA]">
+      <div className="min-h-screen bg-[#FFF5F5]">
         {/* Fixed Header */}
-        <header className="fixed top-0 left-0 right-0 bg-[#FDFBFA] px-6 py-4 flex items-center justify-between z-50 border-b border-gray-100">
+        {/* <header className="fixed top-0 left-0 right-0 bg-[#FDFBFA] px-6 py-4 flex items-center justify-between z-50 border-b border-gray-100">
           <button
             onClick={handleBack}
             className="w-10 h-10 rounded-full bg-white flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm"
@@ -215,7 +215,7 @@ export default function NewPropertyPage() {
           >
             <Bell size={20} className="text-gray-700" />
           </button>
-        </header>
+        </header> */}
 
         {/* Progress Indicator */}
         <div className="pt-24 px-6 mb-6">
