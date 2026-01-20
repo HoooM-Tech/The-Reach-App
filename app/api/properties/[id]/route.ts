@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminSupabaseClient, createServerSupabaseClient } from '@/lib/supabase/client'
 import { getAuthenticatedUser, requireDeveloper } from '@/lib/utils/auth'
 import { NotFoundError, ValidationError, handleError } from '@/lib/utils/errors'
+import { normalizePhoneNumber } from '@/lib/utils/phone'
 
 export async function GET(
   req: NextRequest,
@@ -25,17 +26,85 @@ export async function GET(
       throw new NotFoundError('Property')
     }
 
-    // Check if property is verified or user is developer/admin (for access control)
+    // Check if property is verified or user has access (for access control)
     // This is a business logic check, not RLS
     let canViewProperty = property.verification_status === 'verified'
     
     try {
       const user = await getAuthenticatedUser()
+      
+      // Developers should NOT use this route - they have their own route at /dashboard/developer/properties/[id]
+      // Block developers from accessing this public property route
       if (user.role === 'developer' && user.id === property.developer_id) {
-        canViewProperty = true
+        // Developers should use /dashboard/developer/properties/[id] instead
+        // Return 403 to indicate they should use the correct route
+        return NextResponse.json(
+          { error: 'Developers should use /dashboard/developer/properties/[id] to view their properties' },
+          { status: 403 }
+        )
       }
+      
+      // Admins can view all properties
       if (user.role === 'admin') {
         canViewProperty = true
+      }
+      
+      // If property is not verified and user is not developer/admin,
+      // check if user has a lead or inspection for this property
+      if (!canViewProperty) {
+        // Check if user has a lead for this property (by email or phone)
+        // First, get all leads for this property
+        const { data: allLeads } = await supabase
+          .from('leads')
+          .select('id, buyer_email, buyer_phone')
+          .eq('property_id', propertyId)
+        
+        if (allLeads && allLeads.length > 0) {
+          // Match by email (case-insensitive)
+          const emailMatch = user.email && allLeads.some(
+            lead => lead.buyer_email?.toLowerCase() === user.email?.toLowerCase()
+          )
+          
+          // Match by phone (normalized)
+          const phoneMatch = user.phone && allLeads.some(lead => {
+            if (!lead.buyer_phone) return false
+            const normalizedUserPhone = normalizePhoneNumber(user.phone!)
+            const normalizedLeadPhone = normalizePhoneNumber(lead.buyer_phone)
+            return normalizedUserPhone === normalizedLeadPhone
+          })
+          
+          if (emailMatch || phoneMatch) {
+            canViewProperty = true
+          }
+        }
+        
+        // Check if user has an inspection for this property
+        if (!canViewProperty) {
+          const { data: inspections } = await supabase
+            .from('inspections')
+            .select('id')
+            .eq('property_id', propertyId)
+            .eq('buyer_id', user.id)
+            .limit(1)
+          
+          if (inspections && inspections.length > 0) {
+            canViewProperty = true
+          }
+        }
+        
+        // Check if user is a creator who has a tracking link for this property
+        if (!canViewProperty && user.role === 'creator') {
+          const { data: trackingLinks } = await supabase
+            .from('tracking_links')
+            .select('id')
+            .eq('property_id', propertyId)
+            .eq('creator_id', user.id)
+            .limit(1)
+          
+          if (trackingLinks && trackingLinks.length > 0) {
+            canViewProperty = true
+          }
+        }
       }
     } catch {
       // User not authenticated - only verified properties are visible
@@ -68,9 +137,11 @@ export async function GET(
     }
 
     return NextResponse.json({
-      ...property,
-      media: media || [],
-      documents: documents || [],
+      property: {
+        ...property,
+        media: media || [],
+        documents: documents || [],
+      }
     })
   } catch (error) {
     const { error: errorMessage, statusCode } = handleError(error)

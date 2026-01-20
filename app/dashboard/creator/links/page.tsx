@@ -48,28 +48,28 @@ function LinkCard({ link }: LinkCardProps) {
   };
 
   return (
-    <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/10">
+    <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
       {/* Property Title */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-white truncate">{link.property_title}</h3>
-          <p className="text-xs text-white/50 mt-1">
+          <h3 className="font-semibold text-gray-900 truncate">{link.property_title}</h3>
+          <p className="text-xs text-gray-500 mt-1">
             Created {new Date(link.created_at).toLocaleDateString()}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={copyToClipboard}
-            className="p-2 bg-white/10 rounded-lg hover:bg-white/20 text-white/60 hover:text-white transition-colors"
+            className="p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600 hover:text-gray-900 transition-colors"
             title="Copy link"
           >
-            {copied ? <CheckCircle size={16} className="text-emerald-400" /> : <Copy size={16} />}
+            {copied ? <CheckCircle size={16} className="text-emerald-600" /> : <Copy size={16} />}
           </button>
           <a
             href={link.tracking_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="p-2 bg-white/10 rounded-lg hover:bg-white/20 text-white/60 hover:text-white transition-colors"
+            className="p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600 hover:text-gray-900 transition-colors"
             title="Open link"
           >
             <ExternalLink size={16} />
@@ -78,31 +78,31 @@ function LinkCard({ link }: LinkCardProps) {
       </div>
 
       {/* Link URL */}
-      <div className="bg-white/5 rounded-lg px-3 py-2 mb-4">
-        <p className="text-xs text-white/40 font-mono truncate">{link.tracking_url}</p>
+      <div className="bg-gray-50 rounded-lg px-3 py-2 mb-4">
+        <p className="text-xs text-gray-500 font-mono truncate">{link.tracking_url}</p>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-4 gap-2">
-        <div className="text-center p-2 bg-white/5 rounded-lg">
-          <Eye size={14} className="mx-auto text-white/60 mb-1" />
-          <p className="text-sm font-semibold text-white">{link.impressions}</p>
-          <p className="text-xs text-white/40">Views</p>
+        <div className="text-center p-2 bg-gray-50 rounded-lg">
+          <Eye size={14} className="mx-auto text-gray-500 mb-1" />
+          <p className="text-sm font-semibold text-gray-900">{link.impressions}</p>
+          <p className="text-xs text-gray-500">Views</p>
         </div>
-        <div className="text-center p-2 bg-white/5 rounded-lg">
-          <MousePointer size={14} className="mx-auto text-white/60 mb-1" />
-          <p className="text-sm font-semibold text-white">{link.clicks}</p>
-          <p className="text-xs text-white/40">Clicks</p>
+        <div className="text-center p-2 bg-gray-50 rounded-lg">
+          <MousePointer size={14} className="mx-auto text-gray-500 mb-1" />
+          <p className="text-sm font-semibold text-gray-900">{link.clicks}</p>
+          <p className="text-xs text-gray-500">Clicks</p>
         </div>
-        <div className="text-center p-2 bg-white/5 rounded-lg">
-          <Users size={14} className="mx-auto text-white/60 mb-1" />
-          <p className="text-sm font-semibold text-white">{link.leads}</p>
-          <p className="text-xs text-white/40">Leads</p>
+        <div className="text-center p-2 bg-gray-50 rounded-lg">
+          <Users size={14} className="mx-auto text-gray-500 mb-1" />
+          <p className="text-sm font-semibold text-gray-900">{link.leads}</p>
+          <p className="text-xs text-gray-500">Leads</p>
         </div>
-        <div className="text-center p-2 bg-white/5 rounded-lg">
-          <TrendingUp size={14} className="mx-auto text-white/60 mb-1" />
-          <p className="text-sm font-semibold text-emerald-400">{link.conversion_rate.toFixed(1)}%</p>
-          <p className="text-xs text-white/40">Rate</p>
+        <div className="text-center p-2 bg-gray-50 rounded-lg">
+          <TrendingUp size={14} className="mx-auto text-gray-500 mb-1" />
+          <p className="text-sm font-semibold text-emerald-600">{link.conversion_rate.toFixed(1)}%</p>
+          <p className="text-xs text-gray-500">Rate</p>
         </div>
       </div>
     </div>
@@ -154,101 +154,103 @@ export default function CreatorLinksPage() {
   );
 
   return (
-    <div className="p-6 pb-24 lg:pb-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">My Tracking Links</h1>
-          <p className="text-white/60 text-sm mt-1">
-            {links.length} active {links.length === 1 ? 'link' : 'links'}
-          </p>
-        </div>
-        <button
-          onClick={() => router.push('/dashboard/creator/properties')}
-          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl hover:opacity-90"
-        >
-          <Plus size={18} />
-          New Link
-        </button>
-      </div>
-
-      {/* Summary Stats */}
-      {!isLoading && links.length > 0 && (
-        <div className="grid grid-cols-3 gap-4">
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 text-center border border-white/10">
-            <p className="text-2xl font-bold text-white">{totals.impressions.toLocaleString()}</p>
-            <p className="text-sm text-white/60">Total Views</p>
+    <div className="min-h-screen bg-reach-bg pb-24 lg:pb-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-6 space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">My Tracking Links</h1>
+            <p className="text-gray-500 text-sm mt-1">
+              {links.length} active {links.length === 1 ? 'link' : 'links'}
+            </p>
           </div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 text-center border border-white/10">
-            <p className="text-2xl font-bold text-white">{totals.clicks.toLocaleString()}</p>
-            <p className="text-sm text-white/60">Total Clicks</p>
-          </div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 text-center border border-white/10">
-            <p className="text-2xl font-bold text-emerald-400">{totals.leads}</p>
-            <p className="text-sm text-white/60">Total Leads</p>
-          </div>
-        </div>
-      )}
-
-      {/* Loading */}
-      {isLoading && (
-        <div className="space-y-4">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="bg-white/10 rounded-2xl p-5 animate-pulse">
-              <div className="h-5 bg-white/10 rounded w-3/4 mb-4" />
-              <div className="h-8 bg-white/10 rounded mb-4" />
-              <div className="grid grid-cols-4 gap-2">
-                {[1, 2, 3, 4].map(j => (
-                  <div key={j} className="h-16 bg-white/10 rounded" />
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Error */}
-      {error && (
-        <div className="bg-red-500/20 border border-red-500/30 rounded-2xl p-6 text-center">
-          <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-white mb-2">Failed to load links</h3>
-          <p className="text-white/70 mb-4">{error}</p>
-          <button
-            onClick={fetchLinks}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-white text-gray-900 rounded-lg"
-          >
-            <RefreshCw size={16} />
-            Try Again
-          </button>
-        </div>
-      )}
-
-      {/* Empty State */}
-      {!isLoading && !error && links.length === 0 && (
-        <div className="bg-white/10 rounded-2xl p-12 text-center">
-          <Link2 className="w-16 h-16 text-white/30 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-white mb-2">No tracking links yet</h3>
-          <p className="text-white/60 mb-6">
-            Generate links for properties to start earning commissions
-          </p>
           <button
             onClick={() => router.push('/dashboard/creator/properties')}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-medium"
+            className="flex items-center gap-2 px-4 py-2 bg-reach-primary text-white rounded-xl hover:bg-reach-primary/90 transition-colors"
           >
-            <Building2 size={18} />
-            Browse Properties
+            <Plus size={18} />
+            New Link
           </button>
         </div>
-      )}
 
-      {/* Links List */}
-      {!isLoading && !error && links.length > 0 && (
-        <div className="space-y-4">
-          {links.map(link => (
-            <LinkCard key={link.id} link={link} />
-          ))}
-        </div>
-      )}
+        {/* Summary Stats */}
+        {!isLoading && links.length > 0 && (
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-white rounded-2xl p-4 text-center border border-gray-100 shadow-sm">
+              <p className="text-2xl font-bold text-gray-900">{totals.impressions.toLocaleString()}</p>
+              <p className="text-sm text-gray-500">Total Views</p>
+            </div>
+            <div className="bg-white rounded-2xl p-4 text-center border border-gray-100 shadow-sm">
+              <p className="text-2xl font-bold text-gray-900">{totals.clicks.toLocaleString()}</p>
+              <p className="text-sm text-gray-500">Total Clicks</p>
+            </div>
+            <div className="bg-white rounded-2xl p-4 text-center border border-gray-100 shadow-sm">
+              <p className="text-2xl font-bold text-emerald-600">{totals.leads}</p>
+              <p className="text-sm text-gray-500">Total Leads</p>
+            </div>
+          </div>
+        )}
+
+        {/* Loading */}
+        {isLoading && (
+          <div className="space-y-4">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm animate-pulse">
+                <div className="h-5 bg-gray-200 rounded w-3/4 mb-4" />
+                <div className="h-8 bg-gray-200 rounded mb-4" />
+                <div className="grid grid-cols-4 gap-2">
+                  {[1, 2, 3, 4].map(j => (
+                    <div key={j} className="h-16 bg-gray-200 rounded" />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Error */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
+            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Failed to load links</h3>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <button
+              onClick={fetchLinks}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-reach-primary text-white rounded-lg hover:bg-reach-primary/90 transition-colors"
+            >
+              <RefreshCw size={16} />
+              Try Again
+            </button>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!isLoading && !error && links.length === 0 && (
+          <div className="bg-white rounded-2xl p-12 text-center border border-gray-100 shadow-sm">
+            <Link2 className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">No tracking links yet</h3>
+            <p className="text-gray-600 mb-6">
+              Generate links for properties to start earning commissions
+            </p>
+            <button
+              onClick={() => router.push('/dashboard/creator/properties')}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-reach-primary text-white rounded-xl font-medium hover:bg-reach-primary/90 transition-colors"
+            >
+              <Building2 size={18} />
+              Browse Properties
+            </button>
+          </div>
+        )}
+
+        {/* Links List */}
+        {!isLoading && !error && links.length > 0 && (
+          <div className="space-y-4">
+            {links.map(link => (
+              <LinkCard key={link.id} link={link} />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

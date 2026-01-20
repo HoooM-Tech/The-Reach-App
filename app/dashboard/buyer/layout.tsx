@@ -92,7 +92,7 @@ function BuyerLayoutContent({ children }: { children: React.ReactNode }) {
           </h1>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => router.push('/notifications')}
+              onClick={() => router.push('/dashboard/notifications')}
               className="p-2 rounded-full hover:bg-gray-100 relative"
               aria-label="Notifications"
               title="Notifications"

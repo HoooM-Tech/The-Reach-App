@@ -124,7 +124,7 @@ export default function BuyerSettingsPage() {
               icon={<Bell size={20} />}
               label="Notifications"
               description="Manage notification preferences"
-              onClick={() => router.push('/notifications')}
+              onClick={() => router.push('/dashboard/notifications')}
             />
             <SettingsItem
               icon={<CreditCard size={20} />}

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase/client'
+import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase/client'
 import { getAuthenticatedUser } from '@/lib/utils/auth'
 import { handleError } from '@/lib/utils/errors'
 
@@ -19,7 +19,9 @@ export async function GET(
     const { searchParams } = new URL(req.url)
     const unreadOnly = searchParams.get('unread') === 'true'
 
-    const supabase = createServerSupabaseClient()
+    // Use admin client since we've already verified user access
+    // This bypasses RLS which might be blocking the query
+    const supabase = createAdminSupabaseClient()
 
     let query = supabase
       .from('notifications')
@@ -38,8 +40,15 @@ export async function GET(
       throw new Error(error.message)
     }
 
+    // Normalize field names: database uses 'read', frontend expects 'is_read'
+    const normalizedNotifications = (notifications || []).map((n: any) => ({
+      ...n,
+      is_read: n.read ?? false,
+      message: n.body || n.message || '',
+    }))
+
     return NextResponse.json({
-      notifications: notifications || [],
+      notifications: normalizedNotifications,
     })
   } catch (error) {
     const { error: errorMessage, statusCode } = handleError(error)

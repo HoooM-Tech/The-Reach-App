@@ -502,7 +502,8 @@ export const developerApi = {
 
   /** Get single property details */
   async getProperty(id: string): Promise<Property> {
-    return fetchWithAuth(`/api/properties/${id}`);
+    const response = await fetchWithAuth<{ property: Property }>(`/api/properties/${id}`);
+    return response.property;
   },
 
   /** Submit property for verification */
@@ -671,6 +672,13 @@ export const notificationsApi = {
   /** Mark notification as read */
   async markAsRead(notificationId: string): Promise<{ message: string }> {
     return fetchWithAuth(`/api/notifications/${notificationId}/read`, {
+      method: 'PATCH',
+    });
+  },
+
+  /** Mark all notifications as read */
+  async markAllAsRead(): Promise<{ message: string; success: boolean }> {
+    return fetchWithAuth('/api/notifications/mark-all-read', {
       method: 'POST',
     });
   },

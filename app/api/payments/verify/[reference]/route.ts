@@ -123,6 +123,34 @@ export async function POST(
       }
     }
 
+    // Send notifications
+    try {
+      const { notificationHelpers } = await import('@/lib/services/notification-helper')
+      await notificationHelpers.paymentConfirmed({
+        buyerId,
+        developerId,
+        creatorId: creatorId || undefined,
+        propertyId,
+        propertyTitle: property.title,
+        amount,
+        transactionId: escrow.id,
+        escrowId: escrow.id,
+      })
+
+      // Also notify about property being bought
+      await notificationHelpers.propertyBought({
+        developerId,
+        buyerId,
+        propertyId,
+        propertyTitle: property.title,
+        transactionId: escrow.id,
+        amount,
+      })
+    } catch (notifError) {
+      console.error('Failed to send notifications:', notifError)
+      // Don't fail the request if notification fails
+    }
+
     return NextResponse.json({
       message: 'Payment verified and escrow created',
       escrow,

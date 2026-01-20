@@ -89,6 +89,20 @@ export async function POST(
       throw new ValidationError(contractError.message)
     }
 
+    // Send notification to developer
+    try {
+      const { notificationHelpers } = await import('@/lib/services/notification-helper')
+      await notificationHelpers.contractExecuted({
+        developerId: property.developer_id,
+        propertyId: propertyId,
+        propertyTitle: property.title,
+        contractId: contract.id,
+      })
+    } catch (notifError) {
+      console.error('Failed to send notification:', notifError)
+      // Don't fail the request if notification fails
+    }
+
     return NextResponse.json(
       {
         message: 'Contract generated successfully',

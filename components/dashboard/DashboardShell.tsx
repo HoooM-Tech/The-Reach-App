@@ -32,9 +32,12 @@ interface NavItem {
 interface DashboardShellProps {
   children: ReactNode;
   user?: { name?: string; companyName?: string; avatarUrl?: string };
+  navItems?: NavItem[];
+  accountItems?: Array<{ label: string; href: string; icon: React.ComponentType<any> }>;
+  basePath?: string; // Base path for active route detection (e.g., '/dashboard/developer' or '/dashboard/creator')
 }
 
-export function DashboardShell({ children, user }: DashboardShellProps) {
+export function DashboardShell({ children, user, navItems: customNavItems, accountItems: customAccountItems, basePath = '/dashboard/developer' }: DashboardShellProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { user: contextUser } = useUser();
@@ -161,8 +164,8 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
   }, [contextUser?.id, contextUser?.role, pathname]);
 
   // Build nav items with dynamic badge counts
-  // Show badge when count is loaded (not null) - display 0 if count is 0
-  const navItems: NavItem[] = [
+  // Use custom nav items if provided, otherwise use default developer nav items
+  const defaultNavItems: NavItem[] = [
     { label: 'Dashboard', href: '/dashboard/developer', icon: LayoutDashboard },
     { label: 'Listing', href: '/dashboard/developer/properties', icon: Building2 },
     { 
@@ -181,39 +184,48 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
     { label: 'Documents', href: '/dashboard/developer/documents', icon: Wallet },
   ];
 
-  const accountItems = [
+  const defaultAccountItems = [
     { label: 'Profile', href: '/dashboard/developer/profile', icon: User },
     { label: 'Settings & Privacy', href: '/dashboard/developer/settings', icon: Settings },
     { label: 'Help Center', href: '/dashboard/developer/help', icon: HelpCircle },
   ];
 
+  const navItems = customNavItems || defaultNavItems;
+  const accountItems = customAccountItems || defaultAccountItems;
+
   const isActive = (href: string) => {
-    if (href === '/dashboard/developer') {
+    if (href === basePath) {
       return pathname === href;
     }
     return pathname.startsWith(href);
   };
 
   // Determine if we're on the dashboard home
-  const isDashboardHome = pathname === '/dashboard/developer';
+  const isDashboardHome = pathname === basePath;
   
   // Determine if we need a back button (for detail pages)
-  const showBackButton = (pathname.includes('/properties/') && pathname !== '/dashboard/developer/properties') ||
-                         (pathname.includes('/leads/') && pathname !== '/dashboard/developer/leads') ||
-                         (pathname.includes('/inspections/') && pathname !== '/dashboard/developer/inspections') ||
+  const showBackButton = (pathname.includes('/properties/') && pathname !== `${basePath}/properties`) ||
+                         (pathname.includes('/leads/') && pathname !== `${basePath}/leads`) ||
+                         (pathname.includes('/inspections/') && pathname !== `${basePath}/inspections`) ||
                          pathname.includes('/wallet/') ||
                          pathname.includes('/handover/') ||
                          pathname.includes('/settings/') ||
-                         pathname === '/dashboard/developer/profile/edit';
+                         pathname === `${basePath}/profile/edit` ||
+                         pathname.includes('/links/') ||
+                         pathname.includes('/analytics/') ||
+                         pathname.includes('/social/');
   
   // Get page title for simplified header
   const getPageTitle = (): string | null => {
-    if (pathname === '/dashboard/developer/properties') return 'Properties';
-    if (pathname === '/dashboard/developer/leads') return 'Leads';
-    if (pathname === '/dashboard/developer/inspections') return 'Inspections';
-    if (pathname === '/dashboard/developer/profile') return 'Profile';
-    if (pathname === '/dashboard/developer/settings') return 'Settings';
-    if (pathname === '/dashboard/developer/wallet') return 'Wallet';
+    if (pathname === `${basePath}/properties`) return 'Properties';
+    if (pathname === `${basePath}/leads`) return 'Leads';
+    if (pathname === `${basePath}/inspections`) return 'Inspections';
+    if (pathname === `${basePath}/profile`) return 'Profile';
+    if (pathname === `${basePath}/settings`) return 'Settings';
+    if (pathname === `${basePath}/wallet`) return 'Wallet';
+    if (pathname === `${basePath}/links`) return 'My Links';
+    if (pathname === `${basePath}/analytics`) return 'Analytics';
+    if (pathname === `${basePath}/social`) return 'Social Media';
     return null;
   };
   
@@ -321,7 +333,7 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
           </div>
           <div className="flex items-center gap-3">
             <button
-              onClick={() => router.push('/notifications')}
+              onClick={() => router.push('/dashboard/notifications')}
               className="w-10 h-10 bg-white rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm"
               aria-label="Notifications"
               title="Notifications"
@@ -358,7 +370,7 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
           </div>
           <div className="flex items-center gap-3">
             <button
-              onClick={() => router.push('/notifications')}
+              onClick={() => router.push('/dashboard/notifications')}
               className="w-10 h-10 bg-white rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm"
               aria-label="Notifications"
               title="Notifications"
@@ -406,7 +418,7 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
           </div>
           <div className="flex items-center gap-3">
             <button
-              onClick={() => router.push('/notifications')}
+              onClick={() => router.push('/dashboard/notifications')}
               className="w-10 h-10 bg-white rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm"
               aria-label="Notifications"
               title="Notifications"
@@ -434,7 +446,7 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
           </div>
           <div className="flex items-center gap-3">
             <button
-              onClick={() => router.push('/notifications')}
+              onClick={() => router.push('/dashboard/notifications')}
               className="w-10 h-10 bg-white rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm"
               aria-label="Notifications"
               title="Notifications"

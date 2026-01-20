@@ -186,7 +186,7 @@ export default function DraftsPage() {
           <h1 className="text-2xl font-bold text-gray-900">Draft</h1>
           <div className="flex items-center gap-3">
             <button
-              onClick={() => router.push('/notifications')}
+              onClick={() => router.push('/dashboard/notifications')}
               className="w-10 h-10 rounded-full bg-white flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm"
             >
               <Bell size={20} className="text-gray-700" />

@@ -98,6 +98,33 @@ export async function POST(
           released_at: new Date().toISOString(),
         })
         .eq('id', escrow.id)
+
+      // Send deposit notifications
+      try {
+        const { notificationHelpers } = await import('@/lib/services/notification-helper')
+        
+        // Notify developer about deposit
+        if (splits.developer_amount > 0) {
+          await notificationHelpers.depositCash({
+            userId: handover.developer_id,
+            amount: splits.developer_amount,
+            transactionId: escrow.id,
+            propertyId: handover.property_id,
+          })
+        }
+        
+        // Notify creator about deposit
+        if (splits.creator_amount > 0 && handover.creator_id) {
+          await notificationHelpers.depositCash({
+            userId: handover.creator_id,
+            amount: splits.creator_amount,
+            transactionId: escrow.id,
+            propertyId: handover.property_id,
+          })
+        }
+      } catch (notifError) {
+        console.error('Failed to send deposit notifications:', notifError)
+      }
     }
 
     // Mark handover as complete

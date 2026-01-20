@@ -454,6 +454,7 @@ export default function PropertyDetailPage() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user } = useUser();
   const propertyId = (params?.id as string) || '';
   const sourceCode = searchParams.get('ref') || undefined;
   
@@ -462,6 +463,17 @@ export default function PropertyDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
   const [isInspectionModalOpen, setIsInspectionModalOpen] = useState(false);
+
+  // Check if developer should be redirected to their own route
+  useEffect(() => {
+    if (!propertyId || !user) return;
+
+    // If user is a developer, redirect them to their own route
+    // The API will handle access control and return 403 if they don't own it
+    if (user.role === 'developer') {
+      router.replace(`/dashboard/developer/properties/${propertyId}`);
+    }
+  }, [propertyId, user, router]);
 
   // Fetch property from real API
   useEffect(() => {

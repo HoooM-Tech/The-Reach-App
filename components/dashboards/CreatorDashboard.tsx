@@ -26,7 +26,7 @@ const CreatorDashboard: React.FC<{ user: User }> = ({ user }) => {
           </div>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => router.push('/notifications')} className="bg-gray-50 p-2.5 rounded-full text-gray-500">
+          <button onClick={() => router.push('/dashboard/notifications')} className="bg-gray-50 p-2.5 rounded-full text-gray-500">
             <Bell size={20} />
           </button>
           <button className="bg-gray-50 p-2.5 rounded-full text-gray-500">

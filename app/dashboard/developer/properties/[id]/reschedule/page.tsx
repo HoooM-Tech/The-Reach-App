@@ -151,7 +151,7 @@ export default function RescheduleInspectionPage() {
         </button>
         <h1 className="text-lg font-bold text-gray-900">Re-schedule a meeting</h1>
         <button
-          onClick={() => router.push('/notifications')}
+          onClick={() => router.push('/dashboard/notifications')}
           className="p-2 rounded-full bg-white hover:bg-gray-50 transition-colors shadow-sm"
           aria-label="Notifications"
           title="Notifications"

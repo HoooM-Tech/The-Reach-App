@@ -61,32 +61,32 @@ interface PropertyDetails {
 
 function StatusBadge({ status }: { status: string }) {
   const statusConfig: Record<string, { label: string; bgColor: string; textColor: string; dotColor: string }> = {
-    verified: {
-      label: 'Verified',
+    verified: { 
+      label: 'Verified', 
       bgColor: 'bg-emerald-500',
       textColor: 'text-white',
       dotColor: 'bg-emerald-600',
     },
-    pending_verification: {
+    pending_verification: { 
+      label: 'Pending', 
+      bgColor: 'bg-orange-500',
+      textColor: 'text-white',
+      dotColor: 'bg-orange-600',
+    },
+    submitted: { 
       label: 'Pending',
       bgColor: 'bg-orange-500',
       textColor: 'text-white',
       dotColor: 'bg-orange-600',
     },
-    submitted: {
-      label: 'Pending',
-      bgColor: 'bg-orange-500',
-      textColor: 'text-white',
-      dotColor: 'bg-orange-600',
-    },
-    draft: {
-      label: 'Draft',
+    draft: { 
+      label: 'Draft', 
       bgColor: 'bg-gray-500',
       textColor: 'text-white',
       dotColor: 'bg-gray-600',
     },
-    rejected: {
-      label: 'Rejected',
+    rejected: { 
+      label: 'Rejected', 
       bgColor: 'bg-red-500',
       textColor: 'text-white',
       dotColor: 'bg-red-600',
@@ -134,16 +134,16 @@ export default function DeveloperPropertyDetailPage() {
     setError(null);
 
     try {
-      const token = getAccessToken();
+        const token = getAccessToken();
       const response = await fetch(`/api/properties/${propertyId}/details`, {
-        signal: abortController.signal,
+          signal: abortController.signal,
         credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` }),
-        },
-      });
-
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` }),
+          },
+        });
+        
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || 'Failed to load property details');
@@ -310,8 +310,8 @@ export default function DeveloperPropertyDetailPage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <header className="sticky top-0 bg-reach-bg z-40 py-4 flex items-center justify-between">
-          <button
-            onClick={() => router.push('/dashboard/developer/properties')}
+            <button
+              onClick={() => router.push('/dashboard/developer/properties')}
             className="p-2 rounded-full bg-white hover:bg-gray-50 transition-colors shadow-sm"
             aria-label="Back"
             title="Back"
@@ -320,13 +320,13 @@ export default function DeveloperPropertyDetailPage() {
           </button>
           <h1 className="text-lg font-bold text-gray-900">Property Details</h1>
           <button
-            onClick={() => router.push('/notifications')}
+            onClick={() => router.push('/dashboard/notifications')}
             className="p-2 rounded-full bg-white hover:bg-gray-50 transition-colors shadow-sm"
             aria-label="Notifications"
             title="Notifications"
           >
             <Bell size={20} className="text-gray-700" />
-          </button>
+            </button>
         </header>
 
         {/* Property Card */}
@@ -356,14 +356,14 @@ export default function DeveloperPropertyDetailPage() {
             {/* Menu Icon - Top Right */}
             <div className="absolute top-3 right-3">
               <div className="relative">
-                <button
+              <button
                   onClick={() => setShowMenu(!showMenu)}
                   className="p-2 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-colors shadow-sm"
                   aria-label="More options"
                   title="More options"
                 >
                   <MoreVertical size={16} className="text-gray-700" />
-                </button>
+              </button>
                 <AnimatePresence>
                   {showMenu && (
                     <>
@@ -377,7 +377,7 @@ export default function DeveloperPropertyDetailPage() {
                         exit={{ opacity: 0, scale: 0.95 }}
                         className="absolute right-0 top-10 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-20 min-w-[120px]"
                       >
-                        <button
+              <button
                           onClick={() => {
                             router.push(`/dashboard/developer/properties/${property.id}/edit`);
                             setShowMenu(false);
@@ -386,19 +386,19 @@ export default function DeveloperPropertyDetailPage() {
                         >
                           <FileEdit size={14} />
                           Edit
-                        </button>
+              </button>
                       </motion.div>
                     </>
-                  )}
+            )}
                 </AnimatePresence>
-              </div>
-            </div>
+          </div>
+        </div>
           </div>
 
           {/* Property Information */}
           <div className="p-4 space-y-3">
             {/* Price and Rating */}
-            <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between">
               <span className="inline-flex items-center px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg font-semibold text-sm">
                 {formatPrice(property.asking_price || 0)}
               </span>
@@ -582,7 +582,7 @@ export default function DeveloperPropertyDetailPage() {
                   >
                     Confirm
                   </button>
-                </div>
+              </div>
               </div>
             )}
           </div>

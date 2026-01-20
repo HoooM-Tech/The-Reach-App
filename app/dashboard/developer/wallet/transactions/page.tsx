@@ -145,7 +145,7 @@ export default function TransactionsPage() {
         <button
           aria-label="Notifications"
           title="Notifications"
-          onClick={() => router.push('/notifications')}
+          onClick={() => router.push('/dashboard/notifications')}
           className="w-10 h-10 rounded-full bg-white flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm"
         >
           <Bell size={20} className="text-gray-700" />

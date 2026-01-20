@@ -106,59 +106,22 @@ export async function POST(req: NextRequest) {
         .eq('id', validated.property_id)
     }
 
-    // Send notification to developer
+    // Send notifications using helper
     try {
-      const { data: developer } = await adminSupabase
-        .from('users')
-        .select('id, email, phone')
-        .eq('id', property.developer_id)
-        .single()
-
-      if (developer) {
-        await adminSupabase
-          .from('notifications')
-          .insert({
-            user_id: developer.id,
-            type: 'new_lead',
-            title: 'New Lead Received',
-            body: `You have a new lead for "${property.title}". Contact: ${validated.buyer_name} (${validated.buyer_phone})`,
-            data: {
-              lead_id: lead.id,
-              property_id: property.id,
-              property_title: property.title,
-              buyer_name: validated.buyer_name,
-              buyer_phone: validated.buyer_phone,
-              buyer_email: validated.buyer_email,
-            },
-            read: false,
-          })
-      }
+      const { notificationHelpers } = await import('@/lib/services/notification-helper')
+      await notificationHelpers.newLead({
+        developerId: property.developer_id,
+        creatorId: creatorId || undefined,
+        propertyId: property.id,
+        propertyTitle: property.title,
+        buyerName: validated.buyer_name,
+        buyerPhone: validated.buyer_phone,
+        buyerEmail: validated.buyer_email,
+        leadId: lead.id,
+      })
     } catch (notifError) {
-      console.error('Failed to send notification to developer:', notifError)
+      console.error('Failed to send notifications:', notifError)
       // Don't fail the request if notification fails
-    }
-
-    // Send notification to creator if applicable
-    if (creatorId) {
-      try {
-        await adminSupabase
-          .from('notifications')
-          .insert({
-            user_id: creatorId,
-            type: 'new_lead',
-            title: 'Lead Generated',
-            body: `A lead was generated from your tracking link for "${property.title}"`,
-            data: {
-              lead_id: lead.id,
-              property_id: property.id,
-              property_title: property.title,
-            },
-            read: false,
-          })
-      } catch (notifError) {
-        console.error('Failed to send notification to creator:', notifError)
-        // Don't fail the request if notification fails
-      }
     }
 
     return NextResponse.json(

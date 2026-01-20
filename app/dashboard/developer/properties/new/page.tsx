@@ -209,7 +209,7 @@ export default function NewPropertyPage() {
           </button>
           <h1 className="text-lg font-semibold text-gray-900">Add Property</h1>
           <button
-            onClick={() => router.push('/notifications')}
+            onClick={() => router.push('/dashboard/notifications')}
             className="w-10 h-10 rounded-full bg-white flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm"
             title="Notifications"
           >

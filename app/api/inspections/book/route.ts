@@ -132,9 +132,8 @@ export async function POST(req: NextRequest) {
       console.error('Failed to send SMS:', smsError)
     }
 
-    // Send notification to developer
+    // Send notifications using helper
     try {
-      // Get property to find developer
       const { data: property } = await adminSupabase
         .from('properties')
         .select('developer_id, title')
@@ -142,27 +141,20 @@ export async function POST(req: NextRequest) {
         .single()
 
       if (property?.developer_id) {
-        const slotDate = new Date(validated.slot_time)
-        await adminSupabase
-          .from('notifications')
-          .insert({
-            user_id: property.developer_id,
-            type: 'inspection_booked',
-            title: 'Inspection Booked',
-            body: `An inspection has been booked for "${property.title}" on ${slotDate.toLocaleDateString()} at ${slotDate.toLocaleTimeString()}`,
-            data: {
-              inspection_id: inspection.id,
-              property_id: validated.property_id,
-              property_title: property.title,
-              slot_time: validated.slot_time,
-              buyer_name: lead.buyer_name,
-              buyer_phone: lead.buyer_phone,
-            },
-            read: false,
-          })
+        const { notificationHelpers } = await import('@/lib/services/notification-helper')
+        await notificationHelpers.inspectionBooked({
+          developerId: property.developer_id,
+          buyerId: lead?.buyer_id || undefined,
+          propertyId: validated.property_id,
+          propertyTitle: property.title,
+          inspectionId: inspection.id,
+          slotTime: validated.slot_time,
+          buyerName: lead?.buyer_name,
+          buyerPhone: lead?.buyer_phone,
+        })
       }
     } catch (notifError) {
-      console.error('Failed to send notification to developer:', notifError)
+      console.error('Failed to send notifications:', notifError)
       // Don't fail the request if notification fails
     }
 

@@ -32,22 +32,22 @@ function SettingsItem({ icon, label, description, onClick, danger }: SettingsIte
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center gap-4 p-4 bg-white/10 backdrop-blur-sm rounded-xl border border-white/10 hover:bg-white/20 transition-all text-left ${
-        danger ? 'hover:border-red-500/30' : ''
+      className={`w-full flex items-center gap-4 p-4 bg-white rounded-xl border border-gray-100 hover:bg-gray-50 transition-all text-left shadow-sm ${
+        danger ? 'hover:border-red-200' : ''
       }`}
     >
       <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-        danger ? 'bg-red-500/20 text-red-400' : 'bg-white/10 text-white/70'
+        danger ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-gray-600'
       }`}>
         {icon}
       </div>
       <div className="flex-1 min-w-0">
-        <p className={`font-medium ${danger ? 'text-red-400' : 'text-white'}`}>{label}</p>
+        <p className={`font-medium ${danger ? 'text-red-600' : 'text-gray-900'}`}>{label}</p>
         {description && (
-          <p className="text-sm text-white/60 mt-0.5">{description}</p>
+          <p className="text-sm text-gray-500 mt-0.5">{description}</p>
         )}
       </div>
-      <ChevronRight className="text-white/40" size={20} />
+      <ChevronRight className="text-gray-400" size={20} />
     </button>
   );
 }
@@ -65,52 +65,37 @@ export default function CreatorSettingsPage() {
     router.push('/');
   };
 
-  // Get tier badge
-  const getTierBadge = (tier: number) => {
-    const tiers: Record<number, { label: string; color: string }> = {
-      1: { label: 'Bronze', color: 'bg-amber-600' },
-      2: { label: 'Silver', color: 'bg-gray-400' },
-      3: { label: 'Gold', color: 'bg-yellow-500' },
-      4: { label: 'Platinum', color: 'bg-purple-600' },
-    };
-    return tiers[tier] || tiers[1];
-  };
-
-  const tierInfo = getTierBadge(user?.tier || 1);
-
   return (
-    <div className="p-6 pb-24 lg:pb-6 space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-white">Settings</h1>
-        <p className="text-white/60 text-sm mt-1">
-          Manage your account settings and preferences
-        </p>
-      </div>
+    <div className="min-h-screen bg-reach-bg pb-24 lg:pb-6">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-6 space-y-6">
+        {/* Header */}
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+          <p className="text-gray-500 text-sm mt-1">
+            Manage your account settings and preferences
+          </p>
+        </div>
 
-      {/* User Info */}
-      <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-xl">
-            {user?.full_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'C'}
-          </div>
-          <div>
-            <h3 className="font-semibold text-white">{user?.full_name || 'Creator'}</h3>
-            <p className="text-sm text-white/60">{user?.email}</p>
-            {user?.phone && (
-              <p className="text-sm text-white/60">{user.phone}</p>
-            )}
-            <span className={`inline-block mt-2 px-2 py-0.5 rounded-full text-xs font-medium text-white ${tierInfo.color}`}>
-              {tierInfo.label} Creator
-            </span>
+        {/* User Info */}
+        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 font-bold text-xl">
+              {user?.full_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'C'}
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900">{user?.full_name || 'Creator'}</h3>
+              <p className="text-sm text-gray-500">{user?.email}</p>
+              {user?.phone && (
+                <p className="text-sm text-gray-500">{user.phone}</p>
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Settings Sections */}
-      <div className="space-y-4">
-        <div>
-          <h2 className="text-sm font-semibold text-white/60 uppercase mb-3">Account</h2>
+        {/* Settings Sections */}
+        <div className="space-y-4">
+          <div>
+            <h2 className="text-sm font-semibold text-gray-500 uppercase mb-3">Account</h2>
           <div className="space-y-2">
             <SettingsItem
               icon={<User size={20} />}
@@ -133,40 +118,41 @@ export default function CreatorSettingsPage() {
           </div>
         </div>
 
-        <div>
-          <h2 className="text-sm font-semibold text-white/60 uppercase mb-3">Promotion</h2>
-          <div className="space-y-2">
-            <SettingsItem
-              icon={<Link2 size={20} />}
-              label="Social Accounts"
-              description="Link your social media accounts"
-              onClick={() => router.push('/dashboard/creator/social')}
-            />
+          <div>
+            <h2 className="text-sm font-semibold text-gray-500 uppercase mb-3">Promotion</h2>
+            <div className="space-y-2">
+              <SettingsItem
+                icon={<Link2 size={20} />}
+                label="Social Accounts"
+                description="Link your social media accounts"
+                onClick={() => router.push('/dashboard/creator/social')}
+              />
+            </div>
           </div>
-        </div>
 
-        <div>
-          <h2 className="text-sm font-semibold text-white/60 uppercase mb-3">Preferences</h2>
-          <div className="space-y-2">
-            <SettingsItem
-              icon={<Bell size={20} />}
-              label="Notifications"
-              description="Manage notification preferences"
-              onClick={() => router.push('/notifications')}
-            />
+          <div>
+            <h2 className="text-sm font-semibold text-gray-500 uppercase mb-3">Preferences</h2>
+            <div className="space-y-2">
+              <SettingsItem
+                icon={<Bell size={20} />}
+                label="Notifications"
+                description="Manage notification preferences"
+                onClick={() => router.push('/dashboard/notifications')}
+              />
+            </div>
           </div>
-        </div>
 
-        <div>
-          <h2 className="text-sm font-semibold text-white/60 uppercase mb-3">Other</h2>
-          <div className="space-y-2">
-            <SettingsItem
-              icon={<LogOut size={20} />}
-              label="Logout"
-              description="Sign out of your account"
-              onClick={handleLogout}
-              danger
-            />
+          <div>
+            <h2 className="text-sm font-semibold text-gray-500 uppercase mb-3">Other</h2>
+            <div className="space-y-2">
+              <SettingsItem
+                icon={<LogOut size={20} />}
+                label="Logout"
+                description="Sign out of your account"
+                onClick={handleLogout}
+                danger
+              />
+            </div>
           </div>
         </div>
       </div>

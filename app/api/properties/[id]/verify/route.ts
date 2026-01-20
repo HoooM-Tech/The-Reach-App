@@ -56,6 +56,28 @@ export async function PATCH(
       // This is just a placeholder
     }
 
+    // Send notifications
+    try {
+      const { notificationHelpers } = await import('@/lib/services/notification-helper')
+      if (action === 'approve') {
+        await notificationHelpers.propertyVerified({
+          developerId: property.developer_id,
+          propertyId: propertyId,
+          propertyTitle: property.title,
+        })
+      } else {
+        await notificationHelpers.propertyRejected({
+          developerId: property.developer_id,
+          propertyId: propertyId,
+          propertyTitle: property.title,
+          reason: body.reason,
+        })
+      }
+    } catch (notifError) {
+      console.error('Failed to send notifications:', notifError)
+      // Don't fail the request if notification fails
+    }
+
     return NextResponse.json({
       message: `Property ${action === 'approve' ? 'verified' : 'rejected'} successfully`,
       property: updatedProperty,
