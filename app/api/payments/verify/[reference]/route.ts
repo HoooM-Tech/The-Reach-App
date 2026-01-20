@@ -127,10 +127,10 @@ export async function POST(
     try {
       const { notificationHelpers } = await import('@/lib/services/notification-helper')
       await notificationHelpers.paymentConfirmed({
-        buyerId,
-        developerId,
+        buyerId: buyer_id,
+        developerId: developer_id,
         creatorId: creatorId || undefined,
-        propertyId,
+        propertyId: property_id,
         propertyTitle: property.title,
         amount,
         transactionId: escrow.id,
@@ -139,9 +139,9 @@ export async function POST(
 
       // Also notify about property being bought
       await notificationHelpers.propertyBought({
-        developerId,
-        buyerId,
-        propertyId,
+        developerId: developer_id,
+        buyerId: buyer_id,
+        propertyId: property_id,
         propertyTitle: property.title,
         transactionId: escrow.id,
         amount,
