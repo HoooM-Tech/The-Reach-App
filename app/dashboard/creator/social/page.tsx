@@ -130,8 +130,8 @@ export default function CreatorSocialPage() {
 
   if (isLoading) {
     return (
-      <div className="p-6 flex items-center justify-center min-h-screen">
-        <Loader2 className="animate-spin text-white" size={32} />
+      <div className="min-h-screen bg-reach-bg flex items-center justify-center">
+        <Loader2 className="animate-spin text-gray-600" size={32} />
       </div>
     );
   }
@@ -140,226 +140,228 @@ export default function CreatorSocialPage() {
   const tierInfo = tierLabels[currentTier] || tierLabels[4];
 
   return (
-    <div className="p-6 pb-24 lg:pb-6 space-y-6">
-      {/* Header */}
-      <div>
-        <button
-          onClick={() => router.back()}
-          className="mb-4 text-white/60 hover:text-white transition-colors"
-        >
-          ← Back
-        </button>
-        <h1 className="text-2xl font-bold text-white">Social Accounts</h1>
-        <p className="text-white/60 text-sm mt-1">
-          Link your social media accounts to verify your creator tier
-        </p>
-      </div>
-
-      {/* Current Tier Display */}
-      <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-white/60 text-sm mb-1">Current Tier</p>
-            <h3 className={`text-2xl font-bold ${tierInfo.color} bg-clip-text text-transparent`}>
-              Tier {currentTier} - {tierInfo.name}
-            </h3>
-            <p className="text-white/60 text-sm mt-1">Commission: {tierInfo.commission} of sale</p>
-          </div>
-          <div className={`w-20 h-20 rounded-full ${tierInfo.color} flex items-center justify-center text-white text-2xl font-bold`}>
-            {currentTier}
-          </div>
+    <div className="min-h-screen bg-reach-bg pb-24 lg:pb-6">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-6 space-y-6">
+        {/* Header */}
+        <div>
+          <button
+            onClick={() => router.back()}
+            className="mb-4 text-gray-500 hover:text-gray-700 transition-colors"
+          >
+            ← Back
+          </button>
+          <h1 className="text-2xl font-bold text-gray-900">Social Accounts</h1>
+          <p className="text-gray-500 text-sm mt-1">
+            Link your social media accounts to verify your creator tier
+          </p>
         </div>
-      </div>
 
-      {/* Error/Success Messages */}
-      {error && (
-        <div className="bg-red-500/20 border border-red-500/50 rounded-xl p-4 flex items-start gap-3">
-          <AlertCircle className="text-red-400 flex-shrink-0 mt-0.5" size={20} />
-          <div className="flex-1">
-            <p className="text-red-400 font-medium">Verification Failed</p>
-            <p className="text-red-300 text-sm mt-1 whitespace-pre-line">{error}</p>
-          </div>
-        </div>
-      )}
-
-      {success && (
-        <div className="bg-green-500/20 border border-green-500/50 rounded-xl p-4 flex items-start gap-3">
-          <CheckCircle className="text-green-400 flex-shrink-0 mt-0.5" size={20} />
-          <div className="flex-1">
-            <p className="text-green-400 font-medium">Success!</p>
-            <p className="text-green-300 text-sm mt-1">{success}</p>
-          </div>
-        </div>
-      )}
-
-      {/* Verification Result */}
-      {verificationResult && verificationResult.tier && (
-        <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-          <h3 className="text-lg font-semibold text-white mb-4">Verification Results</h3>
-          <div className="space-y-4">
+        {/* Current Tier Display */}
+        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+          <div className="flex items-center justify-between">
             <div>
-              <p className="text-white/60 text-sm mb-2">New Tier</p>
-              <div className="flex items-center gap-3">
-                <div className={`w-16 h-16 rounded-full ${tierLabels[verificationResult.tier].color} flex items-center justify-center text-white text-xl font-bold`}>
-                  {verificationResult.tier}
-                </div>
-                <div>
-                  <p className="text-white font-semibold">{tierLabels[verificationResult.tier].name}</p>
-                  <p className="text-white/60 text-sm">Commission: {tierLabels[verificationResult.tier].commission}</p>
+              <p className="text-gray-500 text-sm mb-1">Current Tier</p>
+              <h3 className="text-2xl font-bold text-gray-900">
+                Tier {currentTier} - {tierInfo.name}
+              </h3>
+              <p className="text-gray-500 text-sm mt-1">Commission: {tierInfo.commission} of sale</p>
+            </div>
+            <div className={`w-20 h-20 rounded-full ${tierInfo.color} flex items-center justify-center text-white text-2xl font-bold`}>
+              {currentTier}
+            </div>
+          </div>
+        </div>
+
+        {/* Error/Success Messages */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+            <AlertCircle className="text-red-500 flex-shrink-0 mt-0.5" size={20} />
+            <div className="flex-1">
+              <p className="text-red-600 font-medium">Verification Failed</p>
+              <p className="text-red-500 text-sm mt-1 whitespace-pre-line">{error}</p>
+            </div>
+          </div>
+        )}
+
+        {success && (
+          <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-start gap-3">
+            <CheckCircle className="text-green-500 flex-shrink-0 mt-0.5" size={20} />
+            <div className="flex-1">
+              <p className="text-green-600 font-medium">Success!</p>
+              <p className="text-green-600 text-sm mt-1">{success}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Verification Result */}
+        {verificationResult && verificationResult.tier && (
+          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Verification Results</h3>
+            <div className="space-y-4">
+              <div>
+                <p className="text-gray-500 text-sm mb-2">New Tier</p>
+                <div className="flex items-center gap-3">
+                  <div className={`w-16 h-16 rounded-full ${tierLabels[verificationResult.tier].color} flex items-center justify-center text-white text-xl font-bold`}>
+                    {verificationResult.tier}
+                  </div>
+                  <div>
+                    <p className="text-gray-900 font-semibold">{tierLabels[verificationResult.tier].name}</p>
+                    <p className="text-gray-500 text-sm">Commission: {tierLabels[verificationResult.tier].commission}</p>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {verificationResult.analytics && (
-              <div className="mt-4 pt-4 border-t border-white/10">
-                <p className="text-white/60 text-sm mb-3">Analytics</p>
-                <div className="space-y-3">
-                  {Object.entries(verificationResult.analytics).map(([platform, data]) => (
-                    <div key={platform} className="bg-white/5 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="text-white font-medium capitalize">{platform}</p>
-                        {data.qualityScore > 0 && (
-                          <div className="flex items-center gap-1">
-                            <Star className="text-yellow-400" size={16} />
-                            <span className="text-white text-sm">{data.qualityScore}</span>
-                          </div>
-                        )}
-                      </div>
-                      <div className="grid grid-cols-3 gap-4 mt-3">
-                        <div>
-                          <p className="text-white/60 text-xs">Followers</p>
-                          <p className="text-white font-semibold">{data.followers.toLocaleString()}</p>
+              {verificationResult.analytics && (
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <p className="text-gray-500 text-sm mb-3">Analytics</p>
+                  <div className="space-y-3">
+                    {Object.entries(verificationResult.analytics).map(([platform, data]) => (
+                      <div key={platform} className="bg-gray-50 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-gray-900 font-medium capitalize">{platform}</p>
+                          {data.qualityScore > 0 && (
+                            <div className="flex items-center gap-1">
+                              <Star className="text-yellow-500" size={16} />
+                              <span className="text-gray-900 text-sm">{data.qualityScore}</span>
+                            </div>
+                          )}
                         </div>
-                        <div>
-                          <p className="text-white/60 text-xs">Engagement</p>
-                          <p className="text-white font-semibold">{data.engagementRate.toFixed(1)}%</p>
-                        </div>
-                        {data.fakeFollowerPercent !== undefined && (
+                        <div className="grid grid-cols-3 gap-4 mt-3">
                           <div>
-                            <p className="text-white/60 text-xs">Fake Followers</p>
-                            <p className="text-white font-semibold">{data.fakeFollowerPercent.toFixed(1)}%</p>
+                            <p className="text-gray-500 text-xs">Followers</p>
+                            <p className="text-gray-900 font-semibold">{data.followers.toLocaleString()}</p>
                           </div>
-                        )}
+                          <div>
+                            <p className="text-gray-500 text-xs">Engagement</p>
+                            <p className="text-gray-900 font-semibold">{data.engagementRate.toFixed(1)}%</p>
+                          </div>
+                          {data.fakeFollowerPercent !== undefined && (
+                            <div>
+                              <p className="text-gray-500 text-xs">Fake Followers</p>
+                              <p className="text-gray-900 font-semibold">{data.fakeFollowerPercent.toFixed(1)}%</p>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Social Links Form */}
+        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Add Social Media Links</h3>
+          <p className="text-gray-500 text-sm mb-6">
+            Paste your profile URLs to verify your accounts and recalculate your tier
+          </p>
+
+          <div className="space-y-4">
+            {[
+              { 
+                name: 'Instagram', 
+                key: 'instagram' as const,
+                placeholder: 'https://instagram.com/username',
+                icon: '📷',
+                color: 'from-purple-600 via-pink-500 to-yellow-400'
+              },
+              { 
+                name: 'TikTok', 
+                key: 'tiktok' as const,
+                placeholder: 'https://tiktok.com/@username',
+                icon: '🎵',
+                color: 'bg-black'
+              },
+              { 
+                name: 'Twitter/X', 
+                key: 'twitter' as const,
+                placeholder: 'https://twitter.com/username',
+                icon: '🐦',
+                color: 'bg-black'
+              },
+            ].map((social) => (
+              <div key={social.key} className="bg-gray-50 rounded-xl p-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                    social.color.includes('from') 
+                      ? `bg-gradient-to-br ${social.color}` 
+                      : social.color
+                  }`}>
+                    <span className="text-white text-lg">{social.icon}</span>
+                  </div>
+                  <span className="font-medium text-gray-900">{social.name}</span>
+                </div>
+                <input
+                  type="text"
+                  placeholder={social.placeholder}
+                  className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-reach-primary/20 focus:border-reach-primary"
+                  value={socialLinks[social.key]}
+                  onChange={(e) => setSocialLinks({ ...socialLinks, [social.key]: e.target.value })}
+                />
               </div>
+            ))}
+          </div>
+
+          <button
+            onClick={handleVerify}
+            disabled={isVerifying || (!socialLinks.instagram && !socialLinks.tiktok && !socialLinks.twitter)}
+            className="w-full mt-6 py-4 bg-reach-primary text-white rounded-xl font-bold hover:bg-reach-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {isVerifying ? (
+              <>
+                <Loader2 className="animate-spin" size={20} />
+                Verifying Accounts...
+              </>
+            ) : (
+              <>
+                <TrendingUp size={20} />
+                Verify & Update Tier
+              </>
             )}
-          </div>
+          </button>
         </div>
-      )}
 
-      {/* Social Links Form */}
-      <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-        <h3 className="text-lg font-semibold text-white mb-4">Add Social Media Links</h3>
-        <p className="text-white/60 text-sm mb-6">
-          Paste your profile URLs to verify your accounts and recalculate your tier
-        </p>
-
-        <div className="space-y-4">
-          {[
-            { 
-              name: 'Instagram', 
-              key: 'instagram' as const,
-              placeholder: 'https://instagram.com/username',
-              icon: '📷',
-              color: 'from-purple-600 via-pink-500 to-yellow-400'
-            },
-            { 
-              name: 'TikTok', 
-              key: 'tiktok' as const,
-              placeholder: 'https://tiktok.com/@username',
-              icon: '🎵',
-              color: 'bg-black'
-            },
-            { 
-              name: 'Twitter/X', 
-              key: 'twitter' as const,
-              placeholder: 'https://twitter.com/username',
-              icon: '🐦',
-              color: 'bg-black'
-            },
-          ].map((social) => (
-            <div key={social.key} className="bg-white/5 rounded-xl p-4">
-              <div className="flex items-center gap-3 mb-3">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                  social.color.includes('from') 
-                    ? `bg-gradient-to-br ${social.color}` 
-                    : social.color
-                }`}>
-                  <span className="text-white text-lg">{social.icon}</span>
-                </div>
-                <span className="font-medium text-white">{social.name}</span>
+        {/* Tier Requirements Info */}
+        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Tier Requirements</h3>
+          <div className="space-y-3 text-sm">
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 rounded-full bg-yellow-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-yellow-600 font-bold text-xs">1</span>
               </div>
-              <input
-                type="text"
-                placeholder={social.placeholder}
-                className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
-                value={socialLinks[social.key]}
-                onChange={(e) => setSocialLinks({ ...socialLinks, [social.key]: e.target.value })}
-              />
+              <div>
+                <p className="text-gray-900 font-medium">Elite Creator (3% commission)</p>
+                <p className="text-gray-500">100K+ followers, 3%+ engagement, Quality score 85+</p>
+              </div>
             </div>
-          ))}
-        </div>
-
-        <button
-          onClick={handleVerify}
-          disabled={isVerifying || (!socialLinks.instagram && !socialLinks.tiktok && !socialLinks.twitter)}
-          className="w-full mt-6 py-4 bg-white text-reach-navy rounded-xl font-bold hover:bg-white/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-        >
-          {isVerifying ? (
-            <>
-              <Loader2 className="animate-spin" size={20} />
-              Verifying Accounts...
-            </>
-          ) : (
-            <>
-              <TrendingUp size={20} />
-              Verify & Update Tier
-            </>
-          )}
-        </button>
-      </div>
-
-      {/* Tier Requirements Info */}
-      <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-        <h3 className="text-lg font-semibold text-white mb-4">Tier Requirements</h3>
-        <div className="space-y-3 text-sm">
-          <div className="flex items-start gap-3">
-            <div className="w-6 h-6 rounded-full bg-yellow-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-              <span className="text-yellow-400 font-bold text-xs">1</span>
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-gray-600 font-bold text-xs">2</span>
+              </div>
+              <div>
+                <p className="text-gray-900 font-medium">Professional Creator (2.5% commission)</p>
+                <p className="text-gray-500">50K-100K followers, 2-3% engagement, Quality score 70+</p>
+              </div>
             </div>
-            <div>
-              <p className="text-white font-medium">Elite Creator (3% commission)</p>
-              <p className="text-white/60">100K+ followers, 3%+ engagement, Quality score 85+</p>
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-blue-600 font-bold text-xs">3</span>
+              </div>
+              <div>
+                <p className="text-gray-900 font-medium">Rising Creator (2% commission)</p>
+                <p className="text-gray-500">10K-50K followers, 1.5-2% engagement, Quality score 60+</p>
+              </div>
             </div>
-          </div>
-          <div className="flex items-start gap-3">
-            <div className="w-6 h-6 rounded-full bg-gray-400/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-              <span className="text-gray-300 font-bold text-xs">2</span>
-            </div>
-            <div>
-              <p className="text-white font-medium">Professional Creator (2.5% commission)</p>
-              <p className="text-white/60">50K-100K followers, 2-3% engagement, Quality score 70+</p>
-            </div>
-          </div>
-          <div className="flex items-start gap-3">
-            <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-              <span className="text-blue-400 font-bold text-xs">3</span>
-            </div>
-            <div>
-              <p className="text-white font-medium">Rising Creator (2% commission)</p>
-              <p className="text-white/60">10K-50K followers, 1.5-2% engagement, Quality score 60+</p>
-            </div>
-          </div>
-          <div className="flex items-start gap-3">
-            <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-              <span className="text-green-400 font-bold text-xs">4</span>
-            </div>
-            <div>
-              <p className="text-white font-medium">Micro Creator (1.5% commission)</p>
-              <p className="text-white/60">5K-10K followers, 1%+ engagement, Quality score 50+</p>
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-green-600 font-bold text-xs">4</span>
+              </div>
+              <div>
+                <p className="text-gray-900 font-medium">Micro Creator (1.5% commission)</p>
+                <p className="text-gray-500">5K-10K followers, 1%+ engagement, Quality score 50+</p>
+              </div>
             </div>
           </div>
         </div>
