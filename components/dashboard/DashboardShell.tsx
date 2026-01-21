@@ -31,9 +31,9 @@ interface NavItem {
 
 interface DashboardShellProps {
   children: ReactNode;
-  user?: { name?: string; companyName?: string; avatarUrl?: string };
+  user?: { name?: string; companyName?: string; avatarUrl?: string; tier?: number };
   navItems?: NavItem[];
-  accountItems?: Array<{ label: string; href: string; icon: React.ComponentType<any> }>;
+  accountItems?: Array<{ label: string; href: string; icon: React.ComponentType<any>; onClick?: () => void }>;
   basePath?: string; // Base path for active route detection (e.g., '/dashboard/developer' or '/dashboard/creator')
 }
 
@@ -251,12 +251,25 @@ export function DashboardShell({ children, user, navItems: customNavItems, accou
               <div className="flex-1 min-w-0">
                 <p className="text-xs text-gray-600 mb-1">Welcome back, {user?.name?.split(' ')[0] || 'User'}</p>
                 <div className="flex items-center gap-2">
-                  <h1 className="font-bold text-lg text-black">{(user as any)?.companyName || 'Company'}</h1>
-                  <div className="w-4 h-4 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0">
-                    <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  </div>
+                  {basePath === '/dashboard/creator' && user?.tier ? (
+                    <>
+                      <h1 className="font-bold text-lg text-black">Tier{user.tier}</h1>
+                      <div className="w-4 h-4 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0">
+                        <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <h1 className="font-bold text-lg text-black">{(user as any)?.companyName || 'Company'}</h1>
+                      <div className="w-4 h-4 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0">
+                        <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -292,7 +305,13 @@ export function DashboardShell({ children, user, navItems: customNavItems, accou
               return (
                 <button
                   key={item.href}
-                  onClick={() => router.push(item.href)}
+                  onClick={() => {
+                    if (item.onClick) {
+                      item.onClick();
+                    } else {
+                      router.push(item.href);
+                    }
+                  }}
                   className="w-full text-left py-2 text-sm text-black hover:opacity-70 transition-opacity"
                 >
                   {item.label}
@@ -322,12 +341,25 @@ export function DashboardShell({ children, user, navItems: customNavItems, accou
             <div>
               <p className="text-sm text-gray-600">Welcome back, {user?.name?.split(' ')[0] || 'User'}</p>
               <h1 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                {(user as any)?.companyName || 'Company'}
-                <div className="w-4 h-4 bg-reach-red rounded-full flex items-center justify-center flex-shrink-0">
-                  <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                </div>
+                {basePath === '/dashboard/creator' && user?.tier ? (
+                  <>
+                    Tier{user.tier}
+                    <div className="w-4 h-4 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0">
+                      <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {(user as any)?.companyName || 'Company'}
+                    <div className="w-4 h-4 bg-reach-red rounded-full flex items-center justify-center flex-shrink-0">
+                      <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  </>
+                )}
               </h1>
             </div>
           </div>
@@ -407,12 +439,25 @@ export function DashboardShell({ children, user, navItems: customNavItems, accou
             <div>
               <p className="text-sm text-gray-600">Welcome back, {user?.name?.split(' ')[0] || 'User'}</p>
               <h1 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                {(user as any)?.companyName || 'Company'}
-                <div className="w-4 h-4 bg-reach-red rounded-full flex items-center justify-center flex-shrink-0">
-                  <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                </div>
+                {basePath === '/dashboard/creator' && user?.tier ? (
+                  <>
+                    Tier{user.tier}
+                    <div className="w-4 h-4 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0">
+                      <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {(user as any)?.companyName || 'Company'}
+                    <div className="w-4 h-4 bg-reach-red rounded-full flex items-center justify-center flex-shrink-0">
+                      <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  </>
+                )}
               </h1>
             </div>
           </div>
@@ -504,12 +549,25 @@ export function DashboardShell({ children, user, navItems: customNavItems, accou
                       <div className="flex-1 min-w-0">
                         <p className="text-xs text-gray-600 mb-1">Welcome back, {user?.name?.split(' ')[0] || 'User'}</p>
                         <div className="flex items-center gap-2">
-                          <h1 className="font-bold text-lg text-black">{(user as any)?.companyName || 'Company'}</h1>
-                          <div className="w-4 h-4 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0">
-                            <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
-                          </div>
+                          {basePath === '/dashboard/creator' && user?.tier ? (
+                            <>
+                              <h1 className="font-bold text-lg text-black">Tier{user.tier}</h1>
+                              <div className="w-4 h-4 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0">
+                                <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <h1 className="font-bold text-lg text-black">{(user as any)?.companyName || 'Company'}</h1>
+                              <div className="w-4 h-4 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0">
+                                <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                              </div>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -552,7 +610,11 @@ export function DashboardShell({ children, user, navItems: customNavItems, accou
                         <button
                           key={item.href}
                           onClick={() => {
-                            router.push(item.href);
+                            if (item.onClick) {
+                              item.onClick();
+                            } else {
+                              router.push(item.href);
+                            }
                             setSidebarOpen(false);
                           }}
                           className="w-full text-left py-2 text-sm text-black hover:opacity-70 transition-opacity focus:outline-none focus:ring-2 focus:ring-inset focus:ring-gray-300"
