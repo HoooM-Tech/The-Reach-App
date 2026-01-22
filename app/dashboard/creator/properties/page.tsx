@@ -668,7 +668,7 @@ function PromotionModal({
             {generatedLink && (
               <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-bold text-gray-900">Here's your tracking link</h3>
+                  <h3 className="font-bold text-gray-900">Here&apos;s your tracking link</h3>
                   <button
                     onClick={onClose}
                     className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200"
