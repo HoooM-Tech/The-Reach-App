@@ -100,15 +100,25 @@ export async function POST(
       
       // If no buyer_id, try to find buyer by phone or email
       if (!buyerId && (lead?.buyer_phone || lead?.buyer_email)) {
-        const { data: buyers } = await adminSupabase
+        let query = adminSupabase
           .from('users')
           .select('id')
-          .eq('role', 'buyer')
-          .or(
-            lead?.buyer_phone ? `phone.eq.${lead.buyer_phone}` : undefined,
-            lead?.buyer_email ? `email.eq.${lead.buyer_email}` : undefined
-          )
-          .limit(1);
+          .eq('role', 'buyer');
+        
+        // Build OR condition with only defined values
+        const conditions: string[] = [];
+        if (lead?.buyer_phone) {
+          conditions.push(`phone.eq.${lead.buyer_phone}`);
+        }
+        if (lead?.buyer_email) {
+          conditions.push(`email.eq.${lead.buyer_email}`);
+        }
+        
+        if (conditions.length > 0) {
+          query = query.or(conditions.join(','));
+        }
+        
+        const { data: buyers } = await query.limit(1);
         
         if (buyers && buyers.length > 0) {
           buyerId = buyers[0].id;
