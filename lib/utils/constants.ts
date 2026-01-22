@@ -1,5 +1,23 @@
-export const CREATOR_COMMISSION_RATE = 0.15 // 15%
+export const CREATOR_COMMISSION_RATE = 0.15 // 15% (deprecated - use getCreatorCommissionRate instead)
 export const REACH_PLATFORM_FEE = 0.05 // 5%
+
+/**
+ * Get commission rate percentage based on creator tier
+ * @param tier - Creator tier (1-4)
+ * @returns Commission rate as a percentage string (e.g., "3.0%")
+ */
+export function getCreatorCommissionRate(tier: number | null | undefined): string {
+  const commissionRates: Record<number, string> = {
+    1: '3.0%',
+    2: '2.5%',
+    3: '2.0%',
+    4: '1.5%',
+  };
+  
+  // Default to tier 4 (lowest) if tier is not set
+  const tierKey = tier && tier >= 1 && tier <= 4 ? tier : 4;
+  return commissionRates[tierKey];
+}
 export const DEVELOPER_PAYOUT_RATE = 0.80 // 80%
 
 export const MINIMUM_WITHDRAWAL_AMOUNT = 5000 // ₦5,000

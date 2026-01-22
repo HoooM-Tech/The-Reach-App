@@ -75,8 +75,10 @@ export default function BookInspectionPage() {
     try {
       setSubmitting(true);
       
-      // Combine date and time into ISO string
-      const slotTime = new Date(`${scheduledDate}T${scheduledTime}`).toISOString();
+      // Combine date and time using central time utility
+      // This ensures correct UTC conversion
+      const { localToUTC } = await import('@/lib/utils/time');
+      const slotTime = localToUTC(scheduledDate, scheduledTime);
       
       // TODO: Inspection booking requires a lead_id. For developer booking inspections,
       // we may need a different endpoint or flow. For now, show a message.
@@ -119,6 +121,7 @@ export default function BookInspectionPage() {
           <button
             onClick={() => router.back()}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            title="Back"
           >
             <ArrowLeft size={20} />
           </button>
@@ -138,6 +141,7 @@ export default function BookInspectionPage() {
             <button
               onClick={() => router.push('/dashboard/developer/properties')}
               className="px-6 py-3 bg-reach-navy text-white rounded-lg font-semibold hover:bg-reach-navy/90 transition-colors"
+              title="View Properties"
             >
               View Properties
             </button>
@@ -154,6 +158,7 @@ export default function BookInspectionPage() {
                 onChange={(e) => setSelectedPropertyId(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-reach-red/20 focus:border-reach-red outline-none"
                 required
+                title="Select Property"
               >
                 {properties.map((property: ApiProperty) => (
                   <option key={property.id} value={property.id}>
@@ -220,6 +225,7 @@ export default function BookInspectionPage() {
                     min={new Date().toISOString().split('T')[0]}
                     className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-reach-red/20 focus:border-reach-red outline-none"
                     required
+                    title="Scheduled Date"
                   />
                 </div>
                 <div>
@@ -233,6 +239,7 @@ export default function BookInspectionPage() {
                     onChange={(e) => setScheduledTime(e.target.value)}
                     className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-reach-red/20 focus:border-reach-red outline-none"
                     required
+                    title="Scheduled Time"
                   />
                 </div>
               </div>

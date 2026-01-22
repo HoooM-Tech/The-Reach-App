@@ -54,10 +54,13 @@ export default function RescheduleInspectionPage() {
             setScheduleType(data.inspection.type === 'video_chat' || data.inspection.type === 'video' ? 'video' : 'in-person');
             
             // Pre-fill date and time
+            // Parse UTC time from database and convert to local time for display
             if (data.inspection.slot_time) {
-              const inspectionDate = new Date(data.inspection.slot_time);
-              setDate(inspectionDate.toISOString().split('T')[0]);
-              setTime(inspectionDate.toTimeString().slice(0, 5));
+              // Use central time utility for consistent conversion
+              const localDate = utcToLocalDate(data.inspection.slot_time);
+              const localTime = utcToLocalTime(data.inspection.slot_time);
+              setDate(localDate);
+              setTime(localTime);
             }
             
             // Pre-fill contact info
@@ -101,10 +104,9 @@ export default function RescheduleInspectionPage() {
     try {
       const token = getAccessToken();
       
-      // Combine date and time
-      const [year, month, day] = date.split('-');
-      const [hours, minutes] = time.split(':');
-      const slotTime = new Date(`${year}-${month}-${day}T${hours}:${minutes}:00`).toISOString();
+      // Combine date and time using central time utility
+      // This ensures consistent UTC conversion
+      const slotTime = localToUTC(date, time);
 
       const response = await fetch(`/api/inspections/${inspection.id}/reschedule`, {
         method: 'POST',

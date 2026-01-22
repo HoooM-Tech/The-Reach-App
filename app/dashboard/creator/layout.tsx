@@ -32,7 +32,6 @@ const getCreatorNavItems = (promotionsBadge?: number, analyticsBadge?: number) =
 
 const CREATOR_ACCOUNT_ITEMS = [
   { label: 'Settings', href: '/dashboard/creator/settings', icon: Settings },
-  { label: 'Help Center & Support', href: '/dashboard/creator/help', icon: HelpCircle },
 ];
 
 // ===========================================
@@ -111,7 +110,7 @@ function CreatorLayoutContent({ children }: { children: React.ReactNode }) {
   const accountItemsWithLogout = [
     ...CREATOR_ACCOUNT_ITEMS,
     { 
-      label: 'Log out', 
+      label: 'Logout', 
       href: '#', 
       icon: LogOut,
       onClick: async () => {

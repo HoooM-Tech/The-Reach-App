@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase/client';
 import { getAuthenticatedUser } from '@/lib/utils/auth';
 import { NotFoundError, ValidationError, handleError } from '@/lib/utils/errors';
+import { notificationHelpers } from '@/lib/services/notification-helper';
 
 export async function POST(
   req: NextRequest,
@@ -21,16 +22,19 @@ export async function POST(
     const supabase = createServerSupabaseClient();
     const adminSupabase = createAdminSupabaseClient();
 
-    // Get inspection
+    // Get inspection with property and buyer info
     const { data: inspection, error: inspectionError } = await adminSupabase
       .from('inspections')
-      .select('*, properties(developer_id)')
+      .select('*, properties(developer_id, title), leads(buyer_name, buyer_email, buyer_phone)')
       .eq('id', inspectionId)
       .single();
 
     if (inspectionError || !inspection) {
       throw new NotFoundError('Inspection');
     }
+
+    // Store old slot time for notification
+    const oldSlotTime = inspection.slot_time;
 
     // Verify user is the developer
     if (currentUser.id !== inspection.properties?.developer_id && currentUser.role !== 'admin') {
@@ -84,6 +88,49 @@ export async function POST(
 
     if (updateError) {
       throw new Error('Failed to reschedule inspection');
+    }
+
+    // Notify buyer about reschedule
+    try {
+      const property = inspection.properties as any;
+      const lead = inspection.leads as any;
+      
+      // Get buyer_id from inspection or try to find by phone/email
+      let buyerId = inspection.buyer_id;
+      
+      // If no buyer_id, try to find buyer by phone or email
+      if (!buyerId && (lead?.buyer_phone || lead?.buyer_email)) {
+        const { data: buyers } = await adminSupabase
+          .from('users')
+          .select('id')
+          .eq('role', 'buyer')
+          .or(
+            lead?.buyer_phone ? `phone.eq.${lead.buyer_phone}` : undefined,
+            lead?.buyer_email ? `email.eq.${lead.buyer_email}` : undefined
+          )
+          .limit(1);
+        
+        if (buyers && buyers.length > 0) {
+          buyerId = buyers[0].id;
+        }
+      }
+
+      if (buyerId && property?.title) {
+        await notificationHelpers.inspectionRescheduled({
+          developerId: currentUser.id,
+          buyerId: buyerId,
+          propertyId: inspection.property_id,
+          propertyTitle: property.title,
+          inspectionId: inspectionId,
+          oldSlotTime: oldSlotTime,
+          newSlotTime: slot_time,
+          buyerName: lead?.buyer_name || inspection.buyer_name,
+          buyerPhone: lead?.buyer_phone || inspection.buyer_phone,
+        });
+      }
+    } catch (notifError) {
+      // Don't fail the reschedule if notification fails
+      console.error('Failed to send reschedule notification:', notifError);
     }
 
     return NextResponse.json({

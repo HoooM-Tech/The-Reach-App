@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/contexts/UserContext';
 import { profileApi, uploadApi, ApiError } from '@/lib/api/client';
-import { ArrowLeft, Bell, Upload, AlertCircle, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Bell, AlertCircle } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -119,8 +119,6 @@ export default function EditProfilePage() {
 
     try {
       // Upload image to Supabase Storage
-      // Using 'property-media' bucket (which should already exist)
-      // To use a dedicated 'avatars' or 'profile-pictures' bucket, create it in Supabase Storage first
       const uploadResponse = await uploadApi.uploadFile(file, 'image', 'property-media');
       
       // Update form data with new image URL
@@ -141,15 +139,19 @@ export default function EditProfilePage() {
   const handleSave = async () => {
     if (!user?.id) return;
 
+    // Validation
+    if (formData.cacNumber && formData.cacNumber.length !== 10) {
+      setError('CAC Number must be 10 digits');
+      return;
+    }
+
     setSaving(true);
     setError(null);
 
     try {
       // Update profile via API
       await profileApi.updateProfile({
-        full_name: user.full_name, // Keep existing name if not editable
         phone: formData.phone || undefined,
-        company_name: (user as any).company_name, // Keep existing if not in form
         cac_number: formData.cacNumber || undefined,
         business_address: formData.businessAddress || undefined,
         avatar_url: formData.avatarUrl || undefined,
@@ -169,7 +171,7 @@ export default function EditProfilePage() {
 
   if (userLoading || isLoading) {
     return (
-      <div className="min-h-screen bg-reach-bg flex items-center justify-center">
+      <div className="min-h-screen bg-[#FFF5F5] flex items-center justify-center">
         <div className="animate-pulse">
           <div className="w-12 h-12 rounded-full border-4 border-reach-primary border-t-transparent animate-spin"></div>
         </div>
@@ -178,9 +180,9 @@ export default function EditProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-reach-bg">
-      {/* Header - Desktop only (mobile header handled by DashboardShell) */}
-      <header className="hidden lg:flex bg-transparent px-6 py-4 items-center justify-between sticky top-0 z-40">
+    <div className="min-h-screen bg-[#FFF5F5]">
+      {/* Header */}
+      <header className="bg-transparent px-4 py-4 flex items-center justify-between sticky top-0 z-40">
         <button
           onClick={() => router.back()}
           className="w-10 h-10 rounded-full bg-white flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm"
@@ -202,7 +204,7 @@ export default function EditProfilePage() {
 
       {/* Error Message */}
       {error && (
-        <div className="mx-6 mt-4 bg-red-50 border border-red-200 rounded-2xl p-4">
+        <div className="mx-4 mt-4 bg-red-50 border border-red-200 rounded-2xl p-4">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
             <p className="text-sm text-red-700">{error}</p>
@@ -211,10 +213,10 @@ export default function EditProfilePage() {
       )}
 
       {/* Main Content */}
-      <div className="px-6 pb-32 space-y-6">
+      <div className="px-4 pb-32 space-y-6">
         {/* Profile Picture Section */}
         <div className="flex flex-col items-center py-6">
-          <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center mb-4 relative overflow-hidden">
+          <div className="w-[120px] h-[120px] rounded-full bg-gray-200 flex items-center justify-center mb-4 relative overflow-hidden">
             {uploadingImage ? (
               <div className="w-full h-full flex items-center justify-center bg-gray-300">
                 <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -226,7 +228,7 @@ export default function EditProfilePage() {
                 className="w-full h-full object-cover"
               />
             ) : user?.full_name ? (
-              <div className="w-full h-full rounded-full bg-gray-300 flex items-center justify-center text-white font-bold text-lg">
+              <div className="w-full h-full rounded-full bg-gradient-to-br from-orange-200 to-pink-200 flex items-center justify-center text-white font-bold text-3xl">
                 {user.full_name[0].toUpperCase()}
               </div>
             ) : (
@@ -236,7 +238,7 @@ export default function EditProfilePage() {
           <button
             onClick={handleProfilePictureChange}
             disabled={uploadingImage}
-            className="text-[#FF6B35] font-semibold text-sm hover:text-[#D37D3E] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="text-[#FF6B35] font-semibold text-sm hover:text-[#D37D3E] transition-colors disabled:opacity-50 disabled:cursor-not-allowed underline"
           >
             {uploadingImage ? 'Uploading...' : 'Change profile picture'}
           </button>
@@ -247,7 +249,6 @@ export default function EditProfilePage() {
             onChange={handleFileSelect}
             className="hidden"
             aria-label="Upload profile picture"
-            title="Upload profile picture"
           />
         </div>
 
@@ -260,10 +261,10 @@ export default function EditProfilePage() {
               id="cacNumber"
               type="text"
               value={formData.cacNumber}
-              onChange={(e) => handleInputChange('cacNumber', e.target.value)}
+              onChange={(e) => handleInputChange('cacNumber', e.target.value.replace(/\D/g, '').slice(0, 10))}
               className="w-full text-sm font-semibold text-gray-900 bg-transparent border-none outline-none focus:ring-0 p-0"
               placeholder="Enter CAC Number"
-              aria-label="CAC Number"
+              maxLength={10}
             />
           </div>
 
@@ -277,7 +278,6 @@ export default function EditProfilePage() {
               onChange={(e) => handleInputChange('businessAddress', e.target.value)}
               className="w-full text-sm font-semibold text-gray-900 bg-transparent border-none outline-none focus:ring-0 p-0"
               placeholder="Enter Business Address"
-              aria-label="Business Address"
             />
           </div>
 
@@ -290,9 +290,7 @@ export default function EditProfilePage() {
               value={formData.email}
               readOnly
               className="w-full text-sm font-semibold text-gray-900 bg-transparent border-none outline-none p-0 opacity-60"
-              aria-label="Email Address (read-only)"
             />
-            <p className="text-xs text-gray-400 mt-1">Email cannot be changed</p>
           </div>
 
           {/* Phone Number */}
@@ -305,21 +303,22 @@ export default function EditProfilePage() {
               onChange={(e) => handleInputChange('phone', e.target.value)}
               className="w-full text-sm font-semibold text-gray-900 bg-transparent border-none outline-none focus:ring-0 p-0"
               placeholder="Enter Phone Number"
-              aria-label="Phone Number"
             />
           </div>
         </div>
       </div>
 
       {/* Save Button */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-6 pb-8">
-        <button
-          onClick={handleSave}
-          disabled={saving || uploadingImage}
-          className="w-full bg-reach-primary text-white font-semibold py-4 rounded-2xl hover:bg-reach-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {saving ? 'Saving...' : 'Save changes'}
-        </button>
+      <div className="fixed bottom-0 left-0 right-0 lg:left-64 bg-white border-t border-gray-200 p-6 pb-8 z-30">
+        <div className="max-w-5xl mx-auto lg:mx-0 lg:px-6">
+          <button
+            onClick={handleSave}
+            disabled={saving || uploadingImage}
+            className="w-full bg-[#1E3A5F] text-white font-semibold py-4 rounded-full hover:bg-[#1E3A5F]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {saving ? 'Saving...' : 'Save changes'}
+          </button>
+        </div>
       </div>
     </div>
   );

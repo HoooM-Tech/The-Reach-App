@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useUser } from '@/contexts/UserContext';
 import { developerApi, ApiError, getAccessToken } from '@/lib/api/client';
 import { motion, AnimatePresence } from 'framer-motion';
+import { formatInspectionDate, formatInspectionTimeOnly, getDayOfWeek as getDayOfWeekFromUtil } from '@/lib/utils/time';
 import { 
   ArrowLeft, 
   Bell,
@@ -201,22 +202,19 @@ export default function DeveloperPropertyDetailPage() {
     }).format(price);
   };
 
-  // Format date
+  // Format date using central time utility
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+    return formatInspectionDate(dateString);
   };
 
-  // Format time
+  // Format time using central utility
   const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    return formatInspectionTimeOnly(dateString);
   };
 
-  // Get day of week
+  // Get day of week using central utility
   const getDayOfWeek = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { weekday: 'long' });
+    return getDayOfWeekFromUtil(dateString);
   };
 
   // Handle confirm inspection

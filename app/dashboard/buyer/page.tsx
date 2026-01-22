@@ -306,8 +306,7 @@ export default function BuyerDashboardPage() {
                           {inspection.properties?.title || 'Property Inspection'}
                         </p>
                         <p className="text-sm text-gray-500">
-                          {new Date(inspection.slot_time).toLocaleDateString()} at{' '}
-                          {new Date(inspection.slot_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {`${formatInspectionDate(inspection.slot_time)} at ${formatInspectionTimeOnly(inspection.slot_time)}`}
                         </p>
                       </div>
                     </div>

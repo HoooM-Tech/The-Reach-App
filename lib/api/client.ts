@@ -500,14 +500,19 @@ export const developerApi = {
     });
   },
 
-  /** Get single property details */
+  /** Get single property details (for editing) - uses developer-specific endpoint */
   async getProperty(id: string): Promise<Property> {
-    const response = await fetchWithAuth<{ property: Property }>(`/api/properties/${id}`);
+    // Use the details endpoint which allows developers to access their own properties
+    // This endpoint returns { property: {...}, stats: {...}, ... }
+    const response = await fetchWithAuth<{ property: Property }>(`/api/properties/${id}/details`);
     return response.property;
   },
 
   /** Submit property for verification */
+  /** @deprecated - Use updateProperty with verification_status: 'submitted' instead */
   async submitForVerification(id: string): Promise<{ property: Property; message: string }> {
+    // This endpoint doesn't exist for developers - they should use updateProperty instead
+    // Keeping for backward compatibility but it will fail
     return fetchWithAuth(`/api/properties/${id}/verify`, {
       method: 'POST',
     });
@@ -680,6 +685,37 @@ export const notificationsApi = {
   async markAllAsRead(): Promise<{ message: string; success: boolean }> {
     return fetchWithAuth('/api/notifications/mark-all-read', {
       method: 'POST',
+    });
+  },
+};
+
+// ===========================================
+// Developer Notification Settings API
+// ===========================================
+
+export const notificationSettingsApi = {
+  /** Get notification settings */
+  async getSettings(): Promise<{
+    contractUpdate: boolean;
+    newLeads: boolean;
+    inspectionBookings: boolean;
+    handoverReminders: boolean;
+    payoutUpdate: boolean;
+  }> {
+    return fetchWithAuth('/api/developer/notifications/settings');
+  },
+
+  /** Update notification settings */
+  async updateSettings(settings: {
+    contractUpdate?: boolean;
+    newLeads?: boolean;
+    inspectionBookings?: boolean;
+    handoverReminders?: boolean;
+    payoutUpdate?: boolean;
+  }): Promise<{ success: boolean; message: string; settings: any }> {
+    return fetchWithAuth('/api/developer/notifications/settings', {
+      method: 'PATCH',
+      body: JSON.stringify(settings),
     });
   },
 };

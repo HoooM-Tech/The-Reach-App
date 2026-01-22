@@ -117,16 +117,14 @@ export const notificationHelpers = {
     buyerName?: string
     buyerPhone?: string
   }): Promise<void> {
-    const slotDate = new Date(data.slotTime)
-    const formattedDate = slotDate.toLocaleDateString('en-US', {
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric',
+    // Use central time utility for consistent formatting
+    const { formatInspectionTime } = await import('@/lib/utils/time')
+    const formattedDateTime = formatInspectionTime(data.slotTime, {
+      includeDate: true,
+      includeTime: true,
+      timeFormat: '12h',
     })
-    const formattedTime = slotDate.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-    })
+    const [formattedDate, formattedTime] = formattedDateTime.split(' at ')
 
     // Notify developer
     await createNotification(
@@ -338,6 +336,52 @@ export const notificationHelpers = {
       },
       ['in_app', 'push', 'email']
     )
+  },
+
+  /**
+   * Inspection rescheduled notification
+   */
+  async inspectionRescheduled(data: {
+    developerId: string
+    buyerId?: string
+    propertyId: string
+    propertyTitle: string
+    inspectionId: string
+    oldSlotTime: string
+    newSlotTime: string
+    buyerName?: string
+    buyerPhone?: string
+  }): Promise<void> {
+    // Use central time utility for consistent formatting
+    const { formatInspectionTime } = await import('@/lib/utils/time')
+    const oldTimeFormatted = formatInspectionTime(data.oldSlotTime, {
+      includeDate: true,
+      includeTime: true,
+      timeFormat: '12h',
+    })
+    const newTimeFormatted = formatInspectionTime(data.newSlotTime, {
+      includeDate: true,
+      includeTime: true,
+      timeFormat: '12h',
+    })
+
+    // Notify buyer if provided
+    if (data.buyerId) {
+      await createNotification(
+        data.buyerId,
+        'inspection_rescheduled',
+        'Inspection Rescheduled',
+        `Your inspection for "${data.propertyTitle}" has been rescheduled from ${oldTimeFormatted} to ${newTimeFormatted}.`,
+        {
+          property_id: data.propertyId,
+          property_title: data.propertyTitle,
+          inspection_id: data.inspectionId,
+          old_slot_time: data.oldSlotTime,
+          slot_time: data.newSlotTime,
+        },
+        ['in_app', 'push', 'email']
+      );
+    }
   },
 
   /**

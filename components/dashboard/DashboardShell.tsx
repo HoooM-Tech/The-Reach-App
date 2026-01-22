@@ -19,7 +19,8 @@ import {
   Menu,
   X,
   ChevronRight,
-  ChevronLeft
+  ChevronLeft,
+  LogOut
 } from 'lucide-react';
 
 interface NavItem {
@@ -40,7 +41,7 @@ interface DashboardShellProps {
 export function DashboardShell({ children, user, navItems: customNavItems, accountItems: customAccountItems, basePath = '/dashboard/developer' }: DashboardShellProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user: contextUser } = useUser();
+  const { user: contextUser, logout } = useUser();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const firstFocusableRef = useRef<HTMLButtonElement>(null);
@@ -187,7 +188,10 @@ export function DashboardShell({ children, user, navItems: customNavItems, accou
   const defaultAccountItems = [
     { label: 'Profile', href: '/dashboard/developer/profile', icon: User },
     { label: 'Settings & Privacy', href: '/dashboard/developer/settings', icon: Settings },
-    { label: 'Help Center', href: '/dashboard/developer/help', icon: HelpCircle },
+    { label: 'Logout', href: '#', icon: LogOut, onClick: async () => {
+      await logout();
+      router.push('/auth/login');
+    } },
   ];
 
   const navItems = customNavItems || defaultNavItems;

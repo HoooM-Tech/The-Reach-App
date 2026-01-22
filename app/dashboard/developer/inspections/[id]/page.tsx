@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useUser } from '@/contexts/UserContext';
 import { developerApi, ApiError } from '@/lib/api/client';
+import { formatInspectionTimeOnly } from '@/lib/utils/time';
 import { 
   ArrowLeft, 
   Calendar, 
@@ -180,6 +181,7 @@ export default function DeveloperInspectionDetailPage() {
             <button
               onClick={() => router.push('/dashboard/developer/inspections')}
               className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+              title="Back"
             >
               <ArrowLeft size={20} />
             </button>
@@ -260,7 +262,7 @@ export default function DeveloperInspectionDetailPage() {
               <div>
                 <p className="text-sm text-gray-500">Scheduled Time</p>
                 <p className="font-semibold text-gray-900">
-                  {inspectionDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {formatInspectionTimeOnly(inspection.slot_time)}
                 </p>
               </div>
             </div>

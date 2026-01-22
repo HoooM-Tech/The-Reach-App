@@ -73,15 +73,20 @@ export default function EditPropertyPage() {
       if (!abortController.signal.aborted) {
         if (!prop) {
           setError('Property not found');
+          setLoading(false);
           return;
         }
 
-        // Check if property can be edited
+        // Allow editing for all statuses - developers should be able to update their properties
+        // The API will handle business logic for what can be changed based on status
         const status = prop.verification_status || prop.status;
-        if (status !== 'draft' && status !== 'rejected') {
-          router.push(`/dashboard/developer/properties/${propertyId}`);
-          return;
-        }
+        
+        // Log status for debugging
+        console.log('Property loaded for editing:', {
+          id: prop.id,
+          status,
+          verification_status: prop.verification_status,
+        });
 
         setProperty(prop as ApiProperty);
         // Map API media format to form media format
@@ -123,7 +128,17 @@ export default function EditPropertyPage() {
       
       const message = err instanceof ApiError ? err.message : 'Failed to load property';
       setError(message);
-      console.error('Failed to load property:', err);
+      
+      // Log detailed error for debugging
+      console.error('Failed to load property:', {
+        propertyId,
+        error: err,
+        apiError: err instanceof ApiError ? {
+          statusCode: err.statusCode,
+          message: err.message,
+          data: err.data,
+        } : null,
+      });
     } finally {
       if (!abortController.signal.aborted) {
         setLoading(false);
@@ -197,30 +212,76 @@ export default function EditPropertyPage() {
         visibility: data.visibility === 'ALL_CREATORS' ? 'all_creators' : 'exclusive_creators',
         bedrooms: data.bedrooms,
         bathrooms: data.bathrooms,
-        save_as_draft: action === 'draft',
       };
 
-      await developerApi.updateProperty(propertyId, updatePayload);
-
-      if (action === 'verify') {
-        await developerApi.submitForVerification(propertyId);
+      // Set verification status based on action
+      if (action === 'draft') {
+        updatePayload.verification_status = 'draft';
+        updatePayload.status = 'draft';
+      } else if (action === 'verify') {
+        // Submit for verification
+        updatePayload.verification_status = 'submitted';
+        updatePayload.status = 'pending_verification';
       }
 
+      console.log('Updating property with payload:', updatePayload);
+      await developerApi.updateProperty(propertyId, updatePayload);
+
+      // Success - navigate to property details
       router.push(`/dashboard/developer/properties/${propertyId}`);
     } catch (err: any) {
+      // Error handling
       const message = err instanceof ApiError ? err.message : 'Failed to update property';
+      console.error('Property update error:', {
+        propertyId,
+        action,
+        error: err,
+        apiError: err instanceof ApiError ? {
+          statusCode: err.statusCode,
+          message: err.message,
+          data: err.data,
+        } : null,
+      });
       alert(message);
+    } finally {
+      // Always reset submitting state
       setIsSubmitting(false);
     }
   };
 
-  const handleSaveDraft = handleSubmit(async (data: PropertyFormData) => {
-    await onSubmit(data, 'draft');
-  });
+  const handleSaveDraft = handleSubmit(
+    async (data: PropertyFormData) => {
+      console.log('Save Draft - Form data:', data);
+      await onSubmit(data, 'draft');
+    },
+    (errors) => {
+      // Handle form validation errors
+      console.error('Save Draft - Form validation errors:', errors);
+      const firstError = Object.values(errors)[0];
+      if (firstError?.message) {
+        alert(firstError.message);
+      } else {
+        alert('Please fill in all required fields correctly');
+      }
+    }
+  );
 
-  const handleSubmitForVerification = handleSubmit(async (data: PropertyFormData) => {
-    await onSubmit(data, 'verify');
-  });
+  const handleSubmitForVerification = handleSubmit(
+    async (data: PropertyFormData) => {
+      console.log('Submit for Verification - Form data:', data);
+      await onSubmit(data, 'verify');
+    },
+    (errors) => {
+      // Handle form validation errors
+      console.error('Submit for Verification - Form validation errors:', errors);
+      const firstError = Object.values(errors)[0];
+      if (firstError?.message) {
+        alert(firstError.message);
+      } else {
+        alert('Please fill in all required fields correctly');
+      }
+    }
+  );
 
   const getRequiredDocuments = (type: ListingType): string[] => {
     switch (type) {

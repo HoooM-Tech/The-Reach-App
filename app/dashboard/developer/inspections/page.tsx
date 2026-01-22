@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/contexts/UserContext';
 import { developerApi, DeveloperDashboardData, ApiError } from '@/lib/api/client';
+import { isBefore, formatInspectionTimeOnly } from '@/lib/utils/time';
 import { 
   Calendar, 
   Clock,
@@ -39,8 +40,9 @@ function InspectionCard({ inspection, onClick }: InspectionCardProps) {
   };
 
   const statusInfo = getStatusBadge(inspection.status);
+  // Use central time utility for consistent date handling
   const inspectionDate = new Date(inspection.slot_time);
-  const isPast = inspectionDate < new Date();
+  const isPast = isBefore(inspection.slot_time, new Date().toISOString());
 
   return (
     <button
@@ -68,7 +70,7 @@ function InspectionCard({ inspection, onClick }: InspectionCardProps) {
               <div className="flex items-center gap-2 mt-1 text-sm text-gray-500">
                 <Clock size={14} />
                 <span>
-                  {inspectionDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {formatInspectionTimeOnly(inspection.slot_time)}
                 </span>
               </div>
             </div>

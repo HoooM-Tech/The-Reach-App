@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useUser } from '@/contexts/UserContext';
 import { buyerApi, ApiError } from '@/lib/api/client';
+import { formatInspectionDate, formatInspectionTimeOnly } from '@/lib/utils/time';
 import { 
   MapPin, 
   Bed, 
@@ -56,12 +57,14 @@ function PropertyGallery({ media }: { media: any[] }) {
             <button
               onClick={() => setCurrentIndex(i => (i - 1 + media.length) % media.length)}
               className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-            >
+              title="Previous"
+            > 
               <ChevronLeft size={20} />
             </button>
             <button
               onClick={() => setCurrentIndex(i => (i + 1) % media.length)}
               className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              title="Next"
             >
               <ChevronRight size={20} />
             </button>
@@ -79,6 +82,7 @@ function PropertyGallery({ media }: { media: any[] }) {
         <div className="flex gap-2 mt-3 overflow-x-auto pb-2">
           {media.map((item, idx) => (
             <button
+              title="Thumbnail"
               key={item.id || idx}
               onClick={() => setCurrentIndex(idx)}
               className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-colors ${
@@ -97,12 +101,14 @@ function PropertyGallery({ media }: { media: any[] }) {
           <button
             onClick={() => setIsFullscreen(false)}
             className="absolute top-4 right-4 p-2 text-white hover:bg-white/10 rounded-full"
+            title="Close"
           >
             <X size={24} />
           </button>
           <button
             onClick={() => setCurrentIndex(i => (i - 1 + media.length) % media.length)}
             className="absolute left-4 p-2 text-white hover:bg-white/10 rounded-full"
+            title="Previous"
           >
             <ChevronLeft size={32} />
           </button>
@@ -114,6 +120,7 @@ function PropertyGallery({ media }: { media: any[] }) {
           <button
             onClick={() => setCurrentIndex(i => (i + 1) % media.length)}
             className="absolute right-4 p-2 text-white hover:bg-white/10 rounded-full"
+            title="Next"
           >
             <ChevronRight size={32} />
           </button>
@@ -178,7 +185,7 @@ function LeadFormModal({ isOpen, onClose, propertyId, propertyTitle, sourceCode 
       >
         <div className="sticky top-0 bg-white p-4 border-b flex items-center justify-between">
           <h2 className="text-lg font-semibold">Express Interest</h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full">
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full" title="Close">
             <X size={20} />
           </button>
         </div>
@@ -322,7 +329,7 @@ function InspectionModal({ isOpen, onClose, propertyId, propertyTitle }: Inspect
     try {
       await buyerApi.bookInspection({
         property_id: propertyId,
-        slot_time: selectedSlot,
+        slot_time: selectedSlot, // Already in UTC ISO format from available-slots API
       });
       setSuccess(true);
     } catch (err) {
@@ -335,9 +342,9 @@ function InspectionModal({ isOpen, onClose, propertyId, propertyTitle }: Inspect
 
   if (!isOpen) return null;
 
-  // Group slots by date
+  // Group slots by date using central time utility
   const slotsByDate = slots.reduce((acc: Record<string, any[]>, slot) => {
-    const date = new Date(slot.time).toLocaleDateString();
+    const date = formatInspectionDate(slot.time);
     if (!acc[date]) acc[date] = [];
     acc[date].push(slot);
     return acc;
@@ -351,7 +358,7 @@ function InspectionModal({ isOpen, onClose, propertyId, propertyTitle }: Inspect
       >
         <div className="sticky top-0 bg-white p-4 border-b flex items-center justify-between">
           <h2 className="text-lg font-semibold">Book Inspection</h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full">
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full" title="Close">
             <X size={20} />
           </button>
         </div>
@@ -407,7 +414,7 @@ function InspectionModal({ isOpen, onClose, propertyId, propertyTitle }: Inspect
                               : 'bg-gray-50 text-gray-300 cursor-not-allowed'
                           }`}
                         >
-                          {new Date(slot.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {formatInspectionTimeOnly(slot.time)}
                         </button>
                       ))}
                     </div>
@@ -547,6 +554,7 @@ export default function PropertyDetailPage() {
           <button
             onClick={() => router.back()}
             className="p-2 rounded-full hover:bg-gray-100"
+            title="Back"
           >
             <ArrowLeft size={20} />
           </button>

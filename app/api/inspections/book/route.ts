@@ -125,8 +125,14 @@ export async function POST(req: NextRequest) {
 
     // Send SMS confirmation to buyer
     try {
-      const slotDate = new Date(validated.slot_time)
-      const message = `Your inspection for ${lead.properties?.title || 'property'} is scheduled for ${slotDate.toLocaleDateString()} at ${slotDate.toLocaleTimeString()}. Reply CANCEL to cancel.`
+      // Use central time utility for consistent formatting
+      const { formatInspectionTime } = await import('@/lib/utils/time')
+      const formattedDateTime = formatInspectionTime(validated.slot_time, {
+        includeDate: true,
+        includeTime: true,
+        timeFormat: '12h',
+      })
+      const message = `Your inspection for ${lead.properties?.title || 'property'} is scheduled for ${formattedDateTime}. Reply CANCEL to cancel.`
       await sendSMS(lead.buyer_phone, message)
     } catch (smsError) {
       console.error('Failed to send SMS:', smsError)
