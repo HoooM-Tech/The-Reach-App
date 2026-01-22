@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/contexts/UserContext';
 import { buyerApi, BuyerDashboardData, ApiError } from '@/lib/api/client';
-import { isBefore } from '@/lib/utils/time';
+import { isBefore, formatInspectionTimeOnly } from '@/lib/utils/time';
 import { 
   Calendar, 
   Clock,
