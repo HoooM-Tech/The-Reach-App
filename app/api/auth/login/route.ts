@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase/client'
 import { ValidationError, handleError } from '@/lib/utils/errors'
-import { rateLimit } from '@/lib/utils/rate-limit'
+import { checkRateLimit } from '@/lib/utils/rate-limit'
 import { z } from 'zod'
 
 const loginSchema = z.object({
@@ -15,9 +15,9 @@ export async function POST(req: NextRequest) {
     const clientIP = req.headers.get('x-forwarded-for')?.split(',')[0] || 
                      req.headers.get('x-real-ip') || 
                      'unknown'
-    const rateLimitResult = await rateLimit(`login:${clientIP}`, 5, 900) // 5 attempts per 15 minutes
+    const rateLimitResult = checkRateLimit(`login:${clientIP}`, 5, 900000) // 5 attempts per 15 minutes (900000ms)
     
-    if (!rateLimitResult.success) {
+    if (!rateLimitResult.allowed) {
       return NextResponse.json(
         { error: 'Too many login attempts. Please try again later.' },
         { status: 429 }

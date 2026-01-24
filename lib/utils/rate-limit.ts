@@ -1,49 +1,88 @@
-// Simple in-memory rate limiter (for development)
-// For production, use Redis/Upstash
+/**
+ * Simple in-memory rate limiter
+ * For production, use Redis-based rate limiting
+ */
 
 interface RateLimitStore {
   [key: string]: {
-    count: number
-    resetAt: number
-  }
+    count: number;
+    resetTime: number;
+  };
 }
 
-const store: RateLimitStore = {}
+const store: RateLimitStore = {};
 
-export async function rateLimit(
-  identifier: string,
-  limit: number = 10,
-  windowSeconds: number = 60
-): Promise<{ success: boolean; remaining: number }> {
-  const now = Date.now()
-  const key = `rate_limit:${identifier}`
-  const windowMs = windowSeconds * 1000
+/**
+ * Check if request should be rate limited
+ * @param key - Unique identifier (e.g., userId)
+ * @param maxRequests - Maximum requests allowed
+ * @param windowMs - Time window in milliseconds
+ * @returns True if allowed, false if rate limited
+ */
+export function checkRateLimit(
+  key: string,
+  maxRequests: number,
+  windowMs: number
+): { allowed: boolean; remaining: number; resetTime: number } {
+  const now = Date.now();
+  const record = store[key];
 
-  const record = store[key]
-
-  if (!record || now > record.resetAt) {
+  if (!record || now > record.resetTime) {
+    // Create new window
     store[key] = {
       count: 1,
-      resetAt: now + windowMs,
-    }
-    return { success: true, remaining: limit - 1 }
+      resetTime: now + windowMs,
+    };
+    return {
+      allowed: true,
+      remaining: maxRequests - 1,
+      resetTime: now + windowMs,
+    };
   }
 
-  if (record.count >= limit) {
-    return { success: false, remaining: 0 }
+  if (record.count >= maxRequests) {
+    return {
+      allowed: false,
+      remaining: 0,
+      resetTime: record.resetTime,
+    };
   }
 
-  record.count++
-  return { success: true, remaining: limit - record.count }
+  record.count++;
+  return {
+    allowed: true,
+    remaining: maxRequests - record.count,
+    resetTime: record.resetTime,
+  };
 }
 
-// Clean up expired entries periodically
-setInterval(() => {
-  const now = Date.now()
-  Object.keys(store).forEach((key) => {
-    if (store[key].resetAt < now) {
-      delete store[key]
-    }
-  })
-}, 60000) // Clean every minute
+/**
+ * Clear rate limit for a key (useful for testing)
+ */
+export function clearRateLimit(key: string): void {
+  delete store[key];
+}
 
+/**
+ * Get rate limit info without incrementing
+ */
+export function getRateLimitInfo(
+  key: string,
+  maxRequests: number,
+  windowMs: number
+): { remaining: number; resetTime: number } {
+  const now = Date.now();
+  const record = store[key];
+
+  if (!record || now > record.resetTime) {
+    return {
+      remaining: maxRequests,
+      resetTime: now + windowMs,
+    };
+  }
+
+  return {
+    remaining: Math.max(0, maxRequests - record.count),
+    resetTime: record.resetTime,
+  };
+}

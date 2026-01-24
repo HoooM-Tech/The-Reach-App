@@ -120,36 +120,28 @@ export default function DeveloperWalletPage() {
   const fetchWalletData = useCallback(async () => {
     if (!user?.id) return;
 
-    // Cancel any in-flight request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    
-    // Create new abort controller
-    const abortController = new AbortController();
-    abortControllerRef.current = abortController;
-
     setIsLoading(true);
     setError(null);
 
     try {
-      const data = await walletApi.getWallet(user.id);
+      const [balanceData, transactionsData] = await Promise.all([
+        walletApi.getBalance(),
+        walletApi.getTransactions({ limit: 5 }),
+      ]);
       
-      // Only update state if request wasn't aborted
-      if (!abortController.signal.aborted) {
-        setWalletData(data);
-      }
+      setWalletData({
+        wallet: {
+          balance: balanceData.availableBalance,
+          locked_balance: balanceData.lockedBalance,
+        },
+        transactions: transactionsData.transactions || [],
+      });
     } catch (err) {
-      // Don't set error if request was aborted
-      if (abortController.signal.aborted) return;
-      
       const message = err instanceof ApiError ? err.message : 'Failed to load wallet';
       setError(message);
       console.error('Wallet fetch error:', err);
     } finally {
-      if (!abortController.signal.aborted) {
-        setIsLoading(false);
-      }
+      setIsLoading(false);
     }
   }, [user?.id]);
 
@@ -207,9 +199,8 @@ export default function DeveloperWalletPage() {
     );
   }
 
-  const balance = walletData?.wallet?.balance || 0;
+  const availableBalance = walletData?.wallet?.balance || 0;
   const lockedBalance = walletData?.wallet?.locked_balance || 0;
-  const availableBalance = balance - lockedBalance;
   const transactions = walletData?.transactions || [];
 
   return (

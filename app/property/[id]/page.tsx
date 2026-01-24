@@ -482,6 +482,24 @@ export default function PropertyDetailPage() {
     }
   }, [propertyId, user, router]);
 
+  // Track impression when page loads with ref parameter (for creator tracking links)
+  useEffect(() => {
+    if (!propertyId || !sourceCode) return;
+
+    // Track impression server-side (non-blocking, fire-and-forget)
+    fetch('/api/tracking/impression', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        property_id: propertyId,
+        creator_code: sourceCode,
+      }),
+    }).catch(err => {
+      // Silently fail - tracking should never break the page
+      console.error('Failed to track impression:', err);
+    });
+  }, [propertyId, sourceCode]);
+
   // Fetch property from real API
   useEffect(() => {
     if (!propertyId) {
@@ -504,6 +522,25 @@ export default function PropertyDetailPage() {
 
     fetchProperty();
   }, [propertyId, router]);
+
+  // Track click when user interacts with CTAs
+  const trackClick = async (action: 'lead_form' | 'inspection' | 'cta') => {
+    if (!propertyId || !sourceCode) return;
+
+    // Track click server-side (non-blocking)
+    fetch('/api/tracking/click', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        property_id: propertyId,
+        creator_code: sourceCode,
+        action,
+      }),
+    }).catch(err => {
+      // Silently fail - tracking should never break the page
+      console.error('Failed to track click:', err);
+    });
+  };
 
   // Format price
   const formatPrice = (price: number) => {
@@ -625,13 +662,19 @@ export default function PropertyDetailPage() {
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 z-40">
         <div className="max-w-4xl mx-auto flex gap-4">
           <button
-            onClick={() => setIsLeadModalOpen(true)}
+            onClick={() => {
+              trackClick('lead_form');
+              setIsLeadModalOpen(true);
+            }}
             className="flex-1 py-3 bg-[#0A1628] text-white rounded-xl font-medium hover:bg-[#0A1628]/90 transition-colors"
           >
             I&apos;m Interested
           </button>
           <button
-            onClick={() => setIsInspectionModalOpen(true)}
+            onClick={() => {
+              trackClick('inspection');
+              setIsInspectionModalOpen(true);
+            }}
             className="flex-1 py-3 bg-[#E54D4D] text-white rounded-xl font-medium hover:bg-[#E54D4D]/90 transition-colors flex items-center justify-center gap-2"
           >
             <Calendar size={18} />

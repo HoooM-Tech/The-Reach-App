@@ -3,6 +3,7 @@ import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/sup
 import { getAuthenticatedUser } from '@/lib/utils/auth';
 import { NotFoundError, ValidationError, handleError } from '@/lib/utils/errors';
 import { notificationHelpers } from '@/lib/services/notification-helper';
+import { normalizeNigerianPhone } from '@/lib/utils/phone';
 
 export async function POST(
   req: NextRequest,

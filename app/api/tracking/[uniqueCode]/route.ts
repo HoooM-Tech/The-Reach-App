@@ -21,14 +21,45 @@ export async function GET(
       throw new NotFoundError('Tracking link')
     }
 
+    // Check if promotion is active and not expired
+    const now = new Date();
+    const isExpired = trackingLink.expires_at && new Date(trackingLink.expires_at) < now;
+    const isActive = trackingLink.status === 'active' && !isExpired;
+
+    // Auto-expire if needed
+    if (trackingLink.status === 'active' && isExpired) {
+      const expireData: any = {
+        status: 'expired',
+        expired_at: now.toISOString(),
+      };
+      
+      const { error: expireError } = await supabase
+        .from('tracking_links')
+        .update(expireData)
+        .eq('id', trackingLink.id);
+      
+      // Ignore errors about missing updated_at column (migration not run yet)
+      if (!expireError || expireError.message?.includes('updated_at')) {
+        console.log('[Promotion Lifecycle] Auto-expired', {
+          promotion_id: trackingLink.id,
+          timestamp: now.toISOString(),
+          action: 'auto-expire',
+        });
+      } else {
+        console.error('Failed to auto-expire promotion:', expireError);
+      }
+    }
+
     // Get client IP for fraud detection
     const clientIP = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown'
 
-    // Log impression
-    await supabase
-      .from('tracking_links')
-      .update({ impressions: (trackingLink.impressions || 0) + 1 })
-      .eq('id', trackingLink.id)
+    // Log impression (only for active promotions)
+    if (isActive || (trackingLink.status === 'active' && !isExpired)) {
+      await supabase
+        .from('tracking_links')
+        .update({ impressions: (trackingLink.impressions || 0) + 1 })
+        .eq('id', trackingLink.id)
+    }
 
     // Return property data
     return NextResponse.json({
@@ -66,22 +97,53 @@ export async function POST(
       throw new NotFoundError('Tracking link')
     }
 
+    // Check if promotion is active and not expired
+    const now = new Date();
+    const isExpired = trackingLink.expires_at && new Date(trackingLink.expires_at) < now;
+    const isActive = trackingLink.status === 'active' && !isExpired;
+
+    // Auto-expire if needed
+    if (trackingLink.status === 'active' && isExpired) {
+      const expireData: any = {
+        status: 'expired',
+        expired_at: now.toISOString(),
+      };
+      
+      const { error: expireError } = await supabase
+        .from('tracking_links')
+        .update(expireData)
+        .eq('id', trackingLink.id);
+      
+      // Ignore errors about missing updated_at column (migration not run yet)
+      if (!expireError || expireError.message?.includes('updated_at')) {
+        console.log('[Promotion Lifecycle] Auto-expired', {
+          promotion_id: trackingLink.id,
+          timestamp: now.toISOString(),
+          action: 'auto-expire',
+        });
+      } else {
+        console.error('Failed to auto-expire promotion:', expireError);
+      }
+    }
+
     // Get client IP for fraud detection
     const clientIP = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown'
 
-    // Update tracking metrics
-    const updates: any = {}
-    if (event_type === 'click') {
-      updates.clicks = (trackingLink.clicks || 0) + 1
-    } else if (event_type === 'lead') {
-      updates.leads = (trackingLink.leads || 0) + 1
-    }
+    // Update tracking metrics (only for active promotions)
+    if (isActive) {
+      const updates: any = {}
+      if (event_type === 'click') {
+        updates.clicks = (trackingLink.clicks || 0) + 1
+      } else if (event_type === 'lead') {
+        updates.leads = (trackingLink.leads || 0) + 1
+      }
 
-    if (Object.keys(updates).length > 0) {
-      await supabase
-        .from('tracking_links')
-        .update(updates)
-        .eq('id', trackingLink.id)
+      if (Object.keys(updates).length > 0) {
+        await supabase
+          .from('tracking_links')
+          .update(updates)
+          .eq('id', trackingLink.id)
+      }
     }
 
     return NextResponse.json({

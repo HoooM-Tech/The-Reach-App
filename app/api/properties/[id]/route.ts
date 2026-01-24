@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminSupabaseClient, createServerSupabaseClient } from '@/lib/supabase/client'
 import { getAuthenticatedUser, requireDeveloper } from '@/lib/utils/auth'
 import { NotFoundError, ValidationError, handleError } from '@/lib/utils/errors'
-import { normalizePhoneNumber } from '@/lib/utils/phone'
+import { normalizeNigerianPhone } from '@/lib/utils/phone'
 
 export async function GET(
   req: NextRequest,
@@ -13,7 +13,16 @@ export async function GET(
 
     // Use admin client to bypass RLS for property lookup
     // RLS policies allow verified properties to be viewed, but Bearer tokens might not set context properly
-    const supabase = createAdminSupabaseClient()
+    let supabase
+    try {
+      supabase = createAdminSupabaseClient()
+    } catch (adminError: any) {
+      console.error('[Property API] Failed to create admin client:', adminError)
+      return NextResponse.json(
+        { error: 'Server configuration error', details: adminError.message },
+        { status: 500 }
+      )
+    }
 
     // Get property
     const { data: property, error } = await supabase
@@ -22,13 +31,72 @@ export async function GET(
       .eq('id', propertyId)
       .single()
 
-    if (error || !property) {
+    if (error) {
+      console.error('[Property API] Database error:', { propertyId, error: error.message, code: error.code })
+      // If it's a not found error, return 404
+      if (error.code === 'PGRST116') {
+        throw new NotFoundError('Property')
+      }
+      // Otherwise, it might be a permission/RLS issue
+      return NextResponse.json(
+        { error: 'Failed to fetch property', details: error.message },
+        { status: 500 }
+      )
+    }
+
+    if (!property) {
+      console.error('[Property API] Property not found:', { propertyId })
       throw new NotFoundError('Property')
     }
 
-    // Check if property is verified or user has access (for access control)
-    // This is a business logic check, not RLS
-    let canViewProperty = property.verification_status === 'verified'
+    // PUBLIC ACCESS RULE: Verified properties are ALWAYS accessible to anyone (logged-in or not)
+    // This is critical for creator tracking links to work
+    const isVerified = property.verification_status === 'verified'
+    
+    // Debug logging
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[Property API] Property access check:', {
+        propertyId,
+        isVerified,
+        verification_status: property.verification_status,
+      })
+    }
+    
+    // If property is verified, allow public access immediately
+    if (isVerified) {
+      // Get property media
+      const { data: media } = await supabase
+        .from('property_media')
+        .select('*')
+        .eq('property_id', propertyId)
+        .order('order_index', { ascending: true })
+
+      // Get property documents (only for developers/admins - skip for public)
+      let documents = null
+      try {
+        const user = await getAuthenticatedUser()
+        if ((user.role === 'developer' && user.id === property.developer_id) || user.role === 'admin') {
+          const { data: docs } = await supabase
+            .from('property_documents')
+            .select('*')
+            .eq('property_id', propertyId)
+          documents = docs
+        }
+      } catch {
+        // User not authenticated - skip documents (public access)
+      }
+
+      return NextResponse.json({
+        property: {
+          ...property,
+          media: media || [],
+          documents: documents || [],
+        }
+      })
+    }
+
+    // For non-verified properties, check authenticated user access
+    let canViewProperty = false
     
     try {
       const user = await getAuthenticatedUser()
@@ -49,11 +117,9 @@ export async function GET(
         canViewProperty = true
       }
       
-      // If property is not verified and user is not developer/admin,
-      // check if user has a lead or inspection for this property
+      // If property is not verified, check if user has a lead or inspection for this property
       if (!canViewProperty) {
         // Check if user has a lead for this property (by email or phone)
-        // First, get all leads for this property
         const { data: allLeads } = await supabase
           .from('leads')
           .select('id, buyer_email, buyer_phone')
@@ -68,8 +134,8 @@ export async function GET(
           // Match by phone (normalized)
           const phoneMatch = user.phone && allLeads.some(lead => {
             if (!lead.buyer_phone) return false
-            const normalizedUserPhone = normalizePhoneNumber(user.phone!)
-            const normalizedLeadPhone = normalizePhoneNumber(lead.buyer_phone)
+            const normalizedUserPhone = normalizeNigerianPhone(user.phone!)
+            const normalizedLeadPhone = normalizeNigerianPhone(lead.buyer_phone)
             return normalizedUserPhone === normalizedLeadPhone
           })
           
@@ -106,11 +172,24 @@ export async function GET(
           }
         }
       }
-    } catch {
-      // User not authenticated - only verified properties are visible
+    } catch (authError) {
+      // User not authenticated AND property is not verified - deny access
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[Property API] Access denied - not verified and not authenticated:', {
+          propertyId,
+          verification_status: property.verification_status,
+        })
+      }
+      throw new NotFoundError('Property')
     }
 
     if (!canViewProperty) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[Property API] Access denied - user does not have permission:', {
+          propertyId,
+          verification_status: property.verification_status,
+        })
+      }
       throw new NotFoundError('Property')
     }
 

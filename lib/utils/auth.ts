@@ -56,27 +56,64 @@ export async function getAuthenticatedUser() {
 
       return user
     } catch (error: any) {
-      // If token validation fails due to network/timeout, try to extract user ID from token directly
-      // JWT tokens can be decoded without network call (though we can't verify signature)
-      if (error.message?.includes('timeout') || error.message?.includes('Connect Timeout')) {
+      // If token validation fails due to network/timeout, try cookie-based session as fallback
+      if (error.message?.includes('timeout') || error.message?.includes('Connect Timeout') || error.message?.includes('Token validation timeout')) {
         console.warn('Token validation timeout, attempting fallback authentication')
         // Try cookie-based session as fallback
-        const supabase = createServerSupabaseClient()
-        const { data: { session: cookieSession } } = await supabase.auth.getSession()
-        
-        if (cookieSession?.user) {
-          const adminSupabase = createAdminSupabaseClient()
-          const { data: user } = await adminSupabase
-            .from('users')
-            .select('*')
-            .eq('id', cookieSession.user.id)
-            .single()
+        try {
+          const supabase = createServerSupabaseClient()
+          const { data: { session: cookieSession }, error: sessionError } = await supabase.auth.getSession()
           
-          if (user) {
-            return user
+          if (cookieSession?.user && !sessionError) {
+            const adminSupabase = createAdminSupabaseClient()
+            const { data: user, error: dbError } = await adminSupabase
+              .from('users')
+              .select('*')
+              .eq('id', cookieSession.user.id)
+              .single()
+            
+            if (user && !dbError) {
+              return user
+            }
           }
+        } catch (fallbackError) {
+          console.error('Fallback authentication also failed:', fallbackError)
         }
       }
+      
+      // If it's a timeout but we have a token, try to decode it directly (less secure but better UX)
+      if (error.message?.includes('timeout') && authHeader) {
+        try {
+          // Decode JWT without verification (fallback for timeout scenarios)
+          const token = authHeader.substring(7)
+          const parts = token.split('.')
+          if (parts.length === 3) {
+            // Decode base64 URL-safe payload
+            const payloadBase64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+            const payload = JSON.parse(
+              typeof window === 'undefined' 
+                ? Buffer.from(payloadBase64, 'base64').toString()
+                : atob(payloadBase64)
+            )
+            if (payload.sub) {
+              const adminSupabase = createAdminSupabaseClient()
+              const { data: user, error: dbError } = await adminSupabase
+                .from('users')
+                .select('*')
+                .eq('id', payload.sub)
+                .single()
+              
+              if (user && !dbError) {
+                console.warn('Using unverified token due to timeout - user authenticated via token decode')
+                return user
+              }
+            }
+          }
+        } catch (decodeError) {
+          console.error('Token decode fallback failed:', decodeError)
+        }
+      }
+      
       throw new AuthenticationError(error.message || 'Authentication failed')
     }
   }

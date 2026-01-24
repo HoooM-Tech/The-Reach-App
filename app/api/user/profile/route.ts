@@ -109,7 +109,17 @@ export async function PATCH(req: NextRequest) {
     // Only include allowed fields from request
     for (const field of allowedFields) {
       if (field in body) {
-        updateData[field] = body[field];
+        if (field === 'phone' && body[field]) {
+          // Normalize phone number before storing
+          try {
+            const { normalizeNigerianPhone } = await import('@/lib/utils/phone');
+            updateData[field] = normalizeNigerianPhone(body[field]);
+          } catch (error) {
+            throw new ValidationError(error instanceof Error ? error.message : 'Invalid phone number format');
+          }
+        } else {
+          updateData[field] = body[field];
+        }
       }
     }
 

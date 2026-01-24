@@ -1,6 +1,7 @@
 import React from 'react';
 import { Providers } from './Providers';
 import { RoleSwitcher } from '../components/dev/RoleSwitcher';
+import { Toaster } from 'react-hot-toast';
 import './globals.css';
 
 export const metadata = {
@@ -23,6 +24,7 @@ export default function RootLayout({
       <body>
         <Providers>
           {children}
+          <Toaster position="top-center" />
           {/*<RoleSwitcher />*/}
         </Providers>
       </body>

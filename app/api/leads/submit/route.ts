@@ -3,7 +3,7 @@ import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/sup
 import { leadSchema } from '@/lib/utils/validation'
 import { ValidationError, NotFoundError, handleError } from '@/lib/utils/errors'
 import { getAuthenticatedUser } from '@/lib/utils/auth'
-import { normalizePhoneNumber } from '@/lib/utils/phone'
+import { normalizeNigerianPhone } from '@/lib/utils/phone'
 
 export async function POST(req: NextRequest) {
   try {
@@ -26,34 +26,46 @@ export async function POST(req: NextRequest) {
       // Otherwise, continue as anonymous user
     }
 
-    // Get tracking code from referrer or request
+    // Get tracking code from multiple sources (priority: validated.source_code > body.tracking_code > referer)
     const referer = req.headers.get('referer') || ''
-    const trackingCode = referer.match(/\/p\/([a-f0-9]+)/)?.[1] || body.tracking_code
+    const trackingCode = validated.source_code || 
+                        (body as any).tracking_code || 
+                        referer.match(/[?&]ref=([a-f0-9-]+)/)?.[1] ||
+                        referer.match(/\/p\/([a-f0-9]+)/)?.[1]
 
     let creatorId: string | null = null
 
-    // If tracking code exists, get creator ID
+    // If tracking code exists, get creator ID and update metrics
     if (trackingCode) {
-      const { data: trackingLink, error: trackingError } = await supabase
+      // Use admin client to bypass RLS for tracking link lookup
+      const { data: trackingLink, error: trackingError } = await adminSupabase
         .from('tracking_links')
-        .select('id, creator_id, leads')
+        .select('id, creator_id, leads, property_id')
         .eq('unique_code', trackingCode)
         .maybeSingle()
 
       if (!trackingError && trackingLink) {
-        creatorId = trackingLink.creator_id
+        // Verify the tracking link matches the property
+        if (trackingLink.property_id === validated.property_id) {
+          creatorId = trackingLink.creator_id
 
-        // Update tracking link metrics
-        const currentLeads = trackingLink.leads || 0
-        await supabase
-          .from('tracking_links')
-          .update({ leads: currentLeads + 1 })
-          .eq('id', trackingLink.id)
+          // Update tracking link metrics (leads)
+          const currentLeads = trackingLink.leads || 0
+          await adminSupabase
+            .from('tracking_links')
+            .update({ leads: currentLeads + 1 })
+            .eq('id', trackingLink.id)
+        }
       }
     }
 
     // Normalize phone for consistent matching
-    const normalizedPhone = normalizePhoneNumber(validated.buyer_phone)
+    let normalizedPhone: string;
+    try {
+      normalizedPhone = normalizeNigerianPhone(validated.buyer_phone);
+    } catch (error) {
+      throw new ValidationError(error instanceof Error ? error.message : 'Invalid phone number format');
+    }
 
     // Verify property exists
     const { data: property, error: propertyError } = await supabase
@@ -88,7 +100,7 @@ export async function POST(req: NextRequest) {
         buyer_name: validated.buyer_name,
         buyer_phone: normalizedPhone,
         buyer_email: validated.buyer_email,
-        source_link: trackingCode ? `${process.env.NEXT_PUBLIC_APP_URL}/p/${trackingCode}` : null,
+        source_link: trackingCode ? `${process.env.NEXT_PUBLIC_APP_URL}/property/${validated.property_id}?ref=${trackingCode}` : null,
         status: 'new',
       })
       .select()

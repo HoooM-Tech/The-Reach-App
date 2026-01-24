@@ -29,8 +29,19 @@ export const propertySchema = z.object({
 export const leadSchema = z.object({
   property_id: z.string().uuid(),
   buyer_name: z.string().min(2).max(255),
-  buyer_phone: z.string().regex(/^\+?[1-9]\d{1,14}$/),
+  buyer_phone: z.string().refine((phone) => {
+    try {
+      const { normalizeNigerianPhone } = require('@/lib/utils/phone');
+      normalizeNigerianPhone(phone);
+      return true;
+    } catch {
+      return false;
+    }
+  }, {
+    message: 'Invalid Nigerian phone number. Must be 11 digits starting with 0 or +234 followed by 10 digits.',
+  }),
   buyer_email: z.string().email().optional(),
+  source_code: z.string().optional(), // Creator tracking code (ref parameter)
 })
 
 export const inspectionBookingSchema = z.object({

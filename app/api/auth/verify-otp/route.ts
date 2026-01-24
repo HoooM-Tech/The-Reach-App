@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase/client'
-import { normalizePhoneNumber } from '@/lib/utils/phone'
+import { normalizeNigerianPhone } from '@/lib/utils/phone'
 import { ValidationError, handleError } from '@/lib/utils/errors'
 import { rateLimit } from '@/lib/utils/rate-limit'
 import { z } from 'zod'
@@ -16,7 +16,12 @@ export async function POST(req: NextRequest) {
     const { phone, otp } = verifyOtpSchema.parse(body)
     
     // Rate limiting: 10 OTP attempts per 15 minutes per phone number
-    const normalizedPhone = normalizePhoneNumber(phone)
+    let normalizedPhone: string;
+    try {
+      normalizedPhone = normalizeNigerianPhone(phone);
+    } catch (error) {
+      throw new ValidationError(error instanceof Error ? error.message : 'Invalid phone number format');
+    }
     const rateLimitResult = await rateLimit(`otp:${normalizedPhone}`, 10, 900) // 10 attempts per 15 minutes
     
     if (!rateLimitResult.success) {

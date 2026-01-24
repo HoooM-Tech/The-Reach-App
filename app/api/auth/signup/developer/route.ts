@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminSupabaseClient } from '@/lib/supabase/client'
 import { sendOTP } from '@/lib/services/termii'
-import { normalizePhoneNumber } from '@/lib/utils/phone'
+import { normalizeNigerianPhone } from '@/lib/utils/phone'
 import { ValidationError, handleError } from '@/lib/utils/errors'
 import { rateLimit } from '@/lib/utils/rate-limit'
 import { z } from 'zod'
@@ -31,10 +31,12 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const validated = signupSchema.parse(body)
 
-    // Normalize phone number to prevent duplicate key errors
-    const normalizedPhone = normalizePhoneNumber(validated.phone)
-    if (!/^\+?[1-9]\d{1,14}$/.test(normalizedPhone)) {
-      throw new ValidationError('Please enter a valid phone number')
+    // Normalize phone number to E.164 format
+    let normalizedPhone: string;
+    try {
+      normalizedPhone = normalizeNigerianPhone(validated.phone);
+    } catch (error) {
+      throw new ValidationError(error instanceof Error ? error.message : 'Invalid phone number format');
     }
 
     const supabase = createAdminSupabaseClient()

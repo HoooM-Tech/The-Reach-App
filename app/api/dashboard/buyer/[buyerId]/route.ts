@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase/client'
 import { getAuthenticatedUser } from '@/lib/utils/auth'
 import { NotFoundError, handleError } from '@/lib/utils/errors'
-import { normalizePhoneNumber } from '@/lib/utils/phone'
+import { normalizeNigerianPhone } from '@/lib/utils/phone'
 
 export async function GET(
   req: NextRequest,
@@ -30,7 +30,14 @@ export async function GET(
     let leads: any[] = []
     const userEmail = currentUser.email?.toLowerCase()
     const userPhone = currentUser.phone
-    const normalizedUserPhone = userPhone ? normalizePhoneNumber(userPhone) : null
+    let normalizedUserPhone: string | null = null;
+    if (userPhone) {
+      try {
+        normalizedUserPhone = normalizeNigerianPhone(userPhone);
+      } catch {
+        // Invalid phone, skip matching
+      }
+    }
 
     if (allLeads) {
       leads = allLeads.filter((lead: any) => {
@@ -41,7 +48,12 @@ export async function GET(
         
         // Match by phone (compare normalized versions)
         if (normalizedUserPhone && lead.buyer_phone) {
-          const normalizedLeadPhone = normalizePhoneNumber(lead.buyer_phone)
+          let normalizedLeadPhone: string;
+          try {
+            normalizedLeadPhone = normalizeNigerianPhone(lead.buyer_phone);
+          } catch {
+            continue; // Skip invalid phone numbers
+          }
           if (normalizedLeadPhone === normalizedUserPhone) {
             return true
           }

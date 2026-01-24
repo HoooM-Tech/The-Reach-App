@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase/client'
+import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase/client'
 import { verifyPayment } from '@/lib/services/paystack'
 import { ValidationError, NotFoundError, handleError } from '@/lib/utils/errors'
 
@@ -10,6 +10,7 @@ export async function POST(
   try {
     const reference = params.reference
     const supabase = createServerSupabaseClient()
+    const adminSupabase = createAdminSupabaseClient() // Use admin client for tracking updates
 
     // Verify payment with Paystack
     const paymentData = await verifyPayment(reference)
@@ -107,19 +108,53 @@ export async function POST(
       .eq('id', property_id)
 
     // Update tracking link conversion if creator exists
+    // Use admin client to bypass RLS for tracking updates
     if (creatorId) {
-      const { data: trackingLink } = await supabase
+      const { data: trackingLink } = await adminSupabase
         .from('tracking_links')
-        .select('*')
+        .select('id, conversions, status, expires_at')
         .eq('creator_id', creatorId)
         .eq('property_id', property_id)
-        .single()
+        .maybeSingle()
 
       if (trackingLink) {
-        await supabase
-          .from('tracking_links')
-          .update({ conversions: (trackingLink.conversions || 0) + 1 })
-          .eq('id', trackingLink.id)
+        // Check if promotion is active and not expired
+        const now = new Date();
+        const isExpired = trackingLink.expires_at && new Date(trackingLink.expires_at) < now;
+        const isActive = trackingLink.status === 'active' && !isExpired;
+
+        // Only increment analytics for active promotions
+        if (isActive) {
+          const currentConversions = trackingLink.conversions || 0
+          await adminSupabase
+            .from('tracking_links')
+            .update({ conversions: currentConversions + 1 })
+            .eq('id', trackingLink.id)
+        } else {
+          // Auto-expire if needed
+          if (trackingLink.status === 'active' && isExpired) {
+            const expireData: any = {
+              status: 'expired',
+              expired_at: now.toISOString(),
+            };
+            
+            const { error: expireError } = await adminSupabase
+              .from('tracking_links')
+              .update(expireData)
+              .eq('id', trackingLink.id);
+            
+            // Ignore errors about missing updated_at column (migration not run yet)
+            if (expireError && !expireError.message?.includes('updated_at')) {
+              console.error('Failed to auto-expire promotion:', expireError);
+            }
+            
+            console.log('[Promotion Lifecycle] Auto-expired', {
+              promotion_id: trackingLink.id,
+              timestamp: now.toISOString(),
+              action: 'auto-expire',
+            });
+          }
+        }
       }
     }
 

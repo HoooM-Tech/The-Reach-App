@@ -73,11 +73,15 @@ export async function middleware(req: NextRequest) {
       '/api/tracking',
       '/api/properties/browse',
       '/api/properties/verified',
+      '/api/leads/submit', // Allow public lead submission
     ]
 
+    // Special handling for property detail routes (allow public access)
+    const isPropertyDetailRoute = /^\/api\/properties\/[^/]+$/.test(req.nextUrl.pathname)
+    
     const isPublicRoute = publicRoutes.some((route) =>
       req.nextUrl.pathname.startsWith(route)
-    )
+    ) || isPropertyDetailRoute
 
     // Allow if it's a public route, or if there's a session, or if there's a valid Bearer token
     // Also allow if there's an auth header (even if validation failed) - let the API route handle validation

@@ -137,3 +137,56 @@ export async function initiateTransfer(
   return response.json()
 }
 
+export interface VerifyAccountResponse {
+  status: boolean
+  message: string
+  data: {
+    account_number: string
+    account_name: string
+    bank_id: number
+  }
+}
+
+export async function verifyBankAccount(
+  accountNumber: string,
+  bankCode: string
+): Promise<VerifyAccountResponse> {
+  if (!PAYSTACK_SECRET_KEY) {
+    throw new Error('Paystack secret key not configured')
+  }
+
+  const response = await fetch(
+    `${PAYSTACK_BASE_URL}/bank/resolve?account_number=${accountNumber}&bank_code=${bankCode}`,
+    {
+      headers: {
+        Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+      },
+    }
+  )
+
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(`Paystack API error: ${error.message || 'Unknown error'}`)
+  }
+
+  return response.json()
+}
+
+export async function getBanks() {
+  if (!PAYSTACK_SECRET_KEY) {
+    throw new Error('Paystack secret key not configured')
+  }
+
+  const response = await fetch(`${PAYSTACK_BASE_URL}/bank?currency=NGN`, {
+    headers: {
+      Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+    },
+  })
+
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(`Paystack API error: ${error.message || 'Unknown error'}`)
+  }
+
+  return response.json()
+}

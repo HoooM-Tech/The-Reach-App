@@ -3,7 +3,7 @@ import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/sup
 import { inspectionBookingSchema } from '@/lib/utils/validation'
 import { ValidationError, NotFoundError, handleError } from '@/lib/utils/errors'
 import { sendSMS } from '@/lib/services/termii'
-import { normalizePhoneNumber } from '@/lib/utils/phone'
+import { normalizeNigerianPhone } from '@/lib/utils/phone'
 import { getAuthenticatedUser } from '@/lib/utils/auth'
 
 export async function POST(req: NextRequest) {
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
     
     // If not found by authentication, try to match by normalized phone
     if (!buyerId && lead.buyer_phone) {
-      const normalizedLeadPhone = normalizePhoneNumber(lead.buyer_phone)
+      const normalizedLeadPhone = normalizeNigerianPhone(lead.buyer_phone)
       // Get all buyers and match by normalized phone
       const { data: allBuyers } = await adminSupabase
         .from('users')
@@ -73,8 +73,12 @@ export async function POST(req: NextRequest) {
       if (allBuyers) {
         const matchingBuyer = allBuyers.find((buyer: any) => {
           if (!buyer.phone) return false
-          const normalizedBuyerPhone = normalizePhoneNumber(buyer.phone)
-          return normalizedBuyerPhone === normalizedLeadPhone
+          try {
+            const normalizedBuyerPhone = normalizeNigerianPhone(buyer.phone)
+            return normalizedBuyerPhone === normalizedLeadPhone
+          } catch {
+            return false
+          }
         })
         if (matchingBuyer) {
           buyerId = matchingBuyer.id
@@ -107,19 +111,53 @@ export async function POST(req: NextRequest) {
       .eq('id', validated.lead_id)
 
     // Update tracking link if creator exists - use admin client
+    // This tracks inspections for creator analytics (only for active promotions)
     if (lead.creator_id) {
       const { data: trackingLink } = await adminSupabase
         .from('tracking_links')
-        .select('*')
+        .select('id, inspections, status, expires_at')
         .eq('creator_id', lead.creator_id)
         .eq('property_id', validated.property_id)
         .maybeSingle()
 
       if (trackingLink) {
-        await adminSupabase
-          .from('tracking_links')
-          .update({ inspections: (trackingLink.inspections || 0) + 1 })
-          .eq('id', trackingLink.id)
+        // Check if promotion is active and not expired
+        const now = new Date();
+        const isExpired = trackingLink.expires_at && new Date(trackingLink.expires_at) < now;
+        const isActive = trackingLink.status === 'active' && !isExpired;
+
+        // Only increment analytics for active promotions
+        if (isActive) {
+          const currentInspections = trackingLink.inspections || 0
+          await adminSupabase
+            .from('tracking_links')
+            .update({ inspections: currentInspections + 1 })
+            .eq('id', trackingLink.id)
+        } else {
+          // Auto-expire if needed
+          if (trackingLink.status === 'active' && isExpired) {
+            const expireData: any = {
+              status: 'expired',
+              expired_at: now.toISOString(),
+            };
+            
+            const { error: expireError } = await adminSupabase
+              .from('tracking_links')
+              .update(expireData)
+              .eq('id', trackingLink.id);
+            
+            // Ignore errors about missing updated_at column (migration not run yet)
+            if (expireError && !expireError.message?.includes('updated_at')) {
+              console.error('Failed to auto-expire promotion:', expireError);
+            }
+            
+            console.log('[Promotion Lifecycle] Auto-expired', {
+              promotion_id: trackingLink.id,
+              timestamp: now.toISOString(),
+              action: 'auto-expire',
+            });
+          }
+        }
       }
     }
 

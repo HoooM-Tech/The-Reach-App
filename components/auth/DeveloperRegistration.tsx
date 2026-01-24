@@ -69,8 +69,12 @@ const DeveloperRegistration: React.FC = () => {
   const isValidPassword = () => password.length >= 8 && password === confirmPassword;
   const isValidPhone = () => {
     if (!phone.trim()) return false;
-    const normalized = phone.startsWith('+') ? phone : `+234${phone.replace(/^0/, '')}`;
-    return /^\+?[1-9]\d{1,14}$/.test(normalized.replace(/\s/g, ''));
+    try {
+      const { validateNigerianPhone } = require('@/lib/utils/phone');
+      return validateNigerianPhone(phone);
+    } catch {
+      return false;
+    }
   };
   
   const isValidOtp = () => {
@@ -94,7 +98,8 @@ const DeveloperRegistration: React.FC = () => {
     setError(null);
     
     try {
-      const formattedPhone = phone.startsWith('+') ? phone : `+234${phone.replace(/^0/, '')}`;
+      const { normalizeNigerianPhone } = require('@/lib/utils/phone');
+      const formattedPhone = normalizeNigerianPhone(phone);
       
       const response = await authApi.signupDeveloper({
         email,
@@ -127,7 +132,8 @@ const DeveloperRegistration: React.FC = () => {
     setError(null);
     
     try {
-      const formattedPhone = phone.startsWith('+') ? phone : `+234${phone.replace(/^0/, '')}`;
+      const { normalizeNigerianPhone } = require('@/lib/utils/phone');
+      const formattedPhone = normalizeNigerianPhone(phone);
       const otpString = otp.join('');
       
       await authApi.verifyOtp(formattedPhone, otpString);

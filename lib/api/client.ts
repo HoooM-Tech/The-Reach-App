@@ -580,6 +580,75 @@ export const creatorApi = {
       body: JSON.stringify({ socialLinks }),
     });
   },
+
+  /** Get creator promotions */
+  async getPromotions(filters?: { search?: string; status?: string }): Promise<{
+    promotions: any[];
+    total: number;
+  }> {
+    const params = new URLSearchParams();
+    if (filters?.search) params.append('search', filters.search);
+    if (filters?.status) params.append('status', filters.status);
+    return fetchWithAuth(`/api/creator/promotions?${params}`);
+  },
+
+  /** Get promotion details */
+  async getPromotionDetails(promotionId: string): Promise<{
+    promotion: any;
+    property: any;
+  }> {
+    return fetchWithAuth(`/api/creator/promotions/${promotionId}`);
+  },
+
+  /** Get promotion analytics */
+  async getPromotionAnalytics(promotionId: string, period: 'daily' | 'weekly' | 'monthly' = 'daily'): Promise<{
+    stats: any;
+    chartData: any[];
+    period: string;
+  }> {
+    return fetchWithAuth(`/api/creator/analytics/${promotionId}?period=${period}`);
+  },
+
+  /** Pause a promotion */
+  async pausePromotion(promotionId: string): Promise<{
+    message: string;
+    promotion: { id: string; status: string; paused_at: string };
+  }> {
+    return fetchWithAuth(`/api/creator/promotions/${promotionId}/pause`, {
+      method: 'POST',
+    });
+  },
+
+  /** Resume a promotion */
+  async resumePromotion(promotionId: string): Promise<{
+    message: string;
+    promotion: { id: string; status: string };
+  }> {
+    return fetchWithAuth(`/api/creator/promotions/${promotionId}/resume`, {
+      method: 'POST',
+    });
+  },
+
+  /** Stop a promotion (irreversible) */
+  async stopPromotion(promotionId: string): Promise<{
+    message: string;
+    promotion: { id: string; status: string; stopped_at: string };
+  }> {
+    return fetchWithAuth(`/api/creator/promotions/${promotionId}/stop`, {
+      method: 'POST',
+    });
+  },
+
+  /** Update promotion status (legacy - use pause/resume/stop instead) */
+  async updatePromotionStatus(promotionId: string, status: 'active' | 'paused' | 'stopped'): Promise<{
+    message: string;
+    promotion: { id: string; status: string };
+  }> {
+    return fetchWithAuth(`/api/creator/promotions/${promotionId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+  },
 };
 
 export const buyerApi = {
@@ -645,21 +714,92 @@ export const buyerApi = {
 // ===========================================
 
 export const walletApi = {
-  /** Get user's wallet and transactions */
-  async getWallet(userId: string): Promise<WalletData> {
-    return fetchWithAuth(`/api/wallet/${userId}`);
+  /** Setup wallet with PIN */
+  async setup(pin: string, confirmPin: string): Promise<{ success: boolean; wallet: any; message: string }> {
+    return fetchWithAuth('/api/wallet/setup', {
+      method: 'POST',
+      body: JSON.stringify({ pin, confirmPin }),
+    });
+  },
+
+  /** Verify PIN */
+  async verifyPin(pin: string): Promise<{ success: boolean; valid: boolean }> {
+    return fetchWithAuth('/api/wallet/verify-pin', {
+      method: 'POST',
+      body: JSON.stringify({ pin }),
+    });
+  },
+
+  /** Get wallet balance */
+  async getBalance(): Promise<{ availableBalance: number; lockedBalance: number; currency: string; isSetup: boolean }> {
+    return fetchWithAuth('/api/wallet/balance');
+  },
+
+  /** Get transactions */
+  async getTransactions(params?: {
+    page?: number;
+    limit?: number;
+    type?: 'credit' | 'debit';
+    status?: 'pending' | 'successful' | 'failed';
+    category?: string;
+  }): Promise<{ transactions: any[]; total: number; page: number; pages: number }> {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', String(params.page));
+    if (params?.limit) queryParams.append('limit', String(params.limit));
+    if (params?.type) queryParams.append('type', params.type);
+    if (params?.status) queryParams.append('status', params.status);
+    if (params?.category) queryParams.append('category', params.category);
+    
+    const query = queryParams.toString();
+    return fetchWithAuth(`/api/wallet/transactions${query ? `?${query}` : ''}`);
+  },
+
+  /** Get transaction details */
+  async getTransaction(id: string): Promise<{ transaction: any }> {
+    return fetchWithAuth(`/api/wallet/transactions/${id}`);
+  },
+
+  /** Get bank accounts */
+  async getBankAccounts(): Promise<{ bankAccounts: any[] }> {
+    return fetchWithAuth('/api/wallet/bank-accounts');
+  },
+
+  /** Add bank account */
+  async addBankAccount(data: {
+    bankName: string;
+    accountNumber: string;
+    bankCode: string;
+  }): Promise<{ success: boolean; bankAccount: any; verified: boolean }> {
+    return fetchWithAuth('/api/wallet/bank-accounts', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /** Delete bank account */
+  async deleteBankAccount(id: string): Promise<{ success: boolean }> {
+    return fetchWithAuth(`/api/wallet/bank-accounts/${id}`, {
+      method: 'DELETE',
+    });
   },
 
   /** Request withdrawal */
   async withdraw(data: {
     amount: number;
-    bank_code: string;
-    account_number: string;
-    account_name: string;
-  }): Promise<{ message: string; transaction: any }> {
+    bankAccountId: string;
+    pin: string;
+  }): Promise<{ success: boolean; transaction: any; reference: string }> {
     return fetchWithAuth('/api/wallet/withdraw', {
       method: 'POST',
       body: JSON.stringify(data),
+    });
+  },
+
+  /** Add funds to wallet (Developer only) */
+  async addFunds(amount: number): Promise<{ success: boolean; authorizationUrl: string; reference: string }> {
+    return fetchWithAuth('/api/wallet/add-funds', {
+      method: 'POST',
+      body: JSON.stringify({ amount }),
     });
   },
 };

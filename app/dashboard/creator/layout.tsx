@@ -13,7 +13,8 @@ import {
   Settings, 
   HelpCircle,
   Building2,
-  LogOut
+  LogOut,
+  User
 } from 'lucide-react';
 import { creatorApi } from '@/lib/api/client';
 
@@ -25,12 +26,13 @@ import { creatorApi } from '@/lib/api/client';
 const getCreatorNavItems = (promotionsBadge?: number, analyticsBadge?: number) => [
   { label: 'Dashboard', href: '/dashboard/creator', icon: LayoutDashboard },
   { label: 'Browse properties', href: '/dashboard/creator/properties', icon: Building2 },
-  { label: 'My promotions', href: '/dashboard/creator/links', icon: Flag, badge: promotionsBadge },
+  { label: 'My promotions', href: '/dashboard/creator/my-promotions', icon: Flag, badge: promotionsBadge },
   { label: 'Analytics', href: '/dashboard/creator/analytics', icon: TrendingUp, badge: analyticsBadge },
-  { label: 'Wallet', href: '/wallet', icon: Wallet },
+  { label: 'Wallet', href: '/dashboard/creator/wallet', icon: Wallet },
 ];
 
 const CREATOR_ACCOUNT_ITEMS = [
+  { label: 'Profile', href: '/dashboard/creator/profile', icon: User },
   { label: 'Settings', href: '/dashboard/creator/settings', icon: Settings },
 ];
 
