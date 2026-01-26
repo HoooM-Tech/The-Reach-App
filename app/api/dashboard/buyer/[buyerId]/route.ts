@@ -52,7 +52,7 @@ export async function GET(
           try {
             normalizedLeadPhone = normalizeNigerianPhone(lead.buyer_phone);
           } catch {
-            continue; // Skip invalid phone numbers
+            return false; // Skip invalid phone numbers
           }
           if (normalizedLeadPhone === normalizedUserPhone) {
             return true
