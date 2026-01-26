@@ -77,7 +77,8 @@ export async function GET(
         if (!expireError) {
           currentStatus = 'expired';
           link.status = 'expired';
-          link.expired_at = now.toISOString();
+          // Type assertion needed since expired_at may not be in the select
+          (link as any).expired_at = now.toISOString();
           
           console.log('[Promotion Lifecycle] Auto-expired', {
             promotion_id: link.id,

@@ -43,6 +43,10 @@ export async function GET(req: NextRequest) {
       wallet = newWallet;
     }
 
+    if (!wallet) {
+      throw new NotFoundError('Wallet');
+    }
+
     const availableBalance = parseFloat(wallet.available_balance || 0);
     const lockedBalance = parseFloat(wallet.locked_balance || 0);
     const totalBalance = availableBalance + lockedBalance;
@@ -53,7 +57,7 @@ export async function GET(req: NextRequest) {
         balance: totalBalance,
         available_balance: availableBalance,
         locked_balance: lockedBalance,
-        currency: wallet.currency || 'NGN',
+        currency: (wallet as any).currency || 'NGN',
         wallet_id: wallet.id,
         is_setup: wallet.is_setup || false,
       },

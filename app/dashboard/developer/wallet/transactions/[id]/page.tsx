@@ -36,8 +36,8 @@ export default function TransactionDetailsPage() {
     setError(null);
 
     try {
-      const walletData = await walletApi.getWallet(user.id);
-      const foundTransaction = walletData.transactions?.find((t: any) => t.id === transactionId);
+      const transactionData = await walletApi.getTransaction(transactionId);
+      const foundTransaction = transactionData.transaction;
       
       // Only update state if request wasn't aborted
       if (!abortController.signal.aborted) {

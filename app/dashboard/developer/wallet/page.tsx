@@ -131,6 +131,8 @@ export default function DeveloperWalletPage() {
       
       setWalletData({
         wallet: {
+          id: (balanceData as any).wallet_id || '',
+          user_id: user?.id || '',
           balance: balanceData.availableBalance,
           locked_balance: balanceData.lockedBalance,
         },

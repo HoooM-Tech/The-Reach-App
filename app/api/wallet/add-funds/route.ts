@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
     // Get or create wallet
     let { data: wallet, error: walletError } = await supabase
       .from('wallets')
-      .select('id, user_id')
+      .select('id, user_id, available_balance, locked_balance')
       .eq('user_id', developer.id)
       .maybeSingle();
 
@@ -104,6 +104,11 @@ export async function POST(req: NextRequest) {
     // Calculate fee
     const fee = calculateDepositFee(amount);
     const netAmount = amount - fee;
+
+    // Ensure wallet exists
+    if (!wallet) {
+      throw new ValidationError('Wallet not found. Please set up your wallet first.');
+    }
 
     // Generate transaction reference (check for duplicates)
     let reference = generateTransactionReference('deposit');

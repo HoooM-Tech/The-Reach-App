@@ -94,6 +94,10 @@ export async function POST(
       throw new ValidationError(updateError.message);
     }
 
+    if (!updatedLink) {
+      throw new ValidationError('Failed to update promotion status');
+    }
+
     // Log state change
     console.log('[Promotion Lifecycle]', {
       promotion_id: id,

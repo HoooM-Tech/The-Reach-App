@@ -143,27 +143,37 @@ export async function GET(req: NextRequest) {
             expired_at: now.toISOString(),
           };
           
-          supabase
-            .from('tracking_links')
-            .update(expireData)
-            .eq('id', link.id)
-            .then(() => {
-              console.log('[Promotion Lifecycle] Auto-expired', {
-                promotion_id: link.id,
-                creator_id: creator.id,
-                timestamp: now.toISOString(),
-                action: 'auto-expire',
-              });
-            })
-            .catch((err: any) => {
+          // Use async IIFE to handle the promise
+          (async () => {
+            try {
+              const { error } = await supabase
+                .from('tracking_links')
+                .update(expireData)
+                .eq('id', link.id);
+              
+              if (error) {
+                // Ignore errors about missing updated_at column (migration not run yet)
+                if (!error.message?.includes('updated_at')) {
+                  console.error('Failed to auto-expire promotion:', error);
+                }
+              } else {
+                console.log('[Promotion Lifecycle] Auto-expired', {
+                  promotion_id: link.id,
+                  creator_id: creator.id,
+                  timestamp: now.toISOString(),
+                  action: 'auto-expire',
+                });
+              }
+            } catch (err: any) {
               // Ignore errors about missing updated_at column (migration not run yet)
               if (!err?.message?.includes('updated_at')) {
                 console.error('Failed to auto-expire promotion:', err);
               }
-            });
+            }
+          })();
           
           link.status = 'expired';
-          link.expired_at = now.toISOString();
+          (link as any).expired_at = now.toISOString();
         }
       }
       return true;

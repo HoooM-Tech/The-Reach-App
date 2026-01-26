@@ -330,7 +330,20 @@ function WalletPageContent() {
     setError(null);
     
     try {
-      const data = await walletApi.getWallet(user.id);
+      const [balanceData, transactionsData] = await Promise.all([
+        walletApi.getBalance(),
+        walletApi.getTransactions({ limit: 10 }),
+      ]);
+      
+      const data = {
+        wallet: {
+          id: (balanceData as any).wallet_id || '',
+          user_id: user.id,
+          balance: balanceData.availableBalance,
+          locked_balance: balanceData.lockedBalance,
+        },
+        transactions: transactionsData.transactions || [],
+      };
       setWalletData(data);
     } catch (err) {
       const message = err instanceof ApiError ? err.message : 'Failed to load wallet';

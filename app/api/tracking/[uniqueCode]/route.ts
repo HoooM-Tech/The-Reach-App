@@ -130,8 +130,8 @@ export async function POST(
     const clientIP = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown'
 
     // Update tracking metrics (only for active promotions)
+    const updates: any = {}
     if (isActive) {
-      const updates: any = {}
       if (event_type === 'click') {
         updates.clicks = (trackingLink.clicks || 0) + 1
       } else if (event_type === 'lead') {

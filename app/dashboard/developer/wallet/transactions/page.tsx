@@ -42,11 +42,22 @@ export default function TransactionsPage() {
     setError(null);
 
     try {
-      const data = await walletApi.getWallet(user.id);
+      const [balanceData, transactionsData] = await Promise.all([
+        walletApi.getBalance(),
+        walletApi.getTransactions(),
+      ]);
       
       // Only update state if request wasn't aborted
       if (!abortController.signal.aborted) {
-        setWalletData(data);
+        setWalletData({
+          wallet: {
+            id: (balanceData as any).wallet_id || '',
+            user_id: user.id,
+            balance: balanceData.availableBalance,
+            locked_balance: balanceData.lockedBalance,
+          },
+          transactions: transactionsData.transactions || [],
+        });
       }
     } catch (err) {
       // Don't set error if request was aborted
