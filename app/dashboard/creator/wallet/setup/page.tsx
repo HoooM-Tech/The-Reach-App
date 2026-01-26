@@ -185,15 +185,15 @@ export default function WalletSetupPage() {
           <div className="w-30 h-30 rounded-full bg-green-500 flex items-center justify-center mx-auto mb-6 shadow-lg">
             <Check size={48} className="text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">You're all set!</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">You&apos;re all set!</h1>
           <p className="text-base text-gray-600 mb-8 leading-relaxed max-w-xs mx-auto">
-            Your Reach wallet is created. Now let's go find you a property? a room? or a commission? go exploring on Reach
+            Your Reach wallet is created. Now let&apos;s go find you a property? a room? or a commission? go exploring on Reach
           </p>
           <button
             onClick={() => router.push('/dashboard/creator/wallet')}
             className="w-full py-4 bg-[#1E3A5F] text-white rounded-full font-medium hover:bg-[#1E3A5F]/90 transition-colors"
           >
-            Let's go
+            Let&apos;s go
           </button>
         </div>
       </div>

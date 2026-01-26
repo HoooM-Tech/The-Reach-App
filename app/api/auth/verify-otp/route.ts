@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase/client'
 import { normalizeNigerianPhone } from '@/lib/utils/phone'
 import { ValidationError, handleError } from '@/lib/utils/errors'
-import { rateLimit } from '@/lib/utils/rate-limit'
+import { checkRateLimit } from '@/lib/utils/rate-limit'
 import { z } from 'zod'
 
 const verifyOtpSchema = z.object({
@@ -22,9 +22,9 @@ export async function POST(req: NextRequest) {
     } catch (error) {
       throw new ValidationError(error instanceof Error ? error.message : 'Invalid phone number format');
     }
-    const rateLimitResult = await rateLimit(`otp:${normalizedPhone}`, 10, 900) // 10 attempts per 15 minutes
+    const rateLimitResult = checkRateLimit(`otp:${normalizedPhone}`, 10, 900000) // 10 attempts per 15 minutes (900000ms)
     
-    if (!rateLimitResult.success) {
+    if (!rateLimitResult.allowed) {
       return NextResponse.json(
         { error: 'Too many OTP verification attempts. Please request a new OTP.' },
         { status: 429 }

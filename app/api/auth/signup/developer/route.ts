@@ -3,7 +3,7 @@ import { createAdminSupabaseClient } from '@/lib/supabase/client'
 import { sendOTP } from '@/lib/services/termii'
 import { normalizeNigerianPhone } from '@/lib/utils/phone'
 import { ValidationError, handleError } from '@/lib/utils/errors'
-import { rateLimit } from '@/lib/utils/rate-limit'
+import { checkRateLimit } from '@/lib/utils/rate-limit'
 import { z } from 'zod'
 
 const signupSchema = z.object({
@@ -19,9 +19,9 @@ export async function POST(req: NextRequest) {
     const clientIP = req.headers.get('x-forwarded-for')?.split(',')[0] || 
                      req.headers.get('x-real-ip') || 
                      'unknown'
-    const rateLimitResult = await rateLimit(`signup:${clientIP}`, 3, 3600) // 3 signups per hour
+    const rateLimitResult = checkRateLimit(`signup:${clientIP}`, 3, 3600000) // 3 signups per hour (3600000ms)
     
-    if (!rateLimitResult.success) {
+    if (!rateLimitResult.allowed) {
       return NextResponse.json(
         { error: 'Too many signup attempts. Please try again later.' },
         { status: 429 }
