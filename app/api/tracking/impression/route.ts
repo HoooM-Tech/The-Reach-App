@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminSupabaseClient } from '@/lib/supabase/client';
+import { createAdminSupabaseClient } from '@/lib/supabase/server';
 import { handleError } from '@/lib/utils/errors';
 
 /**
@@ -8,12 +8,13 @@ import { handleError } from '@/lib/utils/errors';
  * Tracks an impression (page view) for a creator tracking link.
  * This endpoint is PUBLIC and does not require authentication.
  * 
- * Body: { property_id: string, creator_code: string }
+ * Body: { property_id: string, creator_code: string, session_id?: string }
+ * session_id: Optional client-side session ID for deduplication
  */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { property_id, creator_code } = body;
+    const { property_id, creator_code, session_id } = body;
 
     if (!property_id || !creator_code) {
       return NextResponse.json(
@@ -77,6 +78,10 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Deduplication: Client-side deduplication prevents double-counting
+    // Server-side we track the request - deduplication happens via client session tracking
+    const sessionId = body.session_id || `session_${Date.now()}`;
+    
     // Increment impression count (only for active promotions)
     const currentImpressions = trackingLink.impressions || 0;
     const { error: updateError } = await supabase
@@ -93,7 +98,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ 
       success: true, 
       tracked: true,
-      impressions: currentImpressions + 1 
+      impressions: currentImpressions + 1,
+      session_id: sessionId
     });
   } catch (error) {
     // Never fail the request due to tracking errors

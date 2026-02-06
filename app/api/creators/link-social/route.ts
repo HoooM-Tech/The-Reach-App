@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase/client'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { requireCreator } from '@/lib/utils/auth'
 import { ValidationError, handleError } from '@/lib/utils/errors'
+import type { SocialMetrics } from '@/lib/utils/tier-calculator'
 import { z } from 'zod'
 
 const linkSocialSchema = z.object({
@@ -89,68 +90,90 @@ export async function POST(req: NextRequest) {
 }
 
 async function recalculateCreatorTier(userId: string, supabase: any) {
-  // Get all social accounts
+  // Import aggregated tier calculator
+  const { calculateTier } = await import('@/lib/utils/tier-calculator')
+
+  // Get all verified social accounts
   const { data: socialAccounts } = await supabase
     .from('social_accounts')
-    .select('*')
+    .select('platform, followers, engagement_rate')
     .eq('user_id', userId)
+    .not('verified_at', 'is', null)
 
   if (!socialAccounts || socialAccounts.length === 0) {
+    // No verified social accounts = tier null (unqualified)
+    await supabase
+      .from('users')
+      .update({ tier: null })
+      .eq('id', userId)
     return
   }
 
-  // Use the new tier calculation logic from SocialMediaAnalytics
-  // For manual entries, we'll use simplified logic
-  let highestTier = 0
-
-  for (const account of socialAccounts) {
-    const followers = account.followers || 0
-    const engagementRate = account.engagement_rate || 0
-    const qualityScore = 70 // Default quality score for manual entries
-    const fakeFollowerPercent = 10 // Default for manual entries
-
-    // Apply tier calculation logic
-    if (
-      followers >= 100000 &&
-      engagementRate >= 3.0 &&
-      qualityScore >= 85 &&
-      fakeFollowerPercent < 10
-    ) {
-      highestTier = Math.max(highestTier, 1)
-    } else if (
-      followers >= 50000 &&
-      followers < 100000 &&
-      engagementRate >= 2.0 &&
-      qualityScore >= 70 &&
-      fakeFollowerPercent < 15
-    ) {
-      highestTier = Math.max(highestTier, 2)
-    } else if (
-      followers >= 10000 &&
-      followers < 50000 &&
-      engagementRate >= 1.5 &&
-      qualityScore >= 60 &&
-      fakeFollowerPercent < 20
-    ) {
-      highestTier = Math.max(highestTier, 3)
-    } else if (
-      followers >= 5000 &&
-      followers < 10000 &&
-      engagementRate >= 1.0 &&
-      qualityScore >= 50 &&
-      fakeFollowerPercent < 25
-    ) {
-      highestTier = Math.max(highestTier, 4)
-    }
+  type SocialAccountRow = {
+    platform: string
+    followers: number | null
+    engagement_rate: number | null
   }
 
-  // If no tier found, default to tier 4 (lowest)
-  const tier = highestTier > 0 ? highestTier : 4
+  // Build metrics object from ALL verified accounts (aggregated)
+  const metrics: SocialMetrics = {}
+  
+  socialAccounts.forEach((account: SocialAccountRow) => {
+    const platform = account.platform.toLowerCase()
+    const followers = account.followers || 0
+    const engagement = account.engagement_rate || 0
+    // Following count not stored in DB, use 0 as default
+    const following = 0
+    
+    if (platform === 'twitter' || platform === 'x') {
+      metrics.twitter = {
+        followers,
+        following,
+        engagement,
+      }
+    } else if (platform === 'instagram') {
+      metrics.instagram = {
+        followers,
+        following,
+        engagement,
+      }
+    } else if (platform === 'tiktok') {
+      metrics.tiktok = {
+        followers,
+        engagement,
+      }
+    } else if (platform === 'facebook') {
+      metrics.facebook = {
+        followers,
+        engagement,
+      }
+    }
+  })
 
-  // Update user tier
+  console.log('📊 Recalculating tier with aggregated metrics:', {
+    userId,
+    metrics,
+    totalAccounts: socialAccounts.length,
+  })
+
+  // Calculate tier using aggregated followers
+  const tierResult = calculateTier(metrics)
+
+  console.log('🎯 Tier recalculation result:', {
+    userId,
+    tier: tierResult.tier,
+    tierName: tierResult.tierName,
+    totalFollowers: tierResult.totalFollowers,
+    engagementRate: tierResult.engagementRate,
+    qualityScore: tierResult.qualityScore,
+  })
+
+  // CRITICAL: tier null (disqualified) should be stored as NULL in database
+  const tierValue = tierResult.tier === null ? null : tierResult.tier
+
   await supabase
     .from('users')
-    .update({ tier })
+    .update({ tier: tierValue })
     .eq('id', userId)
 }
 

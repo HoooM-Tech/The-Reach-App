@@ -23,7 +23,60 @@ export function PropertyTable({ properties }: PropertyTableProps) {
 
   return (
     <div className="bg-white rounded-2xl overflow-hidden border border-gray-100">
-      <div className="overflow-x-auto">
+      {/* Mobile Cards */}
+      <div className="md:hidden p-4 space-y-3">
+        {properties.map((property) => {
+          const primaryImage = property.media.find(m => m.type === 'IMAGE') || property.media[0];
+          return (
+            <button
+              key={property.id}
+              className="w-full text-left bg-gray-50 rounded-xl p-3 border border-gray-100"
+              onClick={() => router.push(`/dashboard/developer/properties/${property.id}`)}
+            >
+              <div className="flex gap-3">
+                {primaryImage ? (
+                  <img
+                    src={primaryImage.url}
+                    alt={property.title}
+                    className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-lg bg-gray-200 flex items-center justify-center flex-shrink-0">
+                    <span className="text-gray-400 text-xs">No Image</span>
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-gray-900 break-words">
+                    {property.title}
+                  </p>
+                  <p className="text-sm text-gray-500 break-words">
+                    {property.locationText || 'No location'}
+                  </p>
+                  <div className="flex items-center justify-between mt-2">
+                    <StatusBadge status={property.status} />
+                    <span className="font-semibold text-gray-900 text-sm">
+                      {formatPrice(property.askingPrice, property.currency)}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    router.push(`/dashboard/developer/properties/${property.id}`);
+                  }}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors h-fit"
+                  aria-label="View property"
+                >
+                  <MoreHorizontal size={18} className="text-gray-400" />
+                </button>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Desktop Table */}
+      <div className="hidden md:block overflow-x-auto">
         <table className="w-full">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
@@ -67,9 +120,9 @@ export function PropertyTable({ properties }: PropertyTableProps) {
                           <span className="text-gray-400 text-xs">No Image</span>
                         </div>
                       )}
-                      <div>
-                        <p className="font-semibold text-gray-900">{property.title}</p>
-                        <p className="text-sm text-gray-500">{property.locationText || 'No location'}</p>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-gray-900 break-words">{property.title}</p>
+                        <p className="text-sm text-gray-500 break-words">{property.locationText || 'No location'}</p>
                       </div>
                     </div>
                   </td>

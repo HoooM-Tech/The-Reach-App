@@ -131,7 +131,7 @@ export default function ProfilePage() {
           {/* Profile Header */}
           <div className="flex items-start gap-4 mb-4">
             {/* Profile Picture */}
-            <div className="w-[120px] h-[120px] rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0 overflow-hidden">
+            <div className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0 overflow-hidden">
               {profileData?.avatarUrl ? (
                 <img
                   src={profileData.avatarUrl}

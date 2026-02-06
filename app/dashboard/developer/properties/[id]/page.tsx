@@ -307,7 +307,8 @@ export default function DeveloperPropertyDetailPage() {
     <div className="min-h-screen bg-reach-bg pb-24 lg:pb-6">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <header className="sticky top-0 bg-reach-bg z-40 py-4 flex items-center justify-between">
+        <header className="top-0 bg-reach-bg z-40 py-4 flex items-center justify-between">
+          { /*
             <button
               onClick={() => router.push('/dashboard/developer/properties')}
             className="p-2 rounded-full bg-white hover:bg-gray-50 transition-colors shadow-sm"
@@ -316,7 +317,9 @@ export default function DeveloperPropertyDetailPage() {
           >
             <ArrowLeft size={20} className="text-gray-700" />
           </button>
+          */}
           <h1 className="text-lg font-bold text-gray-900">Property Details</h1>
+          { /*
           <button
             onClick={() => router.push('/dashboard/notifications')}
             className="p-2 rounded-full bg-white hover:bg-gray-50 transition-colors shadow-sm"
@@ -325,6 +328,7 @@ export default function DeveloperPropertyDetailPage() {
           >
             <Bell size={20} className="text-gray-700" />
             </button>
+          */}
         </header>
 
         {/* Property Card */}
@@ -373,7 +377,7 @@ export default function DeveloperPropertyDetailPage() {
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.95 }}
-                        className="absolute right-0 top-10 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-20 min-w-[120px]"
+                        className="absolute right-0 top-10 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-20 min-w-max max-w-screen-sm"
                       >
               <button
                           onClick={() => {
@@ -529,8 +533,9 @@ export default function DeveloperPropertyDetailPage() {
               <h3 className="font-semibold text-gray-900 mb-3">Note</h3>
               <textarea
                 readOnly
-                value={note?.note_text || 'I really love the architecture of the building but here is my budget.....'}
-                className="w-full min-h-[100px] p-3 border border-gray-200 rounded-lg text-sm text-gray-600 resize-none focus:outline-none focus:ring-2 focus:ring-reach-primary/20"
+                value={note?.note_text || ''}
+                placeholder="No notes yet."
+                className="w-full min-h-[16vh] sm:min-h-24 p-3 border border-gray-200 rounded-lg text-sm text-gray-600 resize-none focus:outline-none focus:ring-2 focus:ring-reach-primary/20"
                 aria-label="Property note"
               />
             </div>

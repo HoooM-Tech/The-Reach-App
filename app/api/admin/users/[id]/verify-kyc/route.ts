@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase/client'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/utils/auth'
 import { NotFoundError, ValidationError, handleError } from '@/lib/utils/errors'
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
     const admin = await requireAdmin()
-    const userId = params.userId
+    const resolvedParams = await Promise.resolve(params)
+    const userId = resolvedParams.id
     const body = await req.json()
     const { action, reason } = body // action: 'approve' | 'reject'
 
@@ -56,4 +57,3 @@ export async function PATCH(
     return NextResponse.json({ error: errorMessage }, { status: statusCode })
   }
 }
-

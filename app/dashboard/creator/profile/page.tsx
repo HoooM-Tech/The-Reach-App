@@ -102,12 +102,10 @@ export default function CreatorProfilePage() {
   }, [user?.id, userLoading]);
 
   useEffect(() => {
-    if (!userLoading && !user) {
-      router.push('/auth/login');
-      return;
+    // Middleware handles authentication - no need to redirect here
+    if (!userLoading && user) {
+      fetchProfile();
     }
-
-    fetchProfile();
 
     return () => {
       if (abortControllerRef.current) {
@@ -301,6 +299,7 @@ export default function CreatorProfilePage() {
   return (
     <div className="min-h-screen bg-[#FFF5F5]">
       {/* Header */}
+      {/* <Header /> 
       <div className="bg-[#FFF5F5] px-4 py-6">
         <div className="flex items-center justify-between">
           <h1 className="text-[32px] font-bold text-gray-900">Profile</h1>
@@ -320,6 +319,7 @@ export default function CreatorProfilePage() {
           </div>
         </div>
       </div>
+      */}
 
       {/* Main Content */}
       <div className="px-4 pb-8 space-y-6">
@@ -352,7 +352,7 @@ export default function CreatorProfilePage() {
                 </h2>
                 <div className="flex items-center gap-1">
                   <span className="text-base text-gray-600">
-                    {getTierDisplay(profileData?.tier || 1)}
+                    {getTierDisplay(profileData?.tier ?? 0)}
                   </span>
                   <CheckCircle2 size={16} className="text-red-500" />
                 </div>
@@ -456,17 +456,17 @@ export default function CreatorProfilePage() {
 
               return (
                 <div key={platform} className="space-y-2">
-                  <div className="flex items-center justify-between py-2">
-                    <div className="flex items-center gap-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-2">
+                    <div className="flex items-center gap-2 min-w-0">
                       {getPlatformIcon(platform)}
-                      <span className="text-base font-medium text-gray-900 capitalize">
+                      <span className="text-base font-medium text-gray-900 capitalize break-words">
                         {platform === 'twitter' ? 'Twitter (X)' : platform}
                       </span>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
                       {isConnected && account?.handle && (
-                        <div className="text-right">
-                          <span className="text-sm text-gray-500 block">{account.handle}</span>
+                        <div className="text-left sm:text-right min-w-0">
+                          <span className="text-sm text-gray-500 block break-words">{account.handle}</span>
                           {account.followers && (
                             <span className="text-xs text-gray-400">
                               {account.followers.toLocaleString()} followers
@@ -474,13 +474,13 @@ export default function CreatorProfilePage() {
                           )}
                         </div>
                       )}
-                      <span className="text-sm text-gray-500">
+                      <span className="text-sm text-gray-500 whitespace-nowrap">
                         {isConnected ? 'Connected' : 'Not Connected'}
                       </span>
                       {isConnected && (
                         <button
                           onClick={() => handleDisconnectSocial(platform)}
-                          className="px-3 py-1 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                          className="px-3 py-1 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors self-start sm:self-auto"
                           title="Disconnect"
                         >
                           Disconnect
@@ -491,19 +491,19 @@ export default function CreatorProfilePage() {
 
                   {!isConnected && (
                     <div className="space-y-2">
-                      <div className="flex gap-2">
+                      <div className="flex flex-col sm:flex-row gap-2">
                         <input
                           type="url"
                           value={state.url}
                           onChange={(e) => handleSocialUrlChange(platform, e.target.value)}
                           placeholder={`Enter ${platform === 'twitter' ? 'Twitter/X' : platform} profile URL`}
-                          className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#1E3A5F]/20 focus:border-[#1E3A5F] outline-none"
+                          className="w-full sm:flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#1E3A5F]/20 focus:border-[#1E3A5F] outline-none"
                           disabled={state.verifying}
                         />
                         <button
                           onClick={() => handleVerifySocial(platform)}
                           disabled={state.verifying || !state.url.trim()}
-                          className="px-4 py-2 bg-[#1E3A5F] text-white rounded-lg text-sm font-medium hover:bg-[#1E3A5F]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                          className="w-full sm:w-auto px-4 py-2 bg-[#1E3A5F] text-white rounded-lg text-sm font-medium hover:bg-[#1E3A5F]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
                           {state.verifying ? (
                             <>

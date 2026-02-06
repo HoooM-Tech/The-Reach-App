@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminSupabaseClient } from '@/lib/supabase/client';
+import { createAdminSupabaseClient } from '@/lib/supabase/server';
 import { verifyPayment } from '@/lib/services/paystack';
 import { toNaira } from '@/lib/utils/currency';
 import { logWalletActivity } from '@/lib/utils/wallet-activity';
@@ -255,8 +255,21 @@ export async function POST(req: NextRequest) {
 
       // Check if already processed (idempotency)
       if (transaction.status === 'successful' || transaction.status === 'completed') {
-        console.log(`Transaction ${reference} already processed`);
+        console.log(`✅ Transaction ${reference} already processed - skipping`);
         return NextResponse.json({ received: true });
+      }
+
+      // Log stuck transactions for debugging
+      if (transaction.status === 'processing') {
+        console.log(`⚠️ Transaction ${reference} is in processing status, updating to successful`);
+      }
+      
+      if (transaction.status === 'pending') {
+        const txAge = Date.now() - new Date(transaction.created_at || transaction.initiated_at || Date.now()).getTime();
+        const txAgeMinutes = Math.floor(txAge / (1000 * 60));
+        if (txAgeMinutes > 5) {
+          console.warn(`⚠️ Stuck transaction detected: ${reference} is ${txAgeMinutes} minutes old`);
+        }
       }
 
       // Verify transaction with Paystack API (extra security)
@@ -283,6 +296,7 @@ export async function POST(req: NextRequest) {
       const transactionAmount = parseFloat(transaction.amount);
 
       // Update transaction status and wallet balance atomically
+      // Handle both 'pending' and 'processing' statuses to prevent stuck transactions
       const { error: updateError } = await supabase
         .from('transactions')
         .update({
@@ -297,7 +311,7 @@ export async function POST(req: NextRequest) {
           webhook_received_at: new Date().toISOString(),
         })
         .eq('id', transaction.id)
-        .eq('status', 'pending'); // Only update if still pending
+        .in('status', ['pending', 'processing']); // Update if pending or processing
 
       if (updateError) {
         console.error('Error updating transaction:', updateError);
@@ -350,12 +364,14 @@ export async function POST(req: NextRequest) {
       console.log(`Deposit processed: ${reference}, Amount: ${amountInNaira} NGN`);
     }
 
+    // CRITICAL: Always return HTTP 200 to Paystack
+    // Paystack interprets any non-200 response as failure and keeps the transaction open
     return NextResponse.json({ received: true });
   } catch (error: any) {
     console.error('Webhook error:', error);
-    return NextResponse.json(
-      { error: error.message || 'Webhook processing failed' },
-      { status: 500 }
-    );
+    // CRITICAL: Always return HTTP 200 even on error
+    // Log the error but don't fail the webhook - Paystack needs 200 to close the transaction
+    // Return 200 with error logged internally
+    return NextResponse.json({ received: true, error: 'Internal processing error (logged)' });
   }
 }

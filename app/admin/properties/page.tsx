@@ -41,7 +41,31 @@ export default function AdminPropertiesPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to load properties');
+        // Try to get error message from response
+        let errorMessage = 'Failed to load properties';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+          if (errorData.details) {
+            console.error('[Admin Properties] API Error Details:', errorData.details);
+          }
+        } catch (parseError) {
+          // If response is not JSON, use status text
+          errorMessage = response.statusText || errorMessage;
+        }
+        
+        // Provide specific error messages based on status code
+        if (response.status === 401) {
+          errorMessage = 'Unauthorized. Please log in again.';
+        } else if (response.status === 403) {
+          errorMessage = 'Forbidden. You do not have admin permissions.';
+        } else if (response.status === 404) {
+          errorMessage = 'Properties endpoint not found.';
+        } else if (response.status >= 500) {
+          errorMessage = 'Server error. Please try again later.';
+        }
+        
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -49,14 +73,18 @@ export default function AdminPropertiesPage() {
       // Only update state if request wasn't aborted
       if (!abortController.signal.aborted) {
         setProperties(data.properties || []);
+        console.log('[Admin Properties] Properties loaded:', data.properties?.length || 0);
       }
     } catch (err) {
       // Don't set error if request was aborted
       if (abortController.signal.aborted) return;
       
-      const message = err instanceof ApiError ? err.message : 'Failed to load properties';
+      const message = err instanceof Error ? err.message : 'Failed to load properties';
       setError(message);
-      console.error('Failed to load admin queue:', err);
+      console.error('[Admin Properties] Failed to load admin queue:', {
+        error: err,
+        message: err instanceof Error ? err.message : String(err),
+      });
     } finally {
       if (!abortController.signal.aborted) {
         setLoading(false);
@@ -65,18 +93,24 @@ export default function AdminPropertiesPage() {
   }, []);
 
   useEffect(() => {
-    if (!userLoading && !user) {
-      router.push('/login');
-      return;
-    }
+    // Auth check is handled by server-side layout
+    // Only check if user context is ready and user exists
+    if (!userLoading) {
+      if (!user) {
+        // This shouldn't happen due to layout protection, but handle gracefully
+        router.push('/login?redirect=/admin/properties');
+        return;
+      }
 
-    if (user && user.role !== 'admin') {
-      router.push('/dashboard');
-      return;
-    }
+      if (user.role !== 'admin') {
+        // This shouldn't happen due to layout protection, but handle gracefully
+        router.push(`/dashboard/${user.role || ''}`);
+        return;
+      }
 
-    // Role check is handled by layout/middleware
-    loadProperties();
+      // User is authenticated and is admin - load properties
+      loadProperties();
+    }
     
     // Cleanup: abort request if component unmounts
     return () => {
@@ -100,20 +134,41 @@ export default function AdminPropertiesPage() {
   }
 
   if (error) {
+    // Determine error type for better UX
+    const isAuthError = error.includes('Unauthorized') || error.includes('Forbidden');
+    const isServerError = error.includes('Server error');
+    
     return (
       <div className="min-h-screen bg-reach-light p-6">
         <div className="max-w-7xl mx-auto">
-          <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
-            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Failed to load properties</h3>
+          <div className={`border rounded-2xl p-6 text-center ${
+            isAuthError 
+              ? 'bg-yellow-50 border-yellow-200' 
+              : 'bg-red-50 border-red-200'
+          }`}>
+            <AlertCircle className={`w-12 h-12 mx-auto mb-4 ${
+              isAuthError ? 'text-yellow-500' : 'text-red-500'
+            }`} />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              {isAuthError ? 'Authentication Required' : 'Failed to load properties'}
+            </h3>
             <p className="text-gray-600 mb-4">{error}</p>
-            <button
-              onClick={loadProperties}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-reach-navy text-white rounded-lg"
-            >
-              <RefreshCw size={16} />
-              Try Again
-            </button>
+            {isAuthError ? (
+              <button
+                onClick={() => router.push('/login')}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-reach-navy text-white rounded-lg hover:bg-reach-navy/90"
+              >
+                Go to Login
+              </button>
+            ) : (
+              <button
+                onClick={loadProperties}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-reach-navy text-white rounded-lg hover:bg-reach-navy/90"
+              >
+                <RefreshCw size={16} />
+                Try Again
+              </button>
+            )}
           </div>
         </div>
       </div>

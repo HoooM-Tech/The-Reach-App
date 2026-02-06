@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '../../contexts/UserContext';
 import { authApi, creatorApi, ApiError } from '../../lib/api/client';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react';
 
 enum VerifyStep {
   PERSONAL_DETAILS,  // Collect email/password first
@@ -39,6 +39,9 @@ const CreatorRegistration: React.FC = () => {
   const [emailLink, setEmailLink] = useState('');
   const [tiktokLink, setTiktokLink] = useState('');
   
+  // Password visibility
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   // Loading and error states
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,7 +53,7 @@ const CreatorRegistration: React.FC = () => {
   } | null>(null);
   
   const router = useRouter();
-  const { setUser, login } = useUser();
+  const { login } = useUser();
   const role: UserRole = 'creator';
 
   const isValidOtp = () => {
@@ -171,6 +174,15 @@ const CreatorRegistration: React.FC = () => {
         return;
       }
 
+      // Ensure the creator is authenticated before verification
+      try {
+        await login(email, password);
+      } catch {
+        setError('Unable to start verification. Please log in to verify your social accounts.');
+        setStep(VerifyStep.SUCCESS);
+        return;
+      }
+
       // Verify social accounts
       const result = await creatorApi.verifySocialAccounts(socialLinks);
       
@@ -190,7 +202,7 @@ const CreatorRegistration: React.FC = () => {
         // Show error but allow them to continue
         setError(result.error || 'Failed to verify social accounts. You can update your social accounts later in settings.');
         setVerificationResult({
-          tier: 4, // Default to tier 4 if verification fails
+          tier: 0, // Tier 0 means unverified/unqualified
           message: 'You can update your social accounts later in settings',
         });
         setStep(VerifyStep.SUCCESS);
@@ -200,7 +212,7 @@ const CreatorRegistration: React.FC = () => {
       setError(message);
       // Allow them to continue even if verification fails
       setVerificationResult({
-        tier: 4,
+        tier: 0, // Tier 0 means unverified/unqualified
         message: 'You can update your social accounts later in settings',
       });
       setStep(VerifyStep.SUCCESS);
@@ -349,14 +361,24 @@ const CreatorRegistration: React.FC = () => {
               </div>
             </div>
           </div>
-          <input
-            type="password"
-            placeholder="Confirm password"
-            aria-label="Confirm password"
-            className="w-full border border-gray-100 rounded-xl p-4 outline-none focus:border-reach-red"
-            value={confirmPassword}
-            onChange={e => setConfirmPassword(e.target.value)}
-          />
+          <div className="relative">
+            <input
+              type={showConfirmPassword ? 'text' : 'password'}
+              placeholder="Confirm password"
+              aria-label="Confirm password"
+              className="w-full border border-gray-100 rounded-xl p-4 pr-12 outline-none focus:border-reach-red"
+              value={confirmPassword}
+              onChange={e => setConfirmPassword(e.target.value)}
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none"
+              aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+            >
+              {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
+          </div>
         </div>
         <div className="mt-6 mb-4">
           <label className="flex items-start gap-3 cursor-pointer">
@@ -562,13 +584,14 @@ const CreatorRegistration: React.FC = () => {
 
   const renderSuccess = () => {
     const tierLabels: Record<number, { name: string; commission: string; color: string }> = {
+      0: { name: 'Unverified', commission: '0%', color: 'bg-gray-200' },
       1: { name: 'Elite Creator', commission: '3%', color: 'bg-gradient-to-r from-yellow-400 to-yellow-600' },
       2: { name: 'Professional Creator', commission: '2.5%', color: 'bg-gradient-to-r from-gray-300 to-gray-500' },
       3: { name: 'Rising Creator', commission: '2%', color: 'bg-gradient-to-r from-blue-400 to-blue-600' },
       4: { name: 'Micro Creator', commission: '1.5%', color: 'bg-gradient-to-r from-green-400 to-green-600' },
     };
     
-    const tierInfo = tierLabels[creatorTier] || tierLabels[4];
+    const tierInfo = tierLabels[creatorTier] || tierLabels[0];
     
     return (
     <div className="h-full flex flex-col items-center justify-center p-8 bg-gray-100 animate-fadeIn">

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminSupabaseClient } from '@/lib/supabase/client';
+import { createAdminSupabaseClient } from '@/lib/supabase/server';
 import { getAuthenticatedUser } from '@/lib/utils/auth';
 import { handleError, NotFoundError } from '@/lib/utils/errors';
 
@@ -33,17 +33,73 @@ export async function GET(
     }
 
     // Get transaction
-    const { data: transaction, error: transactionError } = await supabase
+    // First try: Query by wallet_id (primary method)
+    let { data: transaction, error: transactionError } = await supabase
       .from('transactions')
       .select('*, bank_accounts(*)')
       .eq('id', transactionId)
       .eq('wallet_id', wallet.id)
       .maybeSingle();
 
-    if (transactionError) throw transactionError;
+    // Fallback: If not found by wallet_id, try by user_id directly
+    // This handles cases where wallet_id might be missing or incorrect
+    if (!transaction && !transactionError) {
+      console.warn('[Transaction Details API] Transaction not found by wallet_id, trying user_id:', {
+        transactionId,
+        walletId: wallet.id,
+        userId: user.id,
+      });
+      
+      const { data: transactionByUser, error: userQueryError } = await supabase
+        .from('transactions')
+        .select('*, bank_accounts(*)')
+        .eq('id', transactionId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      if (userQueryError) {
+        console.error('[Transaction Details API] User query error:', userQueryError);
+        throw userQueryError;
+      }
+      
+      transaction = transactionByUser;
+      
+      // If found by user_id but wallet_id doesn't match, log a warning
+      if (transaction && transaction.wallet_id !== wallet.id) {
+        console.warn('[Transaction Details API] Transaction wallet_id mismatch:', {
+          transactionId,
+          transactionWalletId: transaction.wallet_id,
+          userWalletId: wallet.id,
+          userId: user.id,
+        });
+      }
+    }
+
+    if (transactionError) {
+      console.error('[Transaction Details API] Query error:', {
+        transactionId,
+        walletId: wallet.id,
+        userId: user.id,
+        error: transactionError,
+      });
+      throw transactionError;
+    }
+    
     if (!transaction) {
+      console.warn('[Transaction Details API] Transaction not found:', {
+        transactionId,
+        walletId: wallet.id,
+        userId: user.id,
+      });
       throw new NotFoundError('Transaction');
     }
+    
+    console.log('[Transaction Details API] Transaction found:', {
+      transactionId: transaction.id,
+      walletId: transaction.wallet_id,
+      userId: transaction.user_id,
+      status: transaction.status,
+    });
 
     // Build timeline
     const timeline = [];

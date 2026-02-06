@@ -49,6 +49,14 @@ export default function TransactionsPage() {
       
       // Only update state if request wasn't aborted
       if (!abortController.signal.aborted) {
+        // walletApi.getTransactions() now normalizes the response
+        const transactions = transactionsData.transactions || [];
+        
+        console.log('[Transactions Page] Loaded transactions:', {
+          transactionCount: transactions.length,
+          total: transactionsData.total,
+        });
+        
         setWalletData({
           wallet: {
             id: (balanceData as any).wallet_id || '',
@@ -56,7 +64,7 @@ export default function TransactionsPage() {
             balance: balanceData.availableBalance,
             locked_balance: balanceData.lockedBalance,
           },
-          transactions: transactionsData.transactions || [],
+          transactions: transactions,
         });
       }
     } catch (err) {

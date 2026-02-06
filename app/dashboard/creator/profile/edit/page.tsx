@@ -241,7 +241,8 @@ export default function CreatorEditProfilePage() {
   return (
     <div className="min-h-screen bg-[#FFF5F5]">
       {/* Header */}
-      <header className="bg-transparent px-4 py-4 flex items-center justify-between sticky top-0 z-40">
+      <header className="bg-transparent px-4 py-4 flex items-center justify-between top-0 z-40">
+        {/*
         <button
           onClick={() => router.back()}
           className="w-12 h-12 rounded-full bg-white flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm"
@@ -250,7 +251,9 @@ export default function CreatorEditProfilePage() {
         >
           <ArrowLeft size={20} className="text-gray-700" />
         </button>
+        */}
         <h1 className="text-lg font-semibold text-gray-900">Edit profile</h1>
+        {/*
         <button
           className="w-12 h-12 rounded-full bg-white flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm"
           aria-label="Notifications"
@@ -258,6 +261,7 @@ export default function CreatorEditProfilePage() {
         >
           <Bell size={20} className="text-gray-700" />
         </button>
+        */}
       </header>
 
       {/* Error Message */}
@@ -274,7 +278,7 @@ export default function CreatorEditProfilePage() {
       <div className="px-4 pb-32 space-y-6">
         {/* Profile Picture Section */}
         <div className="flex flex-col items-center py-6">
-          <div className="w-[120px] h-[120px] rounded-full bg-gray-200 flex items-center justify-center mb-4 relative overflow-hidden">
+          <div className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full bg-gray-200 flex items-center justify-center mb-4 relative overflow-hidden">
             {uploadingImage ? (
               <div className="w-full h-full flex items-center justify-center bg-gray-300">
                 <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -301,6 +305,8 @@ export default function CreatorEditProfilePage() {
             {uploadingImage ? 'Uploading...' : 'Change profile picture'}
           </button>
           <input
+            title="Profile picture input"
+            aria-label="Profile picture input"
             ref={fileInputRef}
             type="file"
             accept="image/jpeg,image/png,image/webp"

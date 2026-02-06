@@ -74,18 +74,22 @@ export default function BankAccountsPage() {
   return (
     <div className="min-h-screen bg-[#FFF5F5]">
       {/* Header */}
-      <header className="bg-white px-4 py-4">
+      <header className="px-4 py-4">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
+          {/*
           <button
             onClick={() => router.back()}
             className="w-12 h-12 rounded-full bg-white flex items-center justify-center"
           >
             <ChevronLeft size={24} className="text-gray-900" />
           </button>
+          */}
           <h1 className="text-xl font-semibold text-gray-900">Select Bank Account</h1>
+          {/*
           <button className="w-12 h-12 rounded-full bg-white flex items-center justify-center">
             <Bell size={20} className="text-gray-600" />
           </button>
+          */}
         </div>
       </header>
 

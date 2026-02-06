@@ -206,6 +206,12 @@ export function DashboardShell({ children, user, navItems: customNavItems, accou
 
   // Determine if we're on the dashboard home
   const isDashboardHome = pathname === basePath;
+  const isBuyerDashboard = basePath === '/dashboard/buyer';
+  const hideShellHeader = pathname.startsWith('/dashboard/buyer/properties/');
+  const headerPositionClass = isBuyerDashboard
+    ? 'fixed top-0 left-0 right-0 lg:left-64 z-20'
+    : 'sticky top-0 z-40';
+  const headerOffsetClass = isBuyerDashboard && !hideShellHeader ? 'pt-20 lg:pt-24' : '';
   
   // Determine if we need a back button (for detail pages)
   const showBackButton = (pathname.includes('/properties/') && pathname !== `${basePath}/properties`) ||
@@ -236,7 +242,7 @@ export function DashboardShell({ children, user, navItems: customNavItems, accou
   const pageTitle = getPageTitle();
 
   return (
-    <div className="min-h-screen bg-reach-bg">
+    <div className="min-h-screen bg-reach-bg overflow-x-hidden">
       {/* Desktop Sidebar - Fixed */}
       <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 lg:bg-white lg:border-r lg:border-gray-200 lg:z-30">
         <div className="flex-1 flex flex-col overflow-y-auto">
@@ -294,7 +300,7 @@ export function DashboardShell({ children, user, navItems: customNavItems, accou
                     <span className="font-normal">{item.label}</span>
                   </div>
                   {item.badge && (
-                    <span className="bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center min-w-[20px]">
+                    <span className="bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center min-w-5">
                       {item.badge}
                     </span>
                   )}
@@ -327,11 +333,13 @@ export function DashboardShell({ children, user, navItems: customNavItems, accou
       </aside>
 
       {/* Content Area with Sidebar Spacing */}
-      <div className="lg:pl-64">
+      <div className="lg:pl-64 overflow-x-hidden">
+        {!hideShellHeader && (
+        <>
         {/* Mobile Header */}
         {isDashboardHome ? (
         // Style 1: Dashboard Home Header (WITH User Profile)
-        <header className="lg:hidden px-4 py-4 bg-[#FFF5F5] flex items-center justify-between sticky top-0 z-40">
+        <header className={`lg:hidden px-4 py-4 bg-[#FFF5F5] flex items-center justify-between ${headerPositionClass}`}>
           <div className="flex items-center gap-3">
             {(user as any)?.avatarUrl ? (
               <div className="w-14 h-14 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
@@ -389,7 +397,7 @@ export function DashboardShell({ children, user, navItems: customNavItems, accou
         </header>
       ) : (
         // Style 2: Simplified Header (WITHOUT User Profile)
-        <header className="lg:hidden px-4 py-4 bg-[#FFF5F5] flex items-center justify-between sticky top-0 z-40">
+        <header className={`lg:hidden px-4 py-4 bg-[#FFF5F5] flex items-center justify-between ${headerPositionClass}`}>
           <div className="flex items-center gap-3">
             {showBackButton ? (
               <button
@@ -429,7 +437,7 @@ export function DashboardShell({ children, user, navItems: customNavItems, accou
         {/* Desktop Header */}
         {isDashboardHome ? (
           // Style 1: Dashboard Home Header (WITH User Profile) - Desktop
-          <header className="hidden lg:flex px-4 py-4 bg-[#FFF5F5] items-center justify-between sticky top-0 z-40">
+          <header className={`hidden lg:flex px-4 py-4 bg-[#FFF5F5] items-center justify-between ${headerPositionClass}`}>
           <div className="flex items-center gap-3">
             {(user as any)?.avatarUrl ? (
               <div className="w-14 h-14 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
@@ -478,7 +486,7 @@ export function DashboardShell({ children, user, navItems: customNavItems, accou
           </header>
         ) : (
           // Style 2: Simplified Header (WITHOUT User Profile) - Desktop
-          <header className="hidden lg:flex px-4 py-4 bg-[#FFF5F5] items-center justify-between sticky top-0 z-40">
+          <header className={`hidden lg:flex px-4 py-4 bg-[#FFF5F5] items-center justify-between ${headerPositionClass}`}>
           <div className="flex items-center gap-3">
             {showBackButton ? (
               <button
@@ -504,6 +512,8 @@ export function DashboardShell({ children, user, navItems: customNavItems, accou
             </button>
           </div>
           </header>
+        )}
+        </>
         )}
 
         {/* Mobile Sidebar Overlay */}
@@ -532,7 +542,7 @@ export function DashboardShell({ children, user, navItems: customNavItems, accou
                   duration: 0.3,
                   ease: [0.4, 0, 0.2, 1] // Custom easing for smooth slide
                 }}
-                className="fixed inset-y-0 left-0 w-64 bg-white shadow-xl"
+                className="fixed inset-y-0 left-0 w-4/5 max-w-xs bg-white shadow-xl"
                 role="dialog"
                 aria-modal="true"
                 aria-label="Navigation menu"
@@ -598,7 +608,7 @@ export function DashboardShell({ children, user, navItems: customNavItems, accou
                             <span className="font-normal">{item.label}</span>
                           </div>
                           {item.badge && (
-                            <span className="bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center min-w-[20px]">
+                            <span className="bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center min-w-5">
                               {item.badge}
                             </span>
                           )}
@@ -636,7 +646,7 @@ export function DashboardShell({ children, user, navItems: customNavItems, accou
         </AnimatePresence>
 
         {/* Main Content */}
-        <main className="min-h-screen">
+        <main className={`min-h-screen overflow-x-hidden ${headerOffsetClass}`}>
           {children}
         </main>
       </div>

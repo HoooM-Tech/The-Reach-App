@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase/client'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { requireDeveloper } from '@/lib/utils/auth'
 import { contractSignSchema } from '@/lib/utils/validation'
 import { NotFoundError, ValidationError, handleError } from '@/lib/utils/errors'

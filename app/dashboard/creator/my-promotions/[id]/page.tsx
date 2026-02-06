@@ -306,6 +306,7 @@ export default function PropertyPromotionDetailsPage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
+          {/*
           <button
             title="Back"
             onClick={() => router.back()}
@@ -313,6 +314,7 @@ export default function PropertyPromotionDetailsPage() {
           >
             <ArrowLeft size={20} className="text-gray-600" />
           </button>
+          */}
           <div className="flex items-center gap-3">
             <h1 className="text-xl font-bold text-gray-900">Property Details</h1>
             {promotion?.status && (
@@ -334,9 +336,11 @@ export default function PropertyPromotionDetailsPage() {
               </span>
             )}
           </div>
+          {/*
           <button className="p-2 bg-white rounded-full border border-gray-200 hover:bg-gray-50 transition-colors" title="Notifications" aria-label="Notifications">
             <Bell size={20} className="text-gray-600" />
           </button>
+          */}
         </div>
 
         {/* Property Info Card */}

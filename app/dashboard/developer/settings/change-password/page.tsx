@@ -129,7 +129,8 @@ export default function ChangePasswordPage() {
   return (
     <div className="min-h-screen bg-[#FFF5F5]">
       {/* Header */}
-      <header className="bg-transparent px-4 py-4 flex items-center justify-between sticky top-0 z-40">
+      <header className="bg-transparent px-4 py-4 flex items-center justify-between top-0 z-40">
+        { /*
         <button
           onClick={() => router.back()}
           className="w-10 h-10 rounded-full bg-white flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm"
@@ -138,6 +139,7 @@ export default function ChangePasswordPage() {
         >
           <ArrowLeft size={20} className="text-gray-700" />
         </button>
+        */}
         <div></div>
         <div></div>
       </header>

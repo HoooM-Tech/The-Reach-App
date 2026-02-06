@@ -155,6 +155,11 @@ export default function AddBankAccountPage() {
       return;
     }
 
+    // Prevent double submission
+    if (isSubmitting) {
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       await walletApi.addBankAccount({
@@ -162,10 +167,32 @@ export default function AddBankAccountPage() {
         accountNumber,
         bankCode,
       });
+      
+      // Reset form state immediately after success to prevent re-submission
+      setIsVerified(false);
+      setAccountName('');
+      setAccountNumber('');
+      setBankName('');
+      setBankCode('');
+      
       toast.success('Bank account added successfully');
-      router.push('/dashboard/creator/wallet/bank-accounts');
+      
+      // Navigate away after a short delay to ensure state is reset
+      setTimeout(() => {
+        router.push('/dashboard/creator/wallet/bank-accounts');
+      }, 100);
     } catch (error: any) {
-      toast.error(error.message || 'Failed to add bank account');
+      // Only show error if it's not a duplicate error (user might have refreshed)
+      const errorMessage = error.message || 'Failed to add bank account';
+      if (errorMessage.includes('already added')) {
+        // If duplicate, navigate away (account was likely added successfully before)
+        toast.success('Bank account already exists');
+        setTimeout(() => {
+          router.push('/dashboard/creator/wallet/bank-accounts');
+        }, 100);
+      } else {
+        toast.error(errorMessage);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -174,8 +201,9 @@ export default function AddBankAccountPage() {
   return (
     <div className="min-h-screen bg-[#FFF5F5]">
       {/* Header */}
-      <header className="bg-white px-4 py-4">
+      <header className="px-4 py-4">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
+          {/*
           <button
             onClick={() => router.back()}
             className="w-12 h-12 rounded-full bg-white flex items-center justify-center"
@@ -184,7 +212,9 @@ export default function AddBankAccountPage() {
           >
             <ChevronLeft size={24} className="text-gray-900" />
           </button>
+          */}
           <h1 className="text-xl font-semibold text-gray-900">Add bank account</h1>
+          {/*
           <button
             className="w-12 h-12 rounded-full bg-white flex items-center justify-center"
             aria-label="Notifications"
@@ -192,6 +222,7 @@ export default function AddBankAccountPage() {
           >
             <Bell size={20} className="text-gray-600" />
           </button>
+          */}
         </div>
       </header>
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminSupabaseClient } from '@/lib/supabase/client';
+import { createAdminSupabaseClient } from '@/lib/supabase/server';
 
 /**
  * Debug endpoint to check property verification status

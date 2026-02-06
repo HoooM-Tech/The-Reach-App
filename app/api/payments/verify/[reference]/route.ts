@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase/client'
+import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase/server'
 import { verifyPayment } from '@/lib/services/paystack'
 import { ValidationError, NotFoundError, handleError } from '@/lib/utils/errors'
 

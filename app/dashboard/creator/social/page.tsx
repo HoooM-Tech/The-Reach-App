@@ -44,6 +44,7 @@ export default function CreatorSocialPage() {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const tierLabels: Record<number, { name: string; commission: string; color: string }> = {
+    0: { name: 'Unverified', commission: '0%', color: 'bg-gray-200' },
     1: { name: 'Elite Creator', commission: '3%', color: 'bg-gradient-to-r from-yellow-400 to-yellow-600' },
     2: { name: 'Professional Creator', commission: '2.5%', color: 'bg-gradient-to-r from-gray-300 to-gray-500' },
     3: { name: 'Rising Creator', commission: '2%', color: 'bg-gradient-to-r from-blue-400 to-blue-600' },
@@ -136,11 +137,11 @@ export default function CreatorSocialPage() {
     );
   }
 
-  const currentTier = user?.tier || 4;
-  const tierInfo = tierLabels[currentTier] || tierLabels[4];
+  const currentTier = user?.tier ?? 0;
+  const tierInfo = tierLabels[currentTier] || tierLabels[0];
 
   return (
-    <div className="min-h-screen bg-reach-bg pb-24 lg:pb-6">
+    <div className="min-h-screen bg-reach-bg pb-24 lg:pb-6 overflow-x-hidden">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-6 space-y-6">
         {/* Header */}
         <div>
@@ -158,15 +159,15 @@ export default function CreatorSocialPage() {
 
         {/* Current Tier Display */}
         <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="min-w-0">
               <p className="text-gray-500 text-sm mb-1">Current Tier</p>
-              <h3 className="text-2xl font-bold text-gray-900">
+              <h3 className="text-2xl font-bold text-gray-900 break-words">
                 Tier {currentTier} - {tierInfo.name}
               </h3>
               <p className="text-gray-500 text-sm mt-1">Commission: {tierInfo.commission} of sale</p>
             </div>
-            <div className={`w-20 h-20 rounded-full ${tierInfo.color} flex items-center justify-center text-white text-2xl font-bold`}>
+            <div className={`w-20 h-20 rounded-full ${tierInfo.color} flex items-center justify-center text-white text-2xl font-bold flex-shrink-0 self-start sm:self-auto`}>
               {currentTier}
             </div>
           </div>
@@ -217,8 +218,8 @@ export default function CreatorSocialPage() {
                   <div className="space-y-3">
                     {Object.entries(verificationResult.analytics).map(([platform, data]) => (
                       <div key={platform} className="bg-gray-50 rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <p className="text-gray-900 font-medium capitalize">{platform}</p>
+                        <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                          <p className="text-gray-900 font-medium capitalize break-words min-w-0">{platform}</p>
                           {data.qualityScore > 0 && (
                             <div className="flex items-center gap-1">
                               <Star className="text-yellow-500" size={16} />
@@ -226,7 +227,7 @@ export default function CreatorSocialPage() {
                             </div>
                           )}
                         </div>
-                        <div className="grid grid-cols-3 gap-4 mt-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-3">
                           <div>
                             <p className="text-gray-500 text-xs">Followers</p>
                             <p className="text-gray-900 font-semibold">{data.followers.toLocaleString()}</p>

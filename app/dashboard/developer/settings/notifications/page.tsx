@@ -105,7 +105,8 @@ export default function NotificationSettingsPage() {
   return (
     <div className="min-h-screen bg-[#FFF5F5]">
       {/* Header */}
-      <header className="bg-transparent px-4 py-4 flex items-center justify-between sticky top-0 z-40">
+      <header className="bg-transparent px-4 py-4 flex items-center justify-between top-0 z-40">
+        { /*
         <button
           onClick={() => router.back()}
           className="w-10 h-10 rounded-full bg-white flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm"
@@ -114,7 +115,9 @@ export default function NotificationSettingsPage() {
         >
           <ArrowLeft size={20} className="text-gray-700" />
         </button>
+        */}
         <h1 className="text-lg font-semibold text-gray-900">Notification</h1>
+        { /*
         <button
           onClick={() => router.push('/dashboard/notifications')}
           className="w-10 h-10 rounded-full bg-white flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm"
@@ -123,6 +126,7 @@ export default function NotificationSettingsPage() {
         >
           <Bell size={20} className="text-gray-700" />
         </button>
+        */}
       </header>
 
       {/* Main Content */}
@@ -139,13 +143,13 @@ export default function NotificationSettingsPage() {
               <button
                 onClick={() => handleToggle(item.key)}
                 disabled={isSaving}
-                className={`relative inline-flex h-[31px] w-[51px] items-center rounded-full transition-colors duration-200 ${
+                className={`relative inline-flex h-8 w-12 items-center rounded-full transition-colors duration-200 ${
                   settings[item.key] ? 'bg-green-500' : 'bg-gray-300'
                 } disabled:opacity-50`}
                 aria-label={`${settings[item.key] ? 'Disable' : 'Enable'} ${item.label}`}
               >
                 <span
-                  className={`inline-block h-[27px] w-[27px] transform rounded-full bg-white transition-transform duration-200 ${
+                  className={`inline-block h-7 w-7 transform rounded-full bg-white transition-transform duration-200 ${
                     settings[item.key] ? 'translate-x-[22px]' : 'translate-x-[2px]'
                   }`}
                 />

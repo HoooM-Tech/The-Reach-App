@@ -1,4 +1,4 @@
-import { createAdminSupabaseClient } from '@/lib/supabase/client';
+import { createAdminSupabaseClient } from '@/lib/supabase/server';
 import { WalletErrorCode, createWalletError } from './wallet-errors';
 import { formatNaira } from './currency';
 

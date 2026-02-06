@@ -187,8 +187,9 @@ export default function CreatorAnalyticsPage() {
   return (
     <div className="min-h-screen bg-reach-bg pb-24 lg:pb-6">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        {/* Header */}
+        {/* Header 
         <div className="flex items-center justify-between">
+          
           <button
             title="Back"
             onClick={() => router.back()}
@@ -196,11 +197,15 @@ export default function CreatorAnalyticsPage() {
           >
             <ArrowLeft size={20} className="text-gray-600" />
           </button>
+          
           <h1 className="text-xl font-bold text-gray-900">Analytics</h1>
+          
           <button className="p-2 bg-white rounded-full border border-gray-200 hover:bg-gray-50 transition-colors" title="Notifications" aria-label="Notifications">
             <Bell size={20} className="text-gray-600" />
           </button>
+        
         </div>
+        */}
 
         {/* White Container */}
         <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-6">

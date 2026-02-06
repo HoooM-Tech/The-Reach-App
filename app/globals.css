@@ -35,3 +35,13 @@ body {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;  /* Chrome, Safari and Opera */
 }
+
+/* Admin panel form styling */
+select {
+  background-color: white;
+}
+
+select option {
+  background-color: white;
+  color: #111827;
+}

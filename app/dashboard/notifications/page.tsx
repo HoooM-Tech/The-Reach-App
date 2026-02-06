@@ -6,6 +6,7 @@ import { useUser } from '@/contexts/UserContext';
 import { notificationsApi, ApiError } from '@/lib/api/client';
 import { AuthGuard } from '@/components/auth/RoleGuard';
 import { groupNotificationsByDate, sortDateGroups } from '@/lib/utils/date-grouping';
+import { resolveNotificationRoute, getNotificationActionLabel } from '@/lib/utils/notification-routing';
 import { 
   Bell, 
   Users,
@@ -52,8 +53,8 @@ interface NotificationIconProps {
 
 function NotificationIcon({ type }: NotificationIconProps) {
   const getIconConfig = () => {
-    // Orange icons: new_lead, inspection_booked, contract_executed
-    if (type === 'new_lead' || type === 'inspection_booked' || type === 'contract_executed') {
+    // Orange icons: new_lead, inspection_booked, contract_executed, new_bid
+    if (type === 'new_lead' || type === 'inspection_booked' || type === 'contract_executed' || type === 'new_bid') {
       return {
         icon: <Users size={20} className="text-white" />,
         bgColor: 'bg-orange-400', // Light orange matching design
@@ -102,53 +103,11 @@ function NotificationItem({ notification, onMarkRead, userRole }: NotificationIt
   const message = notification.message || notification.body || 'You just got a new Lead';
   const isUnread = !notification.is_read && !notification.read;
 
-  // Get action URL based on notification type and data
-  const getActionUrl = (): string | null => {
-    if (!notification.data) return null;
-
-    if (notification.type === 'property_verified' && notification.data.contract_id) {
-      return `/dashboard/developer/contracts/${notification.data.contract_id}`;
-    }
-    if (notification.type === 'property_verified' && notification.data.property_id) {
-      // Developers should use their own route, not the public property route
-      if (userRole === 'developer') {
-        return `/dashboard/developer/properties/${notification.data.property_id}`;
-      }
-      return `/property/${notification.data.property_id}`;
-    }
-    if (notification.type === 'property_bought' && notification.data.transaction_id) {
-      return `/wallet?transaction=${notification.data.transaction_id}`;
-    }
-    if (notification.type === 'deposit_cash' || notification.type === 'payout_processed') {
-      return `/wallet`;
-    }
-    if (notification.type === 'contract_executed' && notification.data.contract_id) {
-      return `/dashboard/developer/contracts/${notification.data.contract_id}`;
-    }
-    if (notification.data.property_id) {
-      // Developers should use their own route, not the public property route
-      if (userRole === 'developer') {
-        return `/dashboard/developer/properties/${notification.data.property_id}`;
-      }
-      return `/property/${notification.data.property_id}`;
-    }
-    return null;
-  };
-
-  const actionUrl = getActionUrl();
+  // Get action URL using type-safe routing resolver
+  const actionUrl = resolveNotificationRoute(notification, userRole);
   
-  // Get action label based on type (matching screenshot)
-  const getActionLabel = (): string | null => {
-    if (notification.type === 'property_verified') {
-      return 'View contract';
-    }
-    if (notification.type === 'property_bought' || notification.type === 'deposit_cash' || notification.type === 'payout_processed') {
-      return 'See Transaction';
-    }
-    return null;
-  };
-
-  const actionLabel = getActionLabel();
+  // Get action label using type-safe resolver
+  const actionLabel = getNotificationActionLabel(notification, userRole);
 
   // Format timestamp exactly as shown in screenshot: "Yesterday, 1:05 PM"
   const formatTimestamp = (dateString: string): string => {
@@ -173,12 +132,18 @@ function NotificationItem({ notification, onMarkRead, userRole }: NotificationIt
   };
 
   const handleClick = () => {
+    // Mark as read if unread
     if (isUnread) {
       onMarkRead(notification.id);
     }
+    
+    // Only navigate if there's a valid action URL
+    // For creators, this ensures we never navigate to public property pages
     if (actionUrl) {
       router.push(actionUrl);
     }
+    // If no action URL (e.g., system notifications), just mark as read
+    // No navigation occurs - this is the correct behavior for read-only notifications
   };
 
   // For transactions with amounts, show date and amount on same line
@@ -378,7 +343,7 @@ function NotificationsPageContent() {
                     onClick={() => setIsFilterMenuOpen(false)}
                   />
                   {/* Menu */}
-                  <div className="absolute right-0 top-12 z-40 bg-white rounded-lg shadow-lg border border-gray-200 min-w-[180px] py-2">
+                  <div className="absolute right-0 top-12 z-40 bg-white rounded-lg shadow-lg border border-gray-200 min-w-max max-w-screen-sm py-2">
                     <div className="px-4 py-2 border-b border-gray-100">
                       <div className="flex items-center gap-2">
                         <Filter size={16} className="text-gray-600" />

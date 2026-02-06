@@ -39,11 +39,18 @@ export default function TransactionDetailsPage() {
       const transactionData = await walletApi.getTransaction(transactionId);
       const foundTransaction = transactionData.transaction;
       
+      console.log('[Transaction Details Page] API response:', {
+        hasTransaction: !!foundTransaction,
+        transactionId,
+        responseKeys: Object.keys(transactionData),
+      });
+      
       // Only update state if request wasn't aborted
       if (!abortController.signal.aborted) {
         if (foundTransaction) {
           setTransaction(foundTransaction);
         } else {
+          console.error('[Transaction Details Page] Transaction not found in response:', transactionData);
           setError('Transaction not found');
         }
       }
@@ -131,30 +138,25 @@ export default function TransactionDetailsPage() {
 
   return (
     <div className="min-h-screen bg-[#FDFBFA]">
-      {/* Header */}
-      <header className="bg-transparent px-6 py-4 flex items-center justify-between sticky top-0 z-40">
-        <button
-          aria-label="Back"
-          title="Back"
-          onClick={() => router.push('/dashboard/developer/wallet/transactions')}
-          className="w-10 h-10 rounded-full bg-white flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm"
-        >
-          <ArrowLeft size={20} className="text-gray-700" />
-        </button>
-        <h1 className="text-lg font-semibold text-gray-900">Transaction details</h1>
-        <button
-          aria-label="Notifications"
-          title="Notifications"
-          onClick={() => router.push('/dashboard/notifications')}
-          className="w-10 h-10 rounded-full bg-white flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm"
-        >
-          <Bell size={20} className="text-gray-700" />
-        </button>
-      </header>
+      {/* Main Content Container - Responsive with sidebar spacing */}
+      <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+        {/* Header */}
+        <div className="flex items-center gap-4">
+          {/*
+          <button
+            aria-label="Back"
+            title="Back"
+            onClick={() => router.push('/dashboard/developer/wallet/transactions')}
+            className="w-10 h-10 rounded-full bg-white flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm border border-gray-100"
+          >
+            <ArrowLeft size={20} className="text-gray-700" />
+          </button>
+          */}
+          <h1 className="text-2xl font-bold text-gray-900">Transaction Details</h1>
+        </div>
 
-      {/* Main Content */}
-      <div className="px-6 pt-6 pb-32">
-        <div className="bg-white rounded-3xl p-6 shadow-sm">
+        {/* Transaction Card */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           {/* Transaction Status */}
           <div className="flex items-center justify-between py-4 border-b border-gray-100">
             <span className="text-sm text-gray-600">Transaction status</span>
@@ -192,36 +194,35 @@ export default function TransactionDetailsPage() {
               </span>
             </div>
             
-            <div className="flex items-center justify-between border-t border-gray-100 pt-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-t border-gray-100 pt-4 gap-1">
               <span className="text-sm text-gray-600">Description</span>
-              <span className="text-sm font-semibold text-gray-900 text-right max-w-[60%]">
+              <span className="text-sm font-semibold text-gray-900 text-left sm:text-right break-words sm:max-w-prose">
                 {transaction.description || 'N/A'}
               </span>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Share Button */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-6 pb-8">
-        <div className="h-0.5 bg-gray-900 w-32 mx-auto mb-4 rounded-full"></div>
-        <button
-          onClick={() => {
-            // Share functionality
-            if (navigator.share) {
-              navigator.share({
-                title: 'Transaction Details',
-                text: `Transaction ${transaction.id} - ${formatAmount(Math.abs(transaction.amount))}`
-              });
-            } else {
-              alert('Share functionality not available');
-            }
-          }}
-          className="w-full bg-reach-navy text-white font-semibold py-4 rounded-2xl hover:bg-reach-navy/90 transition-colors"
-        >
-          Share
-        </button>
-      </div>
+        {/* Share Button - Part of content flow, respects sidebar */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <button
+            onClick={() => {
+              // Share functionality
+              if (navigator.share) {
+                navigator.share({
+                  title: 'Transaction Details',
+                  text: `Transaction ${transaction.id} - ${formatAmount(Math.abs(transaction.amount))}`
+                });
+              } else {
+                alert('Share functionality not available');
+              }
+            }}
+            className="w-full bg-reach-navy text-white font-semibold py-4 rounded-2xl hover:bg-reach-navy/90 transition-colors"
+          >
+            Share
+          </button>
+        </div>
+      </main>
     </div>
   );
 }

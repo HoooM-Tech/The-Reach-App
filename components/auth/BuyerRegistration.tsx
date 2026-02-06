@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { User, UserRole } from '../../types';
 import { useUser } from '../../contexts/UserContext';
 import { authApi, ApiError } from '../../lib/api/client';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react';
 
 enum VerifyStep {
   PERSONAL_DETAILS,  // Collect email/password/name first
@@ -14,7 +14,7 @@ enum VerifyStep {
   SUCCESS
 }
 
-const BuyerRegistration: React.FC = () => {
+const BuyerRegistration: React.FC = (): React.ReactElement => {
   const [step, setStep] = useState<VerifyStep>(VerifyStep.PERSONAL_DETAILS);
   
   // Personal details
@@ -30,12 +30,15 @@ const BuyerRegistration: React.FC = () => {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [otpFromApi, setOtpFromApi] = useState<string | null>(null);
   
+  // Password visibility
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   // Loading and error states
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   const router = useRouter();
-  const { setUser, login } = useUser();
+  const { login } = useUser();
   const role: UserRole = 'buyer';
 
   const isValidOtp = () => {
@@ -214,14 +217,24 @@ const BuyerRegistration: React.FC = () => {
             value={email}
             onChange={e => setEmail(e.target.value)}
           />
-          <div>
+          <div className="relative">
             <input
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               placeholder="Enter password here"
-              className="w-full border border-gray-100 rounded-xl p-4 outline-none focus:border-reach-red"
+              aria-label="Password"
+              className="w-full border border-gray-100 rounded-xl p-4 pr-12 outline-none focus:border-reach-red"
               value={password}
               onChange={e => setPassword(e.target.value)}
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none"
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+            >
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
+          </div>
             <div className="mt-2 space-y-1">
               <div className="flex items-center gap-2 text-xs">
                 {passwordValidation.hasMinLength ? (
@@ -254,14 +267,24 @@ const BuyerRegistration: React.FC = () => {
                 </span>
               </div>
             </div>
+          <div className="relative">
+            <input
+              type={showConfirmPassword ? 'text' : 'password'}
+              placeholder="Confirm password"
+              aria-label="Confirm password"
+              className="w-full border border-gray-100 rounded-xl p-4 pr-12 outline-none focus:border-reach-red"
+              value={confirmPassword}
+              onChange={e => setConfirmPassword(e.target.value)}
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none"
+              aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+            >
+              {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
           </div>
-          <input
-            type="password"
-            placeholder="Confirm password"
-            className="w-full border border-gray-100 rounded-xl p-4 outline-none focus:border-reach-red"
-            value={confirmPassword}
-            onChange={e => setConfirmPassword(e.target.value)}
-          />
         </div>
         <div className="mt-6 mb-4">
           <label className="flex items-start gap-3 cursor-pointer">
@@ -351,6 +374,7 @@ const BuyerRegistration: React.FC = () => {
             key={i}
             type="text"
             maxLength={1}
+            aria-label={`OTP digit ${i + 1}`}
             className={`w-12 h-14 border-2 rounded-xl text-center text-xl font-bold bg-white focus:outline-none ${
               i === 0 ? 'border-reach-red' : 'border-gray-100 focus:border-reach-red'
             }`}
@@ -433,7 +457,7 @@ const BuyerRegistration: React.FC = () => {
   return (
     <div className="h-screen bg-reach-light">
       <div className="p-6">
-        <button onClick={() => router.back()} className="bg-white p-2 rounded-full shadow-sm">
+        <button type="button" onClick={() => router.back()} aria-label="Go back" className="bg-white p-2 rounded-full shadow-sm">
            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
         </button>
       </div>

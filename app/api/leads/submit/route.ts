@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase/client'
+import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase/server'
 import { leadSchema } from '@/lib/utils/validation'
 import { ValidationError, NotFoundError, handleError } from '@/lib/utils/errors'
 import { getAuthenticatedUser } from '@/lib/utils/auth'
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
       // Use admin client to bypass RLS for tracking link lookup
       const { data: trackingLink, error: trackingError } = await adminSupabase
         .from('tracking_links')
-        .select('id, creator_id, leads, property_id')
+        .select('id, creator_id, leads, property_id, status, expires_at')
         .eq('unique_code', trackingCode)
         .maybeSingle()
 
@@ -49,12 +49,37 @@ export async function POST(req: NextRequest) {
         if (trackingLink.property_id === validated.property_id) {
           creatorId = trackingLink.creator_id
 
-          // Update tracking link metrics (leads)
-          const currentLeads = trackingLink.leads || 0
-          await adminSupabase
-            .from('tracking_links')
-            .update({ leads: currentLeads + 1 })
-            .eq('id', trackingLink.id)
+          // Check if promotion is active and not expired before updating metrics
+          const now = new Date();
+          const isExpired = trackingLink.expires_at && new Date(trackingLink.expires_at) < now;
+          const isActive = trackingLink.status === 'active' && !isExpired;
+
+          // Only update tracking link metrics for active promotions
+          if (isActive) {
+            // Update tracking link metrics (leads)
+            const currentLeads = trackingLink.leads || 0
+            await adminSupabase
+              .from('tracking_links')
+              .update({ leads: currentLeads + 1 })
+              .eq('id', trackingLink.id)
+          } else {
+            // Auto-expire if needed
+            if (trackingLink.status === 'active' && isExpired) {
+              const expireData: any = {
+                status: 'expired',
+                expired_at: now.toISOString(),
+              };
+              
+              const { error: expireError } = await adminSupabase
+                .from('tracking_links')
+                .update(expireData)
+                .eq('id', trackingLink.id);
+              
+              if (expireError && !expireError.message?.includes('updated_at')) {
+                console.error('Failed to auto-expire promotion:', expireError);
+              }
+            }
+          }
         }
       }
     }

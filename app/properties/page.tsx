@@ -139,7 +139,7 @@ function FilterModal({ isOpen, onClose, filters, onApply }: FilterModalProps) {
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-end lg:items-center justify-center" onClick={onClose}>
       <div 
-        className="bg-white rounded-t-3xl lg:rounded-2xl w-full lg:w-[480px] max-h-[80vh] overflow-y-auto"
+        className="bg-white rounded-t-3xl lg:rounded-2xl w-full sm:max-w-lg max-h-[80vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
         <div className="sticky top-0 bg-white p-4 border-b flex items-center justify-between">

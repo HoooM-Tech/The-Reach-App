@@ -12,11 +12,15 @@ export function getCreatorCommissionRate(tier: number | null | undefined): strin
     2: '2.5%',
     3: '2.0%',
     4: '1.5%',
+    0: '0%', // Unqualified creators get 0% commission
   };
   
-  // Default to tier 4 (lowest) if tier is not set
-  const tierKey = tier && tier >= 1 && tier <= 4 ? tier : 4;
-  return commissionRates[tierKey];
+  // CRITICAL: Do NOT default to tier 4 - tier 0 or null means unqualified
+  // Only return commission for valid tiers (1-4)
+  if (tier && tier >= 1 && tier <= 4) {
+    return commissionRates[tier];
+  }
+  return '0%'; // Unqualified or invalid tier
 }
 export const DEVELOPER_PAYOUT_RATE = 0.80 // 80%
 

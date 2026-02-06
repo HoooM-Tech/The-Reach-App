@@ -1,4 +1,4 @@
-import { createAdminSupabaseClient } from '@/lib/supabase/client';
+import { createAdminSupabaseClient } from '@/lib/supabase/server';
 
 export interface WalletActivityLog {
   wallet_id: string;

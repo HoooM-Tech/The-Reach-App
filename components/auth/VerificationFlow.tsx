@@ -4,7 +4,6 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { User, UserRole } from '../../types';
-import { useUser } from '../../contexts/UserContext';
 
 enum VerifyStep {
   PHONE,
@@ -19,7 +18,6 @@ const VerificationFlow: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const router = useRouter();
-  const { setUser } = useUser();
   const role = (localStorage.getItem('temp_role') as UserRole) || 'buyer';
 
   const handleNext = () => {
@@ -162,7 +160,7 @@ const VerificationFlow: React.FC = () => {
            <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>
         </div>
         <h2 className="text-3xl font-bold text-white text-center">Verification in progress</h2>
-        <p className="text-blue-100 text-center mt-4 mb-12 max-w-[280px]">
+        <p className="text-blue-100 text-center mt-4 mb-12 max-w-xs break-words">
           Your company documents are being reviewed. We&apos;ll update your status as soon as possible.
         </p>
         <button 

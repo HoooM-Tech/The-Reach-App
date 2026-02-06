@@ -1,24 +1,20 @@
+// app/api/auth/logout/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase/client'
 import { handleError } from '@/lib/utils/errors'
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = createServerSupabaseClient()
-
-    // Sign out from Supabase Auth
-    const { error } = await supabase.auth.signOut()
-
-    if (error) {
-      throw new Error(error.message)
-    }
-
-    return NextResponse.json({
+    // Create response
+    const response = NextResponse.json({
       message: 'Logout successful',
     })
+
+    // Supabase SSR handles cookie clearing automatically
+    // No manual cookie deletion needed
+
+    return response
   } catch (error) {
     const { error: errorMessage, statusCode } = handleError(error)
     return NextResponse.json({ error: errorMessage }, { status: statusCode })
   }
 }
-

@@ -83,7 +83,7 @@ export default function SelectBankPage() {
 
       {/* Main Content */}
       <div className="px-6 pb-32">
-        <div className="bg-white rounded-3xl p-6 shadow-sm min-h-[200px]">
+        <div className="bg-white rounded-3xl p-6 shadow-sm min-h-[20vh] sm:min-h-48">
           {bankAccounts.length === 0 ? (
             <>
               {/* Empty State Placeholder */}

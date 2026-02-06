@@ -37,7 +37,7 @@ const Landing: React.FC = () => {
   }, []);
 
   return (
-    <div className="flex flex-col h-screen bg-reach-light overflow-hidden">
+    <div className="flex flex-col min-h-screen bg-reach-light overflow-x-hidden">
       {user && (
         <div className="absolute top-4 right-4 z-50">
           <button
@@ -51,33 +51,33 @@ const Landing: React.FC = () => {
           </button>
         </div>
       )}
-      <div className="flex-1 relative flex items-center justify-center p-6 mt-12">
-         <div className="w-full h-full max-h-[450px] relative">
+      <div className="flex-1 relative flex items-center justify-center p-4 sm:p-6 mt-12">
+         <div className="w-full max-w-md sm:max-w-lg h-full max-h-[60vh] sm:max-h-[70vh] relative mx-auto">
             {/* Visual representation of image blobs from design */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-48 rounded-[40px] rotate-12 bg-orange-200 overflow-hidden border-4 border-white shadow-lg">
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 rounded-[40px] rotate-12 bg-orange-200 overflow-hidden border-4 border-white shadow-lg">
                 <img src="https://picsum.photos/200/200?random=11" alt="promo" className="w-full h-full object-cover" />
             </div>
-            <div className="absolute top-1/3 right-4 w-40 h-40 rounded-[40px] -rotate-6 bg-blue-200 overflow-hidden border-4 border-white shadow-lg z-10">
+            <div className="absolute top-1/3 right-4 w-28 h-28 sm:w-36 sm:h-36 md:w-40 md:h-40 rounded-[40px] -rotate-6 bg-blue-200 overflow-hidden border-4 border-white shadow-lg z-10">
                 <img src="https://picsum.photos/200/200?random=12" alt="promo" className="w-full h-full object-cover" />
             </div>
-            <div className="absolute bottom-4 left-4 w-44 h-44 rounded-[40px] rotate-6 bg-red-200 overflow-hidden border-4 border-white shadow-lg z-20">
+            <div className="absolute bottom-4 left-4 w-32 h-32 sm:w-36 sm:h-36 md:w-44 md:h-44 rounded-[40px] rotate-6 bg-red-200 overflow-hidden border-4 border-white shadow-lg z-20">
                 <img src="https://picsum.photos/200/200?random=13" alt="promo" className="w-full h-full object-cover" />
             </div>
          </div>
       </div>
 
-      <div className="bg-white rounded-t-[40px] p-8 pb-12 flex flex-col items-center shadow-2xl">
+      <div className="bg-white rounded-t-[32px] sm:rounded-t-[40px] p-6 sm:p-8 pb-10 sm:pb-12 flex flex-col items-center shadow-2xl">
         <div className="flex gap-2 mb-6">
           {slides.map((_, i) => (
             <div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${currentSlide === i ? 'w-8 bg-reach-red' : 'w-2 bg-gray-300'}`} />
           ))}
         </div>
 
-        <h1 className="text-3xl font-bold text-center text-reach-navy mb-4 leading-tight">
+        <h1 className="text-2xl sm:text-3xl font-bold text-center text-reach-navy mb-4 leading-tight">
           {slides[currentSlide].title}
         </h1>
         
-        <p className="text-gray-500 text-center mb-10 px-4">
+        <p className="text-gray-500 text-center mb-8 sm:mb-10 px-2 sm:px-4 text-sm sm:text-base">
           {slides[currentSlide].subtitle}
         </p>
 
@@ -114,7 +114,7 @@ const Landing: React.FC = () => {
           </button>
         </div>
         
-        <p className="mt-6 text-sm text-gray-400">
+        <p className="mt-6 text-xs sm:text-sm text-gray-400">
           Already have an account? <span className="text-reach-navy font-bold cursor-pointer" onClick={() => router.push('/login')}>Sign in</span>
         </p>
       </div>

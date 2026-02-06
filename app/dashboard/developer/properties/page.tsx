@@ -187,7 +187,7 @@ function PropertyCard({ property, onEdit, onView }: PropertyCardProps) {
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    className="absolute right-0 top-10 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-20 min-w-[120px]"
+                    className="absolute right-0 top-10 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-20 min-w-max max-w-screen-sm"
                   >
                     <button
                       onClick={() => { onView(); setShowMenu(false); }}

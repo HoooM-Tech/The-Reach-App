@@ -1,216 +1,106 @@
-'use client';
+// contexts/UserContext.tsx
+'use client'
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { User, LoginResponse } from '../types';
-import { 
-  authApi, 
-  getStoredUser, 
-  setStoredUser, 
-  clearTokens, 
-  getAccessToken,
-  setTokens,
-  ApiError 
-} from '../lib/api/client';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { User, LoginResponse } from '../types'
 
 interface UserContextType {
-  user: User | null;
-  isLoading: boolean;
-  isAuthenticated: boolean;
-  error: string | null;
-  login: (email: string, password: string) => Promise<LoginResponse>;
-  logout: () => Promise<void>;
-  setUser: (user: User | null) => void;
-  refreshUser: () => Promise<void>;
-  clearError: () => void;
+  user: User | null
+  isLoading: boolean
+  isAuthenticated: boolean
+  error: string | null
+  login: (email: string, password: string) => Promise<LoginResponse>
+  logout: () => Promise<void>
+  clearError: () => void
 }
 
-const UserContext = createContext<UserContextType | undefined>(undefined);
+const UserContext = createContext<UserContextType | undefined>(undefined)
 
-export function UserProvider({ children }: { children: ReactNode }) {
-  const [user, setUserState] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export function UserProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  // Normalize user data from API response to handle field name differences
-  const normalizeUser = (userData: any): User => {
-    return {
-      ...userData,
-      // Add convenience aliases for frontend components
-      name: userData.full_name || userData.name,
-      isVerified: userData.kyc_status === 'verified',
-    };
-  };
-
-  // Initialize user from stored data on mount
+  // Initialize user from /api/auth/me
   useEffect(() => {
-    const initializeAuth = async () => {
+    const initAuth = async () => {
       try {
-        const storedUser = getStoredUser();
-        const token = getAccessToken();
+        const response = await fetch('/api/auth/me', {
+          credentials: 'include',
+        })
 
-        if (storedUser && token) {
-          // Set stored user immediately for fast UI
-          setUserState(normalizeUser(storedUser));
-          
-          // Verify token is still valid by fetching current user
-          try {
-            const response = await authApi.getCurrentUser();
-            if (response.user) {
-              const normalizedUser = normalizeUser(response.user);
-              setUserState(normalizedUser);
-              setStoredUser(normalizedUser);
-            }
-          } catch (err) {
-            // Token invalid or expired, clear auth state
-            const isExpired = err instanceof ApiError && err.statusCode === 401;
-            if (isExpired) {
-              setError('Session expired. Please log in again.');
-            }
-            console.warn('Token validation failed, clearing auth:', err);
-            clearTokens();
-            setUserState(null);
+        if (response.ok) {
+          const data = await response.json()
+          if (data.user) {
+            setUser(data.user)
           }
         }
       } catch (err) {
-        console.error('Auth initialization error:', err);
+        console.error('Auth init error:', err)
       } finally {
-        setIsLoading(false);
+        setIsLoading(false)
       }
-    };
+    }
 
-    initializeAuth();
-  }, []);
+    initAuth()
+  }, [])
 
-  // Listen for session expiry events from API client
-  useEffect(() => {
-    const handleSessionExpired = (event: CustomEvent) => {
-      const message = event.detail?.message || 'Session expired. Please log in again.';
-      setError(message);
-      setUserState(null);
-      clearTokens();
-    };
-
-    window.addEventListener('session-expired', handleSessionExpired as EventListener);
-    
-    return () => {
-      window.removeEventListener('session-expired', handleSessionExpired as EventListener);
-    };
-  }, []);
-
-  // Login function
   const login = useCallback(async (email: string, password: string): Promise<LoginResponse> => {
-    setIsLoading(true);
-    setError(null);
+    setError(null)
     
-    try {
-      const response = await authApi.login(email, password);
-      
-      if (response.user) {
-        const normalizedUser = normalizeUser(response.user);
-        setUserState(normalizedUser);
-        setStoredUser(normalizedUser);
-      }
-      
-      return response as LoginResponse;
-    } catch (err) {
-      const message = err instanceof ApiError ? err.message : 'Login failed. Please try again.';
-      setError(message);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+    const response = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+      credentials: 'include',
+    })
 
-  // Logout function
+    const data = await response.json()
+
+    if (!response.ok) {
+      const message = data.error || 'Login failed'
+      setError(message)
+      throw new Error(message)
+    }
+
+    setUser(data.user)
+    return data as LoginResponse
+  }, [])
+
   const logout = useCallback(async () => {
-    setIsLoading(true);
     try {
-      await authApi.logout();
-    } catch (err) {
-      console.error('Logout error:', err);
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      })
     } finally {
-      setUserState(null);
-      clearTokens();
-      // Also clear legacy storage keys
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('user');
-        localStorage.removeItem('mockRole');
-        localStorage.removeItem('property-storage');
-        localStorage.removeItem('temp_role');
-      }
-      setIsLoading(false);
+      setUser(null)
     }
-  }, []);
+  }, [])
 
-  // Set user function (for external updates like registration)
-  const setUser = useCallback((newUser: User | null) => {
-    if (newUser) {
-      const normalizedUser = normalizeUser(newUser);
-      setUserState(normalizedUser);
-      setStoredUser(normalizedUser);
-    } else {
-      setUserState(null);
-      clearTokens();
-    }
-  }, []);
-
-  // Refresh user data from API
-  const refreshUser = useCallback(async () => {
-    if (!getAccessToken()) return;
-    
-    try {
-      const response = await authApi.getCurrentUser();
-      if (response.user) {
-        const normalizedUser = normalizeUser(response.user);
-        setUserState(normalizedUser);
-        setStoredUser(normalizedUser);
-      }
-    } catch (err) {
-      // If session expired, clear auth state
-      if (err instanceof ApiError && err.statusCode === 401) {
-        setError('Session expired. Please log in again.');
-        setUserState(null);
-        clearTokens();
-      } else {
-        console.error('Failed to refresh user:', err);
-      }
-    }
-  }, []);
-
-  // Clear error
   const clearError = useCallback(() => {
-    setError(null);
-  }, []);
-
-  const value: UserContextType = {
-    user,
-    isLoading,
-    isAuthenticated: !!user && !!getAccessToken(),
-    error,
-    login,
-    logout,
-    setUser,
-    refreshUser,
-    clearError,
-  };
+    setError(null)
+  }, [])
 
   return (
-    <UserContext.Provider value={value}>
+    <UserContext.Provider value={{
+      user,
+      isLoading,
+      isAuthenticated: !!user,
+      error,
+      login,
+      logout,
+      clearError,
+    }}>
       {children}
     </UserContext.Provider>
-  );
+  )
 }
 
 export function useUser() {
-  const context = useContext(UserContext);
-  if (context === undefined) {
-    throw new Error('useUser must be used within a UserProvider');
+  const context = useContext(UserContext)
+  if (!context) {
+    throw new Error('useUser must be used within UserProvider')
   }
-  return context;
-}
-
-// Hook for authentication status only (lighter weight)
-export function useAuth() {
-  const { user, isLoading, isAuthenticated, login, logout, error, clearError } = useUser();
-  return { user, isLoading, isAuthenticated, login, logout, error, clearError };
+  return context
 }

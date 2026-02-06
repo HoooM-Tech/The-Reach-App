@@ -169,12 +169,16 @@ export default function DeveloperLeadDetailPage() {
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
+          { /*
           <button
+            aria-label="Go back to leads"
+            title="Go back to leads"
             onClick={() => router.push('/dashboard/developer/leads')}
             className="p-2 rounded-full hover:bg-gray-100 transition-colors"
           >
             <ArrowLeft size={20} />
           </button>
+          */}
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Lead Details</h1>
             <p className="text-sm text-gray-500 mt-1">

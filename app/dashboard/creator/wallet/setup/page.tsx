@@ -24,7 +24,7 @@ export default function WalletSetupPage() {
       try {
         const token = getAccessToken();
         if (!token) {
-          router.push('/auth/login');
+          // Middleware will handle redirect if not authenticated
           return;
         }
 
@@ -215,8 +215,9 @@ export default function WalletSetupPage() {
   return (
     <div className="min-h-screen bg-[#FFF5F5]">
       {/* Header */}
-      <header className="bg-white px-4 py-4">
+      <header className="px-4 py-4">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
+          {/*
           <button
             title="Back"
             aria-label="Back"
@@ -225,10 +226,13 @@ export default function WalletSetupPage() {
           >
             <ChevronLeft size={24} className="text-gray-900" />
           </button>
+          */}
           <h1 className="text-xl font-semibold text-gray-900">Set up wallet</h1>
+          {/*
           <button aria-label="Notifications" title="Notifications" className="w-12 h-12 rounded-full bg-white flex items-center justify-center">
             <Bell size={20} className="text-gray-600" />
           </button>
+          */}
         </div>
       </header>
 

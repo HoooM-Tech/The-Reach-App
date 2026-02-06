@@ -102,7 +102,7 @@ function CreatorLayoutContent({ children }: { children: React.ReactNode }) {
     name: user.full_name || user.email || 'User',
     companyName: profileData?.company_name || (user as any)?.company_name || (user as any)?.companyName || 'Creator',
     avatarUrl: profileData?.avatar_url || (user as any)?.avatar_url || (user as any)?.avatarUrl || undefined,
-    tier: user.tier || 1,
+    tier: user.tier ?? 0,
   } : undefined;
 
   // Get navigation items with badge counts

@@ -4,7 +4,7 @@
  * Centralized functions for checking and managing promotion states
  */
 
-import { createAdminSupabaseClient } from '@/lib/supabase/client';
+import { createAdminSupabaseClient } from '@/lib/supabase/server';
 
 export type PromotionStatus = 'active' | 'paused' | 'stopped' | 'expired';
 

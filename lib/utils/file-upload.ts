@@ -1,4 +1,4 @@
-import { createAdminSupabaseClient } from '@/lib/supabase/client'
+import { createAdminSupabaseClient } from '@/lib/supabase/server'
 
 const ALLOWED_FILE_TYPES = {
   image: ['image/jpeg', 'image/png', 'image/webp'],

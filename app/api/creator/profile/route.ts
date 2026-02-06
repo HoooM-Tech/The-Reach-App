@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminSupabaseClient } from '@/lib/supabase/client';
+import { createAdminSupabaseClient } from '@/lib/supabase/server';
 import { requireCreator } from '@/lib/utils/auth';
 import { handleError } from '@/lib/utils/errors';
 
@@ -101,7 +101,7 @@ export async function GET(req: NextRequest) {
         phone: user.phone,
         full_name: user.full_name,
         avatar_url: user.avatar_url,
-        tier: user.tier || 1,
+        tier: user.tier ?? 0,
         created_at: user.created_at,
       },
       stats: {

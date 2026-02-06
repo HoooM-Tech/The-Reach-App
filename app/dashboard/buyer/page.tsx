@@ -1,55 +1,223 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useUser } from '@/contexts/UserContext';
-import { buyerApi, BuyerDashboardData, ApiError } from '@/lib/api/client';
-import { formatInspectionDate, formatInspectionTimeOnly } from '@/lib/utils/time';
+import Image from 'next/image';
 import { 
-  Building2, 
-  Calendar, 
-  Clock, 
-  FileText,
-  Eye,
+  Search, 
+  SlidersHorizontal, 
+  MapPin, 
+  Star, 
+  MoreHorizontal,
+  Building2,
+  Loader2,
   Heart,
-  ArrowRight,
-  RefreshCw,
-  AlertCircle,
-  Search,
-  MapPin,
-  CheckCircle,
-  XCircle
+  Share2,
+  Flag
 } from 'lucide-react';
+import { SearchFilterModal } from '@/components/buyer/SearchFilterModal';
 
 // ===========================================
-// Stat Card Component
+// Types
 // ===========================================
 
-interface StatCardProps {
-  label: string;
-  value: string | number;
-  icon: React.ReactNode;
-  color?: 'red' | 'green' | 'orange' | 'blue';
+interface Property {
+  id: string;
+  title: string;
+  asking_price: number;
+  location?: {
+    address?: string;
+    city?: string;
+    state?: string;
+  };
+  property_type?: string;
+  bedrooms?: number;
+  media?: Array<{ id: string; url: string; type: string }>;
+  rating?: number;
+  reviewCount?: number;
 }
 
-function StatCard({ label, value, icon, color = 'red' }: StatCardProps) {
-  const colorClasses = {
-    red: 'bg-[#E54D4D] text-white',
-    green: 'bg-emerald-500 text-white',
-    orange: 'bg-orange-500 text-white',
-    blue: 'bg-blue-500 text-white',
+interface FilterState {
+  location: string;
+  propertyType: string;
+  priceMin: number;
+  priceMax: number;
+}
+
+// ===========================================
+// Property Options Menu
+// ===========================================
+
+function PropertyOptionsMenu({
+  isOpen,
+  onClose,
+  onSave,
+  onShare,
+  onReport,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: () => void;
+  onShare: () => void;
+  onReport: () => void;
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <>
+      <div className="fixed inset-0 z-40" onClick={onClose} />
+      <div className="absolute top-full right-0 mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-100 z-50 overflow-hidden animate-scaleIn">
+        <button
+          onClick={() => { onSave(); onClose(); }}
+          className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+        >
+          <Heart size={18} className="text-gray-500" />
+          <span className="text-gray-700">Save property</span>
+        </button>
+        <button
+          onClick={() => { onShare(); onClose(); }}
+          className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+        >
+          <Share2 size={18} className="text-gray-500" />
+          <span className="text-gray-700">Share</span>
+        </button>
+        <button
+          onClick={() => { onReport(); onClose(); }}
+          className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors text-red-600"
+        >
+          <Flag size={18} />
+          <span>Report</span>
+        </button>
+      </div>
+    </>
+  );
+}
+
+// ===========================================
+// Property Card Component
+// ===========================================
+
+function BuyerPropertyCard({ 
+  property, 
+  onClick,
+}: { 
+  property: Property;
+  onClick: () => void;
+}) {
+  const [showOptions, setShowOptions] = useState(false);
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('en-NG', {
+      style: 'currency',
+      currency: 'NGN',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(price);
+  };
+
+  const primaryImage = property.media?.find(m => m.type === 'IMAGE' || m.type === 'image') || property.media?.[0];
+  const locationText = property.location 
+    ? [property.location.address, property.location.city, property.location.state].filter(Boolean).join(', ')
+    : 'Location not available';
+
+  const rating = property.rating || 4.8;
+  const reviewCount = property.reviewCount || 20;
+
+  const handleSave = () => {
+    // TODO: Implement save functionality
+    console.log('Save property:', property.id);
+  };
+
+  const handleShare = async () => {
+    const url = `${window.location.origin}/property/${property.id}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: property.title,
+          text: `Check out this property: ${property.title}`,
+          url,
+        });
+      } catch (error) {
+        console.log('Share cancelled');
+      }
+    } else {
+      navigator.clipboard.writeText(url);
+      alert('Link copied to clipboard!');
+    }
+  };
+
+  const handleReport = () => {
+    // TODO: Implement report functionality
+    console.log('Report property:', property.id);
   };
 
   return (
-    <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-sm text-gray-500 mb-1">{label}</p>
-          <p className="text-2xl font-bold text-gray-900">{value}</p>
+    <div 
+      className="bg-white rounded-2xl overflow-hidden shadow-sm cursor-pointer transition-transform active:scale-[0.99]"
+      onClick={onClick}
+    >
+      {/* Property Image */}
+      <div className="relative aspect-[4/3]">
+        {primaryImage ? (
+          <Image
+            src={primaryImage.url}
+            alt={property.title}
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          />
+        ) : (
+          <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+            <Building2 size={48} className="text-gray-300" />
+          </div>
+        )}
+        
+        {/* Options Menu Button */}
+        <div className="absolute top-3 right-3">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowOptions(!showOptions);
+            }}
+            className="w-9 h-9 bg-white rounded-full flex items-center justify-center shadow-md hover:bg-gray-50"
+            aria-label="More options"
+          >
+            <MoreHorizontal size={18} className="text-gray-600" />
+          </button>
+          <PropertyOptionsMenu
+            isOpen={showOptions}
+            onClose={() => setShowOptions(false)}
+            onSave={handleSave}
+            onShare={handleShare}
+            onReport={handleReport}
+          />
         </div>
-        <div className={`p-3 rounded-xl ${colorClasses[color]}`}>
-          {icon}
+      </div>
+
+      {/* Property Details */}
+      <div className="p-4">
+        {/* Title and Rating */}
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <h3 className="font-semibold text-gray-900 leading-tight line-clamp-1">
+            {property.title}
+          </h3>
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <Star size={14} className="text-amber-400 fill-amber-400" />
+            <span className="text-sm text-gray-600">{rating}({reviewCount})</span>
+          </div>
         </div>
+
+        {/* Location */}
+        <div className="flex items-center gap-1.5 text-[#E54D4D] mb-2">
+          <MapPin size={14} />
+          <p className="text-sm truncate">{locationText}</p>
+        </div>
+
+        {/* Price */}
+        <p className="font-bold text-lg text-gray-900">
+          {formatPrice(property.asking_price || 0)}
+        </p>
       </div>
     </div>
   );
@@ -59,347 +227,236 @@ function StatCard({ label, value, icon, color = 'red' }: StatCardProps) {
 // Loading Skeleton
 // ===========================================
 
-function DashboardSkeleton() {
+function PropertySkeleton() {
   return (
-    <div className="p-6 space-y-6 animate-pulse">
-      <div className="h-8 bg-gray-200 rounded w-48" />
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="h-32 bg-gray-200 rounded-2xl" />
-        ))}
-      </div>
-      <div className="h-64 bg-gray-200 rounded-2xl" />
-    </div>
-  );
-}
-
-// ===========================================
-// Error State
-// ===========================================
-
-function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
-  return (
-    <div className="p-6">
-      <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
-        <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Failed to load dashboard</h3>
-        <p className="text-gray-600 mb-4">{message}</p>
-        <button
-          onClick={onRetry}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-[#E54D4D] text-white rounded-lg hover:bg-[#E54D4D]/90"
-        >
-          <RefreshCw size={16} />
-          Try Again
-        </button>
+    <div className="bg-white rounded-2xl overflow-hidden animate-pulse">
+      <div className="aspect-[4/3] bg-gray-200" />
+      <div className="p-4 space-y-3">
+        <div className="h-5 bg-gray-200 rounded w-3/4" />
+        <div className="h-4 bg-gray-200 rounded w-1/2" />
+        <div className="h-6 bg-gray-200 rounded w-2/3" />
       </div>
     </div>
   );
 }
 
 // ===========================================
-// Property Card Component
-// ===========================================
-
-interface PropertyCardProps {
-  property: any;
-  onClick: () => void;
-}
-
-function PropertyCard({ property, onClick }: PropertyCardProps) {
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-NG', {
-      style: 'currency',
-      currency: 'NGN',
-      minimumFractionDigits: 0,
-    }).format(price);
-  };
-
-  return (
-    <button
-      onClick={onClick}
-      className="w-full flex items-center gap-4 p-4 bg-gray-50 rounded-xl text-left hover:bg-gray-100 transition-colors"
-    >
-      <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
-        <Building2 className="text-gray-400" size={24} />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="font-medium text-gray-900 truncate">{property.title}</p>
-        <div className="flex items-center gap-1 text-sm text-gray-500 mt-1">
-          <MapPin size={14} />
-          <span className="truncate">{property.location?.city || 'Location unavailable'}</span>
-        </div>
-        <p className="text-sm font-semibold text-[#E54D4D] mt-1">
-          {formatPrice(property.asking_price || 0)}
-        </p>
-      </div>
-    </button>
-  );
-}
-
-// ===========================================
-// Main Dashboard Component
+// Main Buyer Dashboard Page
 // ===========================================
 
 export default function BuyerDashboardPage() {
   const router = useRouter();
   const { user } = useUser();
-  const [data, setData] = useState<BuyerDashboardData | null>(null);
+  const searchParams = useSearchParams();
+  
+  const [properties, setProperties] = useState<Property[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [filters, setFilters] = useState<FilterState>({
+    location: searchParams.get('location') || '',
+    propertyType: searchParams.get('property_type') || '',
+    priceMin: Number(searchParams.get('min_price')) || 0,
+    priceMax: Number(searchParams.get('max_price')) || 0,
+  });
+  
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
-  // Fetch dashboard data from real API
-  const fetchDashboardData = async () => {
-    if (!user?.id) return;
-    
-    setIsLoading(true);
-    setError(null);
-    
+  // Fetch properties from API
+  const fetchProperties = useCallback(async (pageNum: number, reset: boolean = false) => {
     try {
-      const dashboardData = await buyerApi.getDashboard(user.id);
-      setData(dashboardData);
-    } catch (err) {
-      const message = err instanceof ApiError ? err.message : 'Failed to load dashboard data';
-      setError(message);
-      console.error('Dashboard fetch error:', err);
+      if (reset) {
+        setIsLoading(true);
+      } else {
+        setIsLoadingMore(true);
+      }
+
+      const params = new URLSearchParams();
+      params.set('page', pageNum.toString());
+      params.set('limit', '10');
+      
+      if (searchQuery) params.set('location', searchQuery);
+      if (filters.location) params.set('location', filters.location);
+      if (filters.propertyType) params.set('property_type', filters.propertyType);
+      if (filters.priceMin > 0) params.set('min_price', filters.priceMin.toString());
+      if (filters.priceMax > 0) params.set('max_price', filters.priceMax.toString());
+
+      const response = await fetch(`/api/properties/browse?${params.toString()}`, {
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch properties');
+      }
+
+      const data = await response.json();
+      
+      if (reset) {
+        setProperties(data.properties || []);
+      } else {
+        setProperties(prev => [...prev, ...(data.properties || [])]);
+      }
+      
+      setHasMore(data.pagination?.page < data.pagination?.totalPages);
+      setPage(pageNum);
+    } catch (error) {
+      console.error('Error fetching properties:', error);
     } finally {
       setIsLoading(false);
+      setIsLoadingMore(false);
     }
-  };
+  }, [searchQuery, filters]);
 
+  // Initial fetch
   useEffect(() => {
-    fetchDashboardData();
-  }, [user?.id]);
+    fetchProperties(1, true);
+  }, [fetchProperties]);
 
-  // Get inspection status badge
-  const getStatusBadge = (status: string) => {
-    const statusMap: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-      'pending': { label: 'Pending', color: 'bg-orange-100 text-orange-700', icon: <Clock size={12} /> },
-      'confirmed': { label: 'Confirmed', color: 'bg-blue-100 text-blue-700', icon: <CheckCircle size={12} /> },
-      'completed': { label: 'Completed', color: 'bg-green-100 text-green-700', icon: <CheckCircle size={12} /> },
-      'cancelled': { label: 'Cancelled', color: 'bg-red-100 text-red-700', icon: <XCircle size={12} /> },
-    };
-    return statusMap[status] || statusMap['pending'];
+  // Setup infinite scroll observer
+  useEffect(() => {
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+    }
+
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !isLoadingMore && !isLoading) {
+          fetchProperties(page + 1, false);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (loadMoreRef.current) {
+      observerRef.current.observe(loadMoreRef.current);
+    }
+
+    return () => observerRef.current?.disconnect();
+  }, [hasMore, isLoadingMore, isLoading, page, fetchProperties]);
+
+  // Handle search
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    fetchProperties(1, true);
   };
 
-  // Loading state
-  if (isLoading) {
-    return <DashboardSkeleton />;
-  }
+  // Handle filter apply
+  const handleApplyFilters = (newFilters: FilterState) => {
+    setFilters(newFilters);
+    setIsFilterOpen(false);
+    setTimeout(() => fetchProperties(1, true), 100);
+  };
 
-  // Error state
-  if (error) {
-    return <ErrorState message={error} onRetry={fetchDashboardData} />;
-  }
-
-  const upcomingInspections = data?.inspections.upcoming || [];
-  const viewedProperties = data?.viewed_properties || [];
+  // Handle property click
+  const handlePropertyClick = (propertyId: string) => {
+    router.push(`/dashboard/buyer/properties/${propertyId}`);
+  };
 
   return (
-    <div className="p-6 pb-24 lg:pb-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-500 text-sm mt-1">
-            Welcome back, {user?.full_name?.split(' ')[0] || 'there'}
-          </p>
-        </div>
-        <button
-          onClick={() => router.push('/properties')}
-          className="hidden lg:flex items-center gap-2 px-4 py-2 bg-[#E54D4D] text-white rounded-xl hover:bg-[#E54D4D]/90 transition-colors"
-        >
-          <Search size={18} />
-          Find Properties
-        </button>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          label="Properties Viewed"
-          value={viewedProperties.length}
-          icon={<Eye size={20} />}
-          color="red"
-        />
-        <StatCard
-          label="Upcoming Inspections"
-          value={upcomingInspections.length}
-          icon={<Calendar size={20} />}
-          color="blue"
-        />
-        <StatCard
-          label="Active Transactions"
-          value={data?.payments.active_transactions.length || 0}
-          icon={<FileText size={20} />}
-          color="orange"
-        />
-        <StatCard
-          label="Pending Handovers"
-          value={data?.handovers.pending.length || 0}
-          icon={<Building2 size={20} />}
-          color="green"
-        />
-      </div>
-
-      {/* Quick Actions */}
-      <div className="bg-white rounded-2xl p-6 border border-gray-100">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-        <div className="flex flex-wrap gap-3">
-          <button
-            onClick={() => router.push('/properties')}
-            className="flex items-center gap-2 px-4 py-2.5 bg-[#E54D4D] text-white rounded-xl hover:bg-[#E54D4D]/90 transition-colors"
-          >
-            <Search size={18} />
-            Browse Properties
-          </button>
-          <button
-            onClick={() => router.push('/dashboard/buyer/inspections')}
-            className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors"
-          >
-            <Calendar size={18} />
-            View Inspections
-          </button>
-          <button
-            onClick={() => router.push('/dashboard/buyer/saved')}
-            className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors"
-          >
-            <Heart size={18} />
-            Saved Properties
-          </button>
-        </div>
-      </div>
-
-      {/* Two Column Layout */}
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* Upcoming Inspections */}
-        <div className="bg-white rounded-2xl p-6 border border-gray-100">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Upcoming Inspections</h2>
+    <div className="min-h-screen bg-reach-light">
+      {/* Search Bar Section */}
+      <div className="bg-reach-light px-4 sm:px-6 lg:px-8 py-3 mt-5 ">
+        <div className="max-w-7xl mx-auto">
+          <form onSubmit={handleSearch} className="flex items-center gap-3">
+            <div className="flex-1 relative">
+              <Search 
+                size={20} 
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" 
+              />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by Location.."
+                className="w-full bg-white border border-gray-100 rounded-xl py-3 sm:py-3.5 pl-12 pr-4 outline-none focus:ring-2 focus:ring-[#E54D4D]/20 focus:border-[#E54D4D] text-gray-900 placeholder:text-gray-400 text-sm sm:text-base"
+              />
+            </div>
             <button
-              onClick={() => router.push('/dashboard/buyer/inspections')}
-              className="text-sm text-[#E54D4D] font-medium hover:underline flex items-center gap-1"
+              type="button"
+              onClick={() => setIsFilterOpen(true)}
+              className="p-3 sm:p-3.5 bg-white border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors flex-shrink-0"
+              aria-label="Filter"
             >
-              View All <ArrowRight size={14} />
+              <SlidersHorizontal size={20} className="text-gray-600" />
+            </button>
+          </form>
+        </div>
+      </div>
+
+      {/* Properties Feed */}
+      <div className="px-4 sm:px-6 lg:px-8 pb-6">
+        <div className="max-w-7xl mx-auto">
+        {isLoading ? (
+          // Loading skeletons - responsive grid
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <PropertySkeleton key={i} />
+            ))}
+          </div>
+        ) : properties.length === 0 ? (
+          // Empty state
+          <div className="text-center py-12 sm:py-16">
+            <Building2 size={48} className="mx-auto text-gray-300 mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">No properties found</h3>
+            <p className="text-gray-500 mb-4 text-sm sm:text-base">Try adjusting your search or filters</p>
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                setFilters({
+                  location: '',
+                  propertyType: '',
+                  priceMin: 0,
+                  priceMax: 0,
+                });
+                fetchProperties(1, true);
+              }}
+              className="px-4 py-2 bg-[#E54D4D] text-white rounded-lg hover:bg-[#d43d3d] transition-colors"
+            >
+              Clear filters
             </button>
           </div>
-          
-          {upcomingInspections.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <Calendar className="w-10 h-10 mx-auto mb-2 opacity-50" />
-              <p>No upcoming inspections</p>
-              <p className="text-sm">Browse properties and book an inspection</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {upcomingInspections.slice(0, 3).map((inspection: any) => {
-                const statusInfo = getStatusBadge(inspection.status);
-                return (
-                  <div
-                    key={inspection.id}
-                    className="flex items-center justify-between p-4 bg-gray-50 rounded-xl"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-[#E54D4D]/10 rounded-lg flex items-center justify-center">
-                        <Calendar size={20} className="text-[#E54D4D]" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          {inspection.properties?.title || 'Property Inspection'}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {`${formatInspectionDate(inspection.slot_time)} at ${formatInspectionTimeOnly(inspection.slot_time)}`}
-                        </p>
-                      </div>
-                    </div>
-                    <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${statusInfo.color}`}>
-                      {statusInfo.icon}
-                      {statusInfo.label}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Recently Viewed Properties */}
-        <div className="bg-white rounded-2xl p-6 border border-gray-100">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Recently Viewed</h2>
-            <button
-              onClick={() => router.push('/properties')}
-              className="text-sm text-[#E54D4D] font-medium hover:underline flex items-center gap-1"
-            >
-              Browse More <ArrowRight size={14} />
-            </button>
-          </div>
-          
-          {viewedProperties.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <Building2 className="w-10 h-10 mx-auto mb-2 opacity-50" />
-              <p>No properties viewed yet</p>
-              <p className="text-sm">Start browsing to see your history</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {viewedProperties.slice(0, 3).map((property: any) => (
-                <PropertyCard
+        ) : (
+          <>
+            {/* Property Cards - responsive grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {properties.map((property) => (
+                <BuyerPropertyCard
                   key={property.id}
                   property={property}
-                  onClick={() => router.push(`/property/${property.id}`)}
+                  onClick={() => handlePropertyClick(property.id)}
                 />
               ))}
             </div>
-          )}
+
+            {/* Load more trigger */}
+            <div ref={loadMoreRef} className="h-10 flex items-center justify-center mt-4">
+              {isLoadingMore && (
+                <Loader2 size={24} className="animate-spin text-[#E54D4D]" />
+              )}
+            </div>
+
+            {/* End of list */}
+            {!hasMore && properties.length > 0 && (
+              <p className="text-center text-gray-400 py-4">
+                You&apos;ve seen all properties
+              </p>
+            )}
+          </>
+        )}
         </div>
       </div>
 
-      {/* Pending Handovers */}
-      {data?.handovers.pending && data.handovers.pending.length > 0 && (
-        <div className="bg-white rounded-2xl p-6 border border-gray-100">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Pending Handovers</h2>
-          </div>
-          <div className="space-y-3">
-            {data.handovers.pending.map((handover: any) => (
-              <div
-                key={handover.id}
-                className="flex items-center justify-between p-4 bg-emerald-50 rounded-xl"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-emerald-500 rounded-lg flex items-center justify-center">
-                    <FileText size={20} className="text-white" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900">
-                      {handover.properties?.title || 'Property Handover'}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      Status: {handover.status}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => router.push(`/dashboard/buyer/handover/${handover.id}`)}
-                  className="px-4 py-2 bg-emerald-500 text-white rounded-lg text-sm font-medium hover:bg-emerald-600"
-                >
-                  View Details
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Floating Action Button (Mobile) */}
-      <button
-        onClick={() => router.push('/properties')}
-        className="lg:hidden fixed bottom-24 right-6 w-14 h-14 bg-[#E54D4D] text-white rounded-full shadow-xl flex items-center justify-center hover:scale-105 transition-transform z-30"
-      >
-        <Search size={24} />
-      </button>
+      {/* Filter Modal */}
+      <SearchFilterModal
+        isOpen={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
+        initialFilters={filters}
+        onApply={handleApplyFilters}
+      />
     </div>
   );
 }
-
-

@@ -12,8 +12,43 @@ const ACCESS_TOKEN_KEY = 'reach_access_token';
 const REFRESH_TOKEN_KEY = 'reach_refresh_token';
 const USER_KEY = 'reach_user';
 
+/**
+ * Get access token from Supabase session
+ * Since we migrated to Supabase SSR, tokens are in cookies, not localStorage
+ * This function is kept for backward compatibility but should be replaced
+ * with direct Supabase session access in new code
+ */
+export async function getAccessTokenAsync(): Promise<string | null> {
+  if (typeof window === 'undefined') return null;
+  
+  try {
+    const { createSupabaseClient } = await import('@/lib/supabase/client');
+    const supabase = createSupabaseClient();
+    // SECURITY: Use getUser() instead of getSession() to verify token with Supabase Auth server
+    // getUser() validates the token and returns user data, preventing stale/invalid sessions
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error || !user) {
+      return null;
+    }
+    
+    // Get session after verifying user to ensure token is valid
+    // Note: This is for legacy compatibility - new code should use cookies directly
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    return session?.access_token || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * @deprecated Use getAccessTokenAsync() or get token directly from Supabase session
+ * This function only checks localStorage which is empty after Supabase SSR migration
+ */
 export function getAccessToken(): string | null {
   if (typeof window === 'undefined') return null;
+  // Legacy support - check localStorage first
   return localStorage.getItem(ACCESS_TOKEN_KEY);
 }
 
@@ -143,7 +178,7 @@ async function fetchWithAuth<T>(
     }
 
     if (!response.ok) {
-      // Handle session expiry (401) - automatically logout user
+      // Handle session expiry (401) - dispatch event but let middleware handle redirect
       if (response.status === 401) {
         // Clear tokens immediately
         clearTokens();
@@ -154,14 +189,9 @@ async function fetchWithAuth<T>(
             detail: { message: 'Session expired. Please log in again.' }
           }));
           
-          // Redirect to login page if not already there
-          const currentPath = window.location.pathname;
-          if (!currentPath.startsWith('/login') && !currentPath.startsWith('/register')) {
-            // Use setTimeout to avoid navigation during render
-            setTimeout(() => {
-              window.location.href = '/login?expired=true';
-            }, 100);
-          }
+          // DO NOT redirect here - middleware will handle redirects
+          // Redirecting here causes loops when middleware also redirects
+          // The next navigation will trigger middleware which will redirect to /login
         }
       }
       
@@ -344,19 +374,38 @@ export interface WalletData {
 
 export const authApi = {
   async login(email: string, password: string): Promise<LoginResponse> {
-    const response = await fetchWithAuth<LoginResponse>('/api/auth/login', {
+    // Use fetch directly (not fetchWithAuth) since we don't have a token yet
+    const baseUrl = getApiBaseUrl();
+    const normalizedEndpoint = normalizeEndpoint('/api/auth/login');
+    const fullUrl = `${baseUrl}${normalizedEndpoint}`;
+    
+    const response = await fetch(fullUrl, {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({ email, password }),
+      credentials: 'include', // CRITICAL: Include cookies in request/response
     });
 
-    if (response.session) {
-      setTokens(response.session.access_token, response.session.refresh_token);
-    }
-    if (response.user) {
-      setStoredUser(response.user);
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Login failed' }));
+      throw new ApiError(
+        errorData.error || 'Login failed',
+        response.status,
+        errorData
+      );
     }
 
-    return response;
+    const data = await response.json() as LoginResponse;
+
+    // Store user data in localStorage for client-side access
+    // But DO NOT store tokens - cookies are used for auth
+    if (data.user) {
+      setStoredUser(data.user);
+    }
+
+    return data;
   },
 
   async signupDeveloper(data: {
@@ -657,15 +706,80 @@ export const buyerApi = {
     return fetchWithAuth(`/api/dashboard/buyer/${buyerId}`);
   },
 
-  /** Browse verified properties */
-  async browseProperties(filters?: Record<string, string>): Promise<{ properties: Property[] }> {
-    const params = new URLSearchParams(filters);
+  /** Browse verified properties with filters and pagination */
+  async browseProperties(filters?: {
+    page?: number;
+    limit?: number;
+    location?: string;
+    property_type?: string;
+    min_price?: number;
+    max_price?: number;
+  }): Promise<{
+    properties: Property[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+  }> {
+    const params = new URLSearchParams();
+    if (filters?.page) params.set('page', filters.page.toString());
+    if (filters?.limit) params.set('limit', filters.limit.toString());
+    if (filters?.location) params.set('location', filters.location);
+    if (filters?.property_type) params.set('property_type', filters.property_type);
+    if (filters?.min_price) params.set('min_price', filters.min_price.toString());
+    if (filters?.max_price) params.set('max_price', filters.max_price.toString());
     return fetchWithAuth(`/api/properties/browse?${params}`);
   },
 
   /** Get property details */
   async getProperty(id: string): Promise<{ property: Property }> {
     return fetchWithAuth(`/api/properties/${id}`);
+  },
+
+  /** Get notification counts for badges */
+  async getNotificationCounts(): Promise<{
+    inspections: number;
+    handovers: number;
+    notifications: number;
+  }> {
+    return fetchWithAuth('/api/notifications/counts');
+  },
+
+  /** Get unread notification status */
+  async getUnreadStatus(): Promise<{
+    hasUnread: boolean;
+    unreadCount: number;
+  }> {
+    return fetchWithAuth('/api/notifications/unread-status');
+  },
+
+  /** Get property types for filter dropdown */
+  async getPropertyTypes(): Promise<{
+    types: Array<{ value: string; label: string }>;
+  }> {
+    return fetchWithAuth('/api/properties/types');
+  },
+
+  /** Get property count for current filters */
+  async getPropertyCount(filters?: {
+    location?: string;
+    property_type?: string;
+    min_price?: number;
+    max_price?: number;
+  }): Promise<{ count: number }> {
+    const params = new URLSearchParams();
+    if (filters?.location) params.set('location', filters.location);
+    if (filters?.property_type) params.set('property_type', filters.property_type);
+    if (filters?.min_price) params.set('min_price', filters.min_price.toString());
+    if (filters?.max_price) params.set('max_price', filters.max_price.toString());
+    return fetchWithAuth(`/api/properties/count?${params}`);
+  },
+
+  /** Search locations for autocomplete */
+  async searchLocations(query: string): Promise<{ suggestions: string[] }> {
+    return fetchWithAuth(`/api/locations/search?q=${encodeURIComponent(query)}`);
   },
 
   /** Submit a lead for a property */
@@ -683,8 +797,9 @@ export const buyerApi = {
   },
 
   /** Get available inspection slots */
-  async getInspectionSlots(propertyId: string): Promise<{ slots: any[] }> {
-    return fetchWithAuth(`/api/inspections/available-slots/${propertyId}`);
+  async getInspectionSlots(propertyId: string, date?: string): Promise<{ slots: any[]; date?: string }> {
+    const params = date ? `?date=${date}` : '';
+    return fetchWithAuth(`/api/inspections/available-slots/${propertyId}${params}`);
   },
 
   /** Book an inspection */
@@ -702,9 +817,13 @@ export const buyerApi = {
 
   /** Submit bid on property */
   async submitBid(propertyId: string, data: { amount: number; message?: string }): Promise<{ message: string }> {
-    return fetchWithAuth(`/api/properties/${propertyId}/submit-bid`, {
+    return fetchWithAuth(`/api/properties/${propertyId}/bids`, {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        property_id: propertyId,
+        bid_amount: data.amount,
+        message: data.message,
+      }),
     });
   },
 };
@@ -732,7 +851,25 @@ export const walletApi = {
 
   /** Get wallet balance */
   async getBalance(): Promise<{ availableBalance: number; lockedBalance: number; currency: string; isSetup: boolean }> {
-    return fetchWithAuth('/api/wallet/balance');
+    const response = await fetchWithAuth<any>('/api/wallet/balance');
+    
+    // API returns: { success: true, data: { available_balance, locked_balance, ... } }
+    if (response.data) {
+      return {
+        availableBalance: response.data.available_balance || 0,
+        lockedBalance: response.data.locked_balance || 0,
+        currency: response.data.currency || 'NGN',
+        isSetup: response.data.is_setup || false,
+      };
+    }
+    
+    // Fallback for legacy format
+    return {
+      availableBalance: response.availableBalance || response.available_balance || 0,
+      lockedBalance: response.lockedBalance || response.locked_balance || 0,
+      currency: response.currency || 'NGN',
+      isSetup: response.isSetup || response.is_setup || false,
+    };
   },
 
   /** Get transactions */
@@ -751,17 +888,62 @@ export const walletApi = {
     if (params?.category) queryParams.append('category', params.category);
     
     const query = queryParams.toString();
-    return fetchWithAuth(`/api/wallet/transactions${query ? `?${query}` : ''}`);
+    const response = await fetchWithAuth<any>(`/api/wallet/transactions${query ? `?${query}` : ''}`);
+    
+    // API returns: { success: true, data: { transactions: [...], pagination: {...} } }
+    // Extract and normalize the response structure
+    if (response.data) {
+      return {
+        transactions: response.data.transactions || [],
+        total: response.data.pagination?.total || 0,
+        page: response.data.pagination?.page || 1,
+        pages: response.data.pagination?.total_pages || 0,
+      };
+    }
+    
+    // Fallback for legacy format: { transactions: [...] }
+    return {
+      transactions: response.transactions || [],
+      total: response.total || 0,
+      page: response.page || 1,
+      pages: response.pages || 0,
+    };
   },
 
   /** Get transaction details */
   async getTransaction(id: string): Promise<{ transaction: any }> {
-    return fetchWithAuth(`/api/wallet/transactions/${id}`);
+    const response = await fetchWithAuth<any>(`/api/wallet/transactions/${id}`);
+    
+    // API returns: { success: true, data: { id, type, category, ... } }
+    // Extract and normalize the response structure
+    if (response.data) {
+      return {
+        transaction: response.data,
+      };
+    }
+    
+    // Fallback for legacy format: { transaction: {...} }
+    return {
+      transaction: response.transaction || response,
+    };
   },
 
   /** Get bank accounts */
   async getBankAccounts(): Promise<{ bankAccounts: any[] }> {
-    return fetchWithAuth('/api/wallet/bank-accounts');
+    const response = await fetchWithAuth<any>('/api/wallet/bank-accounts');
+    
+    // API returns: { success: true, data: [...] }
+    // Normalize to match expected structure
+    if (response.data && Array.isArray(response.data)) {
+      return {
+        bankAccounts: response.data,
+      };
+    }
+    
+    // Fallback for legacy format: { bankAccounts: [...] }
+    return {
+      bankAccounts: response.bankAccounts || [],
+    };
   },
 
   /** Add bank account */

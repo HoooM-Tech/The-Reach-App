@@ -140,9 +140,11 @@ interface LeadFormModalProps {
   propertyId: string;
   propertyTitle: string;
   sourceCode?: string;
+  onLeadSubmitted?: (leadId: string) => void;
+  onBookInspection?: () => void;
 }
 
-function LeadFormModal({ isOpen, onClose, propertyId, propertyTitle, sourceCode }: LeadFormModalProps) {
+function LeadFormModal({ isOpen, onClose, propertyId, propertyTitle, sourceCode, onLeadSubmitted, onBookInspection }: LeadFormModalProps) {
   const { user } = useUser();
   const [formData, setFormData] = useState({
     buyer_name: user?.full_name || '',
@@ -159,13 +161,16 @@ function LeadFormModal({ isOpen, onClose, propertyId, propertyTitle, sourceCode 
     setError(null);
 
     try {
-      await buyerApi.submitLead({
+      const response = await buyerApi.submitLead({
         property_id: propertyId,
         buyer_name: formData.buyer_name,
         buyer_phone: formData.buyer_phone,
         buyer_email: formData.buyer_email,
         source_code: sourceCode,
       });
+      if (response?.lead?.id) {
+        onLeadSubmitted?.(response.lead.id);
+      }
       setSuccess(true);
     } catch (err) {
       const message = err instanceof ApiError ? err.message : 'Failed to submit. Please try again.';
@@ -180,7 +185,7 @@ function LeadFormModal({ isOpen, onClose, propertyId, propertyTitle, sourceCode 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-end lg:items-center justify-center" onClick={onClose}>
       <div 
-        className="bg-white rounded-t-3xl lg:rounded-2xl w-full lg:w-[480px] max-h-[90vh] overflow-y-auto"
+        className="bg-white rounded-t-3xl lg:rounded-2xl w-full sm:max-w-lg max-h-[90vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
         <div className="sticky top-0 bg-white p-4 border-b flex items-center justify-between">
@@ -199,12 +204,23 @@ function LeadFormModal({ isOpen, onClose, propertyId, propertyTitle, sourceCode 
             <p className="text-gray-600 mb-6">
               Thank you for your interest in &quot;{propertyTitle}&quot;. The property developer will contact you soon.
             </p>
-            <button
-              onClick={onClose}
-              className="w-full py-3 bg-[#0A1628] text-white rounded-xl font-medium"
-            >
-              Done
-            </button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                onClick={onClose}
+                className="w-full py-3 bg-gray-100 text-gray-800 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+              >
+                Done
+              </button>
+              <button
+                onClick={() => {
+                  onClose();
+                  onBookInspection?.();
+                }}
+                className="w-full py-3 bg-[#E54D4D] text-white rounded-xl font-medium hover:bg-[#E54D4D]/90 transition-colors"
+              >
+                Book Inspection
+              </button>
+            </div>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="p-6 space-y-4">
@@ -292,9 +308,13 @@ interface InspectionModalProps {
   onClose: () => void;
   propertyId: string;
   propertyTitle: string;
+  sourceCode?: string;
+  leadId?: string | null;
+  onLeadCreated?: (leadId: string) => void;
 }
 
-function InspectionModal({ isOpen, onClose, propertyId, propertyTitle }: InspectionModalProps) {
+function InspectionModal({ isOpen, onClose, propertyId, propertyTitle, sourceCode, leadId, onLeadCreated }: InspectionModalProps) {
+  const { user } = useUser();
   const [slots, setSlots] = useState<any[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -311,8 +331,30 @@ function InspectionModal({ isOpen, onClose, propertyId, propertyTitle }: Inspect
   const loadSlots = async () => {
     setIsLoading(true);
     try {
-      const response = await buyerApi.getInspectionSlots(propertyId);
-      setSlots(response.slots || []);
+      // Fetch slots for the next 7 days (Mon-Sat only)
+      const allSlots: any[] = [];
+      const today = new Date();
+      
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(today);
+        date.setDate(date.getDate() + i);
+        const dayOfWeek = date.getDay();
+        
+        // Skip Sundays (day 0)
+        if (dayOfWeek === 0) continue;
+        
+        const dateStr = date.toISOString().split('T')[0];
+        try {
+          const response = await buyerApi.getInspectionSlots(propertyId, dateStr);
+          if (response.slots && response.slots.length > 0) {
+            allSlots.push(...response.slots);
+          }
+        } catch (err) {
+          console.error(`Failed to load slots for ${dateStr}:`, err);
+        }
+      }
+      
+      setSlots(allSlots);
     } catch (err) {
       console.error('Failed to load slots:', err);
     } finally {
@@ -327,8 +369,49 @@ function InspectionModal({ isOpen, onClose, propertyId, propertyTitle }: Inspect
     setError(null);
 
     try {
+      // If user is unauthenticated and we have a source code, create a lead first
+      // This ensures creator referral context is preserved
+      let currentLeadId = leadId || null;
+      
+      if (!currentLeadId && sourceCode && (!user || user.role !== 'buyer')) {
+        // Create a lead to preserve creator referral context
+        // For unauthenticated users, we'll need their contact info
+        // For now, if user exists but isn't a buyer, we still need a lead
+        if (user && user.phone) {
+          try {
+            const leadResponse = await buyerApi.submitLead({
+              property_id: propertyId,
+              buyer_name: user.full_name || 'Guest',
+              buyer_phone: user.phone,
+              buyer_email: user.email || undefined,
+              source_code: sourceCode,
+            });
+            currentLeadId = leadResponse.lead.id;
+            if (currentLeadId) {
+              onLeadCreated?.(currentLeadId);
+            }
+          } catch (leadErr) {
+            // If lead creation fails, try booking without it (may require auth)
+            console.error('Failed to create lead:', leadErr);
+          }
+        } else {
+          // User needs to provide contact info - show error
+          setError('Please provide your contact information to book an inspection. You can submit a lead first using "I\'m Interested".');
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      // If we still don't have a lead ID, the booking API will handle it
+      if (!currentLeadId) {
+        setError('A lead is required to book an inspection. Please submit your interest first.');
+        setIsSubmitting(false);
+        return;
+      }
+
       await buyerApi.bookInspection({
         property_id: propertyId,
+        lead_id: currentLeadId,
         slot_time: selectedSlot, // Already in UTC ISO format from available-slots API
       });
       setSuccess(true);
@@ -353,7 +436,7 @@ function InspectionModal({ isOpen, onClose, propertyId, propertyTitle }: Inspect
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-end lg:items-center justify-center" onClick={onClose}>
       <div 
-        className="bg-white rounded-t-3xl lg:rounded-2xl w-full lg:w-[480px] max-h-[90vh] overflow-y-auto"
+        className="bg-white rounded-t-3xl lg:rounded-2xl w-full sm:max-w-lg max-h-[90vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
         <div className="sticky top-0 bg-white p-4 border-b flex items-center justify-between">
@@ -396,7 +479,7 @@ function InspectionModal({ isOpen, onClose, propertyId, propertyTitle }: Inspect
                 <p className="text-sm">Please check back later</p>
               </div>
             ) : (
-              <div className="space-y-4 max-h-[400px] overflow-y-auto">
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto">
                 {Object.entries(slotsByDate).map(([date, dateSlots]) => (
                   <div key={date}>
                     <p className="text-sm font-medium text-gray-700 mb-2">{date}</p>
@@ -468,6 +551,7 @@ export default function PropertyDetailPage() {
   const [property, setProperty] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [leadId, setLeadId] = useState<string | null>(null);
   const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
   const [isInspectionModalOpen, setIsInspectionModalOpen] = useState(false);
 
@@ -483,8 +567,20 @@ export default function PropertyDetailPage() {
   }, [propertyId, user, router]);
 
   // Track impression when page loads with ref parameter (for creator tracking links)
+  // Use session-based deduplication to prevent double-counting on refresh
   useEffect(() => {
     if (!propertyId || !sourceCode) return;
+
+    // Get or create session ID for deduplication
+    const sessionKey = `impression_${propertyId}_${sourceCode}`;
+    const sessionId = `session_${Date.now()}`;
+    const lastTracked = localStorage.getItem(sessionKey);
+    const now = Date.now();
+    
+    // Only track if not tracked in last 5 minutes (prevents refresh double-counting)
+    if (lastTracked && (now - parseInt(lastTracked)) < 5 * 60 * 1000) {
+      return; // Already tracked recently
+    }
 
     // Track impression server-side (non-blocking, fire-and-forget)
     fetch('/api/tracking/impression', {
@@ -493,8 +589,14 @@ export default function PropertyDetailPage() {
       body: JSON.stringify({
         property_id: propertyId,
         creator_code: sourceCode,
+        session_id: sessionId,
       }),
-    }).catch(err => {
+    })
+    .then(() => {
+      // Mark as tracked in localStorage
+      localStorage.setItem(sessionKey, now.toString());
+    })
+    .catch(err => {
       // Silently fail - tracking should never break the page
       console.error('Failed to track impression:', err);
     });
@@ -524,8 +626,20 @@ export default function PropertyDetailPage() {
   }, [propertyId, router]);
 
   // Track click when user interacts with CTAs
+  // Use session-based deduplication to prevent double-counting
   const trackClick = async (action: 'lead_form' | 'inspection' | 'cta') => {
     if (!propertyId || !sourceCode) return;
+
+    // Get or create session ID for deduplication
+    const sessionKey = `click_${propertyId}_${sourceCode}_${action}`;
+    const sessionId = `session_${Date.now()}`;
+    const lastTracked = localStorage.getItem(sessionKey);
+    const now = Date.now();
+    
+    // Only track if not tracked in last 1 minute (prevents double-clicking)
+    if (lastTracked && (now - parseInt(lastTracked)) < 60 * 1000) {
+      return; // Already tracked recently
+    }
 
     // Track click server-side (non-blocking)
     fetch('/api/tracking/click', {
@@ -535,8 +649,14 @@ export default function PropertyDetailPage() {
         property_id: propertyId,
         creator_code: sourceCode,
         action,
+        session_id: sessionId,
       }),
-    }).catch(err => {
+    })
+    .then(() => {
+      // Mark as tracked in localStorage
+      localStorage.setItem(sessionKey, now.toString());
+    })
+    .catch(err => {
       // Silently fail - tracking should never break the page
       console.error('Failed to track click:', err);
     });
@@ -690,12 +810,17 @@ export default function PropertyDetailPage() {
         propertyId={propertyId}
         propertyTitle={property.title}
         sourceCode={sourceCode}
+        onLeadSubmitted={(id) => setLeadId(id)}
+        onBookInspection={() => setIsInspectionModalOpen(true)}
       />
       <InspectionModal
         isOpen={isInspectionModalOpen}
         onClose={() => setIsInspectionModalOpen(false)}
         propertyId={propertyId}
         propertyTitle={property.title}
+        sourceCode={sourceCode}
+        leadId={leadId}
+        onLeadCreated={(id) => setLeadId(id)}
       />
     </div>
   );

@@ -1,18 +1,19 @@
 import crypto from 'crypto';
 
 /**
- * Generate unique transaction reference
- * Format: TXN_{TYPE}_{timestamp}_{random}
- * @param type - Transaction type (deposit, withdrawal)
- * @returns Unique transaction reference
+ * Generate unique transaction reference for Paystack
+ * CRITICAL: Paystack requires globally unique references per transaction
+ * Format: reach_{UUID}
+ * @param type - Transaction type (deposit, withdrawal) - kept for logging but not used in reference
+ * @returns Globally unique transaction reference
  */
 export function generateTransactionReference(
   type: 'deposit' | 'withdrawal'
 ): string {
-  const prefix = type === 'deposit' ? 'TXN_DEP' : 'TXN_WTH';
-  const timestamp = Date.now();
-  const random = crypto.randomBytes(4).toString('hex').toUpperCase();
-  return `${prefix}_${timestamp}_${random}`;
+  // Use crypto.randomUUID() for globally unique references
+  // This ensures Paystack never sees duplicate references
+  const uuid = crypto.randomUUID();
+  return `reach_${uuid}`;
 }
 
 /**
@@ -21,5 +22,6 @@ export function generateTransactionReference(
  * @returns True if valid format
  */
 export function isValidTransactionReference(reference: string): boolean {
-  return /^TXN_(DEP|WTH)_\d+_[A-F0-9]{8}$/.test(reference);
+  // Updated to match new UUID-based format
+  return /^reach_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(reference);
 }

@@ -17,7 +17,7 @@ export function PropertyGallery({ media }: PropertyGalleryProps) {
 
   if (allMedia.length === 0) {
     return (
-      <div className="w-full h-96 bg-gray-200 rounded-2xl flex items-center justify-center">
+      <div className="w-full h-64 sm:h-80 lg:h-96 bg-gray-200 rounded-2xl flex items-center justify-center">
         <span className="text-gray-400">No media available</span>
       </div>
     );
@@ -35,7 +35,7 @@ export function PropertyGallery({ media }: PropertyGalleryProps) {
 
   return (
     <div className="relative w-full">
-      <div className="relative w-full h-96 rounded-2xl overflow-hidden bg-gray-200">
+      <div className="relative w-full h-64 sm:h-80 lg:h-96 rounded-2xl overflow-hidden bg-gray-200">
         {currentMedia.type === 'IMAGE' ? (
           <img
             src={currentMedia.url}
@@ -82,7 +82,7 @@ export function PropertyGallery({ media }: PropertyGalleryProps) {
             <button
               key={item.id}
               onClick={() => setCurrentIndex(index)}
-              className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-colors ${
+              className={`flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden border-2 transition-colors ${
                 index === currentIndex ? 'border-reach-red' : 'border-transparent'
               }`}
             >

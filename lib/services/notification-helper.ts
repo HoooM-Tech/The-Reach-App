@@ -3,7 +3,7 @@
  * Provides consistent notification creation across the application
  */
 
-import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase/client'
+import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase/server'
 import { sendNotification, type NotificationPayload } from './notifications'
 
 export interface NotificationMetadata {
@@ -159,6 +159,51 @@ export const notificationHelpers = {
         ['in_app', 'push', 'email']
       )
     }
+  },
+
+  /**
+   * New bid notification
+   */
+  async newBid(data: {
+    developerId: string
+    propertyId: string
+    propertyTitle: string
+    bidId: string
+    bidAmount: number
+    bidNote?: string
+    buyerId: string
+    buyerName: string
+  }): Promise<void> {
+    const adminSupabase = createAdminSupabaseClient()
+    const { data: developer } = await adminSupabase
+      .from('users')
+      .select('notification_preferences')
+      .eq('id', data.developerId)
+      .single()
+
+    const preferences = (developer?.notification_preferences as any) || {}
+    const wantsBidNotifications = preferences.newBids !== false
+    const channels: ('in_app' | 'email' | 'sms' | 'push')[] = wantsBidNotifications
+      ? ['in_app', 'push', 'email']
+      : ['in_app']
+
+    await createNotification(
+      data.developerId,
+      'new_bid',
+      'New Bid Received',
+      `${data.buyerName} submitted a bid of ₦${data.bidAmount.toLocaleString()} on ${data.propertyTitle}`,
+      {
+        property_id: data.propertyId,
+        property_title: data.propertyTitle,
+        bid_id: data.bidId,
+        buyer_id: data.buyerId,
+        buyer_name: data.buyerName,
+        amount: data.bidAmount,
+        bid_note: data.bidNote,
+        action_url: `/dashboard/developer/properties/${data.propertyId}/bids/${data.bidId}`,
+      },
+      channels
+    )
   },
 
   /**

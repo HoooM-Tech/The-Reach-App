@@ -11,12 +11,7 @@ export default function CreatorSettingsPage() {
   const router = useRouter();
   const { user, isLoading: userLoading } = useUser();
 
-  useEffect(() => {
-    if (!userLoading && !user) {
-      router.push('/auth/login');
-      return;
-    }
-  }, [user, userLoading, router]);
+  // Middleware handles authentication - no need to redirect here
 
   const handleDeleteAccount = () => {
     if (
@@ -42,6 +37,7 @@ export default function CreatorSettingsPage() {
   return (
     <div className="min-h-screen bg-[#FFF5F5]">
       {/* Header */}
+      {/*
       <div className="bg-[#FFF5F5] px-4 py-6">
         <div className="flex items-center justify-between">
           <h1 className="text-[32px] font-bold text-gray-900">Settings</h1>
@@ -61,6 +57,7 @@ export default function CreatorSettingsPage() {
           </div>
         </div>
       </div>
+      */}
 
       {/* Main Content */}
       <div className="px-4 pb-8 space-y-6">

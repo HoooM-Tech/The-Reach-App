@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminSupabaseClient } from '@/lib/supabase/client';
+import { createAdminSupabaseClient } from '@/lib/supabase/server';
 import { requireCreator } from '@/lib/utils/auth';
 import { handleError, NotFoundError, ValidationError } from '@/lib/utils/errors';
 import archiver from 'archiver';

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createAdminSupabaseClient } from '@/lib/supabase/client'
+import { createAdminSupabaseClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/utils/auth'
 import { NotFoundError, ValidationError, handleError } from '@/lib/utils/errors'
 
@@ -9,11 +9,12 @@ import { NotFoundError, ValidationError, handleError } from '@/lib/utils/errors'
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
     await requireAdmin()
-    const userId = params.userId
+    const resolvedParams = await Promise.resolve(params)
+    const userId = resolvedParams.id
     const body = await req.json()
     const { password } = body
 
@@ -81,4 +82,3 @@ export async function POST(
     return NextResponse.json({ error: errorMessage }, { status: statusCode })
   }
 }
-

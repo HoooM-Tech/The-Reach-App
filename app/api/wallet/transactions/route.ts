@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminSupabaseClient } from '@/lib/supabase/client';
+import { createAdminSupabaseClient } from '@/lib/supabase/server';
 import { getAuthenticatedUser } from '@/lib/utils/auth';
 import { handleError } from '@/lib/utils/errors';
 import { formatNaira } from '@/lib/utils/currency';
@@ -14,6 +14,17 @@ export async function GET(req: NextRequest) {
     const user = await getAuthenticatedUser();
     const supabase = createAdminSupabaseClient();
 
+    // Parse query parameters
+    const { searchParams } = new URL(req.url);
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20')));
+    const type = searchParams.get('type'); // 'deposit' | 'withdrawal' | 'credit' | 'debit' | 'all'
+    const status = searchParams.get('status'); // 'pending' | 'completed' | 'failed' | 'all'
+    const category = searchParams.get('category'); // 'commission' | 'withdrawal' | 'deposit' | 'all'
+    const fromDate = searchParams.get('from_date') || searchParams.get('startDate');
+    const toDate = searchParams.get('to_date') || searchParams.get('endDate');
+    const search = searchParams.get('search'); // Search by reference
+
     // Get wallet
     const { data: wallet, error: walletError } = await supabase
       .from('wallets')
@@ -27,23 +38,25 @@ export async function GET(req: NextRequest) {
 
     if (!wallet) {
       return NextResponse.json({
-        transactions: [],
-        total: 0,
-        page: 1,
-        pages: 0,
+        success: true,
+        data: {
+          transactions: [],
+          pagination: {
+            page: 1,
+            limit: limit,
+            total: 0,
+            total_pages: 0,
+            has_next: false,
+            has_prev: false,
+          },
+          summary: {
+            total_deposits: 0,
+            total_withdrawals: 0,
+            total_fees: 0,
+          },
+        },
       });
     }
-
-    // Parse query parameters
-    const { searchParams } = new URL(req.url);
-    const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
-    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20')));
-    const type = searchParams.get('type'); // 'deposit' | 'withdrawal' | 'credit' | 'debit' | 'all'
-    const status = searchParams.get('status'); // 'pending' | 'completed' | 'failed' | 'all'
-    const category = searchParams.get('category'); // 'commission' | 'withdrawal' | 'deposit' | 'all'
-    const fromDate = searchParams.get('from_date') || searchParams.get('startDate');
-    const toDate = searchParams.get('to_date') || searchParams.get('endDate');
-    const search = searchParams.get('search'); // Search by reference
 
     const offset = (page - 1) * limit;
 
@@ -96,10 +109,23 @@ export async function GET(req: NextRequest) {
 
     const { data: transactions, error: transactionsError, count } = await query;
 
-    if (transactionsError) throw transactionsError;
+    if (transactionsError) {
+      console.error('[Transactions API] Query error:', transactionsError);
+      throw transactionsError;
+    }
 
     const total = count || 0;
     const totalPages = Math.ceil(total / limit);
+
+    // Debug logging
+    console.log('[Transactions API] Query results:', {
+      walletId: wallet.id,
+      userId: user.id,
+      transactionCount: transactions?.length || 0,
+      total,
+      limit,
+      page,
+    });
 
     // Calculate summaries
     const { data: allTransactions } = await supabase

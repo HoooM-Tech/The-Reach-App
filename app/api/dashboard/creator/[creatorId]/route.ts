@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createAdminSupabaseClient } from '@/lib/supabase/client'
+import { createAdminSupabaseClient } from '@/lib/supabase/server'
 import { getAuthenticatedUser } from '@/lib/utils/auth'
 import { NotFoundError, handleError } from '@/lib/utils/errors'
 
@@ -214,7 +214,7 @@ export async function GET(
       .order('created_at', { ascending: false })
 
     return NextResponse.json({
-      tier: creator?.tier || 1,
+      tier: creator?.tier ?? 0,
       social_stats: socialAccountsExplicit || [],
       promoting: {
         active_properties: trackingLinksWithProperties?.length || 0,

@@ -229,7 +229,7 @@ export default function BuyerTransactionsPage() {
             <TransactionCard
               key={transaction.id}
               transaction={transaction}
-              onClick={() => router.push(`/property/${transaction.property_id}`)}
+              onClick={() => router.push(`/dashboard/buyer/properties/${transaction.property_id}`)}
             />
           ))}
         </div>

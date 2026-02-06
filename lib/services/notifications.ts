@@ -1,4 +1,4 @@
-import { createServerSupabaseClient } from '@/lib/supabase/client'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { sendSMS } from './termii'
 import { sendPushNotification, type PushSubscription } from './push-notifications'
 

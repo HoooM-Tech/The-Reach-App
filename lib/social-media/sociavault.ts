@@ -619,7 +619,8 @@ export class SociaVaultService {
     }
   }
 
-  // 4. Calculate Creator Tier (matching existing tier logic)
+  // 4. Calculate Creator Tier using authoritative tier calculation
+  // This method now delegates to the authoritative calculateCreatorTier function
   static calculateTier(
     platform: 'instagram' | 'tiktok' | 'twitter',
     followers: number,
@@ -627,7 +628,10 @@ export class SociaVaultService {
     isVerified: boolean,
     qualityScore?: number
   ): number {
-    // Validate inputs
+    // Import authoritative tier calculation
+    const { calculateCreatorTier } = require('@/lib/utils/tier-calculation');
+
+    // Validate inputs - return 0 if invalid
     if (!followers || followers <= 0 || isNaN(followers)) {
       return 0;
     }
@@ -635,95 +639,50 @@ export class SociaVaultService {
     if (isNaN(engagementRate) || engagementRate < 0) {
       return 0;
     }
-                                                                                                                                                                                                                          
-    // Use quality score if provided, otherwise estimate (max 30)
-    const effectiveQualityScore = qualityScore || (isVerified ? 30 : 25);
 
-    if (platform === 'instagram') {
-      // Instagram tier thresholds (max quality score: 30)
-      if (
-        followers >= 100000 &&
-        engagementRate >= 3.0 &&
-        effectiveQualityScore >= 30
-      ) {
-        return 1;
-      }
-      if (
-        followers >= 50000 &&
-        followers < 100000 &&
-        engagementRate >= 2.0 &&
-        effectiveQualityScore >= 25
-      ) {
-        return 2;
-      }
-      if (
-        followers >= 10000 &&
-        followers < 50000 &&
-        engagementRate >= 1.5 &&
-        effectiveQualityScore >= 20
-      ) {
-        return 3;
-      }
-      if (
-        followers >= 5000 &&
-        followers < 10000 &&
-        engagementRate >= 1.0 &&
-        effectiveQualityScore >= 15
-      ) {
-        return 4;
-      }
-      return 0;
+    // Use quality score if provided, otherwise calculate a conservative estimate
+    // Quality score must be 0-100, with minimum 50 for tier qualification
+    let effectiveQualityScore: number;
+    
+    if (qualityScore !== undefined && qualityScore >= 0) {
+      // Normalize quality score to 0-100 range
+      effectiveQualityScore = qualityScore > 100 ? 100 : qualityScore;
+      
+      // CRITICAL: If quality score < 50, creator cannot qualify for any tier
+      // But we still pass it to calculation to get tier 0 result
+      effectiveQualityScore = Math.max(0, effectiveQualityScore);
+    } else {
+      // Estimate quality score based on verification and engagement
+      // Conservative estimate: don't force minimum - let tier calculation handle validation
+      const baseScore = isVerified ? 60 : 55;
+      const engagementBonus = Math.min(engagementRate * 5, 20); // Max 20 points from engagement
+      effectiveQualityScore = Math.min(100, baseScore + engagementBonus);
+      // Note: If effectiveQualityScore < 50, creator won't qualify for any tier (correct behavior)
     }
 
-    if (platform === 'tiktok') {
-      // TikTok tier thresholds (max quality score: 30)
-      if (
-        followers >= 100000 &&
-        engagementRate >= 3.0 &&
-        effectiveQualityScore >= 30
-      ) {
-        return 1;
-      }
-      if (
-        followers >= 50000 &&
-        followers < 100000 &&
-        engagementRate >= 2.5 &&
-        effectiveQualityScore >= 25
-      ) {
-        return 2;
-      }
-      if (
-        followers >= 10000 &&
-        followers < 50000 &&
-        engagementRate >= 2.0 &&
-        effectiveQualityScore >= 20
-      ) {
-        return 3;
-      }
-      if (
-        followers >= 5000 &&
-        followers < 10000 &&
-        engagementRate >= 1.5 &&
-        effectiveQualityScore >= 15
-      ) {
-        return 4;
-      }
-      return 0;
-    }
+    // Use authoritative tier calculation function
+    const result = calculateCreatorTier({
+      followers,
+      engagementRate,
+      qualityScore: effectiveQualityScore,
+    });
 
-    if (platform === 'twitter') {
-      // Twitter tier based primarily on followers
-      if (followers >= 100000) return 1;
-      if (followers >= 50000) return 2;
-      if (followers >= 20000) return 3;
-      if (followers >= 5000) return 4;
-      return 0;
-    }
+    // Log for debugging (remove in production if not needed)
+    console.log('[Tier Calculation]', {
+      platform,
+      followers,
+      engagementRate: engagementRate.toFixed(2),
+      qualityScore: effectiveQualityScore.toFixed(2),
+      calculatedTier: result.tier,
+      qualified: result.qualified,
+    });
 
-    return 0;
+    // Return tier (0 if not qualified)
+    return result.tier;
   }
 
   // 5. Verify All Creator Profiles
+  // CRITICAL: This method now aggregates followers across all platforms
   static async verifyCreator(socialLinks: {
     instagram?: string;
     tiktok?: string;
@@ -737,7 +696,6 @@ export class SociaVaultService {
   }> {
     const analytics: Record<string, InstagramAnalytics | TikTokAnalytics | TwitterAnalytics> = {};
     const errors: string[] = [];
-    let highestTier = 0;
     let totalQuality = 0;
     let platformCount = 0;
 
@@ -755,29 +713,28 @@ export class SociaVaultService {
         const result = await this.getInstagramProfile(username);
 
         if (result.success && result.data) {
-        // Calculate quality score
-        const quality = Math.min(100,
-          (result.data.engagementRate * 10) +
-          (result.data.profile.is_verified ? 20 : 0) +
-          (result.data.profile.media_count > 100 ? 10 : 0)
-        );
+        // Calculate quality score (0-100 scale) based on actual metrics
+        // Quality score components: engagement (max 40), verification (20), activity (15)
+        // Total possible: 75 points - scale to 0-100 range
+        const engagementScore = Math.min(result.data.engagementRate * 10, 40); // Max 40 points
+        const verificationBonus = result.data.profile.is_verified ? 20 : 0;
+        const activityBonus = result.data.profile.media_count > 100 ? 15 : 0;
+        const rawQuality = engagementScore + verificationBonus + activityBonus;
+        
+        // Scale 0-75 to 0-100 range (preserves low scores - creators with low metrics get low quality scores)
+        // This ensures tier 0 for creators who don't meet quality requirements
+        const quality = Math.min(100, (rawQuality / 75) * 100);
         totalQuality += quality;
         platformCount++;
 
-        const tier = this.calculateTier(
-          'instagram',
-          result.data.profile.follower_count,
-          result.data.engagementRate,
-          result.data.profile.is_verified,
-          quality
-        );
-        highestTier = Math.max(highestTier, tier);
+        // Don't calculate tier per platform - we'll aggregate all platforms later
+        // Just collect the analytics data
 
         // Convert to normalized format
         analytics.instagram = {
           username: result.data.profile.username,
           followers: result.data.profile.follower_count,
-          following: result.data.profile.following_count,
+          following: result.data.profile.following_count || 0,
           posts: result.data.profile.media_count,
           engagementRate: result.data.engagementRate,
           avgLikes: result.data.avgLikes,
@@ -802,27 +759,24 @@ export class SociaVaultService {
       const result = await this.getTikTokProfile(username);
 
       if (result.success && result.data) {
-        const quality = Math.min(100,
-          (result.data.engagementRate * 8) +
-          (result.data.profile.verified ? 20 : 0) +
-          (result.data.profile.videoCount > 50 ? 10 : 0)
-        );
+        // Calculate quality score (0-100 scale) based on actual metrics
+        const engagementScore = Math.min(result.data.engagementRate * 8, 35); // Max 35 points
+        const verificationBonus = result.data.profile.verified ? 20 : 0;
+        const activityBonus = result.data.profile.videoCount > 50 ? 15 : 0;
+        const rawQuality = engagementScore + verificationBonus + activityBonus;
+        
+        // Scale 0-70 to 0-100 range (preserves low scores)
+        const quality = Math.min(100, (rawQuality / 70) * 100);
         totalQuality += quality;
         platformCount++;
 
-        const tier = this.calculateTier(
-          'tiktok',
-          result.data.profile.followerCount,
-          result.data.engagementRate,
-          result.data.profile.verified,
-          quality
-        );
-        highestTier = Math.max(highestTier, tier);
+        // Don't calculate tier per platform - we'll aggregate all platforms later
+        // Just collect the analytics data
 
         analytics.tiktok = {
           username: result.data.profile.uniqueId,
           followers: result.data.profile.followerCount,
-          following: result.data.profile.followingCount,
+          following: result.data.profile.followingCount || 0,
           videos: result.data.profile.videoCount,
           hearts: result.data.profile.heartCount,
           engagementRate: result.data.engagementRate,
@@ -841,27 +795,26 @@ export class SociaVaultService {
       const result = await this.getTwitterProfile(username);
 
       if (result.success && result.data) {
-        const quality = Math.min(100,
-          (result.data.profile.followers_count / 5000) +
-          (result.data.profile.verified ? 20 : 0) +
-          (result.data.profile.tweet_count > 1000 ? 10 : 0)
-        );
+        // Calculate quality score (0-100 scale) based on actual metrics
+        // Twitter quality score based on followers, verification, activity, and engagement
+        const followerScore = Math.min(result.data.profile.followers_count / 2000, 40); // Max 40 points (80K+ followers)
+        const verificationBonus = result.data.profile.verified ? 20 : 0;
+        const activityBonus = result.data.profile.tweet_count > 1000 ? 15 : 0;
+        const engagementScore = Math.min(result.data.engagementRate * 5, 15); // Max 15 points from engagement
+        const rawQuality = followerScore + verificationBonus + activityBonus + engagementScore;
+        
+        // Scale 0-90 to 0-100 range (preserves low scores)
+        const quality = Math.min(100, (rawQuality / 90) * 100);
         totalQuality += quality;
         platformCount++;
 
-        const tier = this.calculateTier(
-          'twitter',
-          result.data.profile.followers_count,
-          result.data.engagementRate,
-          result.data.profile.verified,
-          quality
-        );
-        highestTier = Math.max(highestTier, tier);
+        // Don't calculate tier per platform - we'll aggregate all platforms later
+        // Just collect the analytics data
 
         analytics.twitter = {
           username: result.data.profile.username,
           followers: result.data.profile.followers_count,
-          following: result.data.profile.following_count,
+          following: result.data.profile.following_count || 0,
           tweets: result.data.profile.tweet_count,
           engagementRate: result.data.engagementRate,
           avgRetweets: 0, // Not available from SociaVault
@@ -875,12 +828,59 @@ export class SociaVaultService {
 
     const qualityScore = platformCount > 0 ? Math.round(totalQuality / platformCount) : 0;
 
+    // CRITICAL: Calculate tier using AGGREGATED followers across all platforms
+    // Import the new tier calculator that aggregates followers
+    const { calculateTier } = require('@/lib/utils/tier-calculator');
+    
+    // Build metrics object from all verified platforms
+    const metrics: any = {};
+    
+    if (analytics.twitter) {
+      const twitterAnalytics = analytics.twitter as TwitterAnalytics;
+      metrics.twitter = {
+        followers: twitterAnalytics.followers,
+        following: twitterAnalytics.following || 0,
+        tweets: twitterAnalytics.tweets || 0,
+        engagement: twitterAnalytics.engagementRate || 0,
+      };
+    }
+    
+    if (analytics.instagram) {
+      const instagramAnalytics = analytics.instagram as InstagramAnalytics;
+      metrics.instagram = {
+        followers: instagramAnalytics.followers,
+        following: instagramAnalytics.following || 0,
+        posts: instagramAnalytics.posts || 0,
+        engagement: instagramAnalytics.engagementRate || 0,
+      };
+    }
+    
+    if (analytics.tiktok) {
+      const tiktokAnalytics = analytics.tiktok as TikTokAnalytics;
+      metrics.tiktok = {
+        followers: tiktokAnalytics.followers,
+        engagement: tiktokAnalytics.engagementRate || 0,
+      };
+    }
+    
+    // Calculate tier using aggregated followers
+    const tierResult = calculateTier(metrics);
+    
+    console.log('🎯 Aggregated Tier Calculation Result:', {
+      totalFollowers: tierResult.totalFollowers,
+      engagementRate: tierResult.engagementRate,
+      qualityScore: tierResult.qualityScore,
+      tier: tierResult.tier,
+      tierName: tierResult.tierName,
+      meetsRequirements: tierResult.meetsRequirements,
+    });
+
     return {
       success: Object.keys(analytics).length > 0,
-      tier: highestTier,
+      tier: tierResult.tier || 0, // Convert null to 0 for backward compatibility
       analytics,
       errors,
-      qualityScore,
+      qualityScore: tierResult.qualityScore || qualityScore,
     };
   }
 

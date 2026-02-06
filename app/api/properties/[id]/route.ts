@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createAdminSupabaseClient, createServerSupabaseClient } from '@/lib/supabase/client'
+import { createAdminSupabaseClient, createServerSupabaseClient } from '@/lib/supabase/server'
 import { getAuthenticatedUser, requireDeveloper } from '@/lib/utils/auth'
 import { NotFoundError, ValidationError, handleError } from '@/lib/utils/errors'
 import { normalizeNigerianPhone } from '@/lib/utils/phone'

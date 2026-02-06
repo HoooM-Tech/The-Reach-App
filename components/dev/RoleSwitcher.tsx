@@ -66,7 +66,7 @@ export function RoleSwitcher() {
         </button>
 
         {isOpen && (
-          <div className="absolute bottom-full right-0 mb-2 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden min-w-[200px]">
+          <div className="absolute bottom-full right-0 mb-2 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden min-w-max max-w-screen-sm">
             <div className="p-2 bg-red-50 border-b border-red-200">
               <p className="text-xs font-semibold text-red-600">DEV TOOL</p>
               <p className="text-xs text-gray-600">Current: {currentRole}</p>

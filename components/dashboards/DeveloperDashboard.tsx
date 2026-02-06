@@ -82,8 +82,8 @@ const DeveloperDashboard: React.FC<Props> = ({ user }) => {
   const router = useRouter();
 
   return (
-    <div className="pb-24 bg-reach-light min-h-screen">
-      <header className="p-6 bg-white flex items-center justify-between shadow-sm sticky top-0 z-40">
+    <div className="pb-24 bg-reach-light min-h-screen overflow-x-hidden">
+      <header className="px-4 sm:px-6 py-4 bg-white flex items-center justify-between shadow-sm sticky top-0 z-40">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden">
             <img src={(user as any)?.avatarUrl || '/placeholder-avatar.png'} alt="avatar" className="w-full h-full object-cover" />
@@ -108,7 +108,7 @@ const DeveloperDashboard: React.FC<Props> = ({ user }) => {
         </div>
       </header>
 
-      <div className="p-6 space-y-6">
+      <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto">
         <div className="relative">
           <input 
             type="text" 
@@ -121,7 +121,7 @@ const DeveloperDashboard: React.FC<Props> = ({ user }) => {
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
            <StatCard label="Total Listing" value="23" change="+20%" />
            <StatCard label="Active Listing" value="20" change="+20%" />
            <StatCard label="Pending Verif." value="3" change="+10%" />

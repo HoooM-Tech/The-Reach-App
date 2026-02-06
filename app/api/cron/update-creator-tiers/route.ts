@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase/client'
+import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase/server'
 import { SociaVaultService } from '@/lib/social-media/sociavault'
 
 // Run monthly to update creator tiers
@@ -85,12 +85,16 @@ export async function GET(req: NextRequest) {
 
         const result = await SociaVaultService.verifyCreator(socialLinks)
 
-        if (result.success && result.tier > 0) {
+        // Update tier regardless of value (tier 0 is valid for unqualified creators)
+        if (result.success) {
+          // CRITICAL: tier 0 means unqualified - store as NULL in database
+          const tierValue = result.tier === 0 ? null : result.tier;
+          
           // Update user tier
           await adminSupabase
             .from('users')
             .update({
-              tier: result.tier,
+              tier: tierValue,
               updated_at: new Date().toISOString(),
             })
             .eq('id', creator.id)

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminSupabaseClient } from '@/lib/supabase/client';
+import { createAdminSupabaseClient } from '@/lib/supabase/server';
 import { requireCreator } from '@/lib/utils/auth';
 import { handleError } from '@/lib/utils/errors';
-import { calculateTierFromMultiplePlatforms } from '@/lib/utils/tier-calculation';
+import { calculateTier, type SocialMetrics } from '@/lib/utils/tier-calculator';
 
 /**
  * DELETE /api/creator/social-accounts/disconnect
@@ -44,87 +44,78 @@ export async function DELETE(req: NextRequest) {
       throw deleteError;
     }
 
-    // Recalculate tier from remaining verified social accounts
+    // CRITICAL: Recalculate tier using ALL remaining verified social accounts (aggregated)
     const { data: remainingAccounts } = await adminSupabase
       .from('social_accounts')
       .select('platform, followers, engagement_rate')
       .eq('user_id', creator.id)
       .not('verified_at', 'is', null);
 
-    let newTier = 0;
-    let newCommission = 0;
-
-    if (remainingAccounts && remainingAccounts.length > 0) {
-      // Get quality scores from analytics history
-      const { data: recentAnalytics } = await adminSupabase
-        .from('creator_analytics_history')
-        .select('analytics_data')
-        .eq('creator_id', creator.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      const analyticsData = recentAnalytics?.analytics_data as any;
-
-      // Build platform data with quality scores
-      const platformData = remainingAccounts.map((account) => {
-        let qualityScoreValue = 0;
-
-        // Get quality score from analytics data
-        const accountPlatformKey = account.platform.toLowerCase();
-        if (analyticsData && analyticsData[accountPlatformKey] && analyticsData[accountPlatformKey].qualityScore) {
-          qualityScoreValue = analyticsData[accountPlatformKey].qualityScore;
-        } else {
-          // Fallback: Estimate quality score
-          const engagementRate = account.engagement_rate || 0;
-          const followers = account.followers || 0;
-          
-          if (account.platform === 'instagram') {
-            qualityScoreValue = Math.min(
-              100,
-              engagementRate * 10 +
-              (followers >= 10000 ? 20 : 0) +
-              (followers >= 50000 ? 20 : 0)
-            );
-          } else if (account.platform === 'tiktok') {
-            qualityScoreValue = Math.min(
-              100,
-              engagementRate * 8 +
-              (followers >= 10000 ? 20 : 0) +
-              (followers >= 50000 ? 20 : 0)
-            );
-          } else if (account.platform === 'twitter') {
-            qualityScoreValue = Math.min(
-              100,
-              (followers / 5000) +
-              (followers >= 10000 ? 20 : 0) +
-              (followers >= 50000 ? 20 : 0)
-            );
-          } else {
-            qualityScoreValue = Math.min(100, engagementRate * 10);
-          }
-        }
-
-        return {
-          followers: account.followers || 0,
-          engagementRate: account.engagement_rate || 0,
-          qualityScore: qualityScoreValue,
+    // Build metrics object from ALL remaining verified accounts
+    const metrics: SocialMetrics = {};
+    
+    (remainingAccounts || []).forEach((account) => {
+      const accountPlatform = account.platform.toLowerCase();
+      const accountFollowers = account.followers || 0;
+      const accountEngagement = account.engagement_rate || 0;
+      // Following count not stored in DB, use 0 as default
+      const accountFollowing = 0;
+      
+      if (accountPlatform === 'twitter' || accountPlatform === 'x') {
+        metrics.twitter = {
+          followers: accountFollowers,
+          following: accountFollowing,
+          engagement: accountEngagement,
         };
-      });
+      } else if (accountPlatform === 'instagram') {
+        metrics.instagram = {
+          followers: accountFollowers,
+          following: accountFollowing,
+          engagement: accountEngagement,
+        };
+      } else if (accountPlatform === 'tiktok') {
+        metrics.tiktok = {
+          followers: accountFollowers,
+          engagement: accountEngagement,
+        };
+      } else if (accountPlatform === 'facebook') {
+        metrics.facebook = {
+          followers: accountFollowers,
+          engagement: accountEngagement,
+        };
+      }
+    });
 
-      // Calculate tier from remaining platforms
-      const tierResult = calculateTierFromMultiplePlatforms(platformData);
-      newTier = tierResult.tier;
-      newCommission = tierResult.commission;
-    } else {
-      // No verified platforms remaining - tier = 0
-      newTier = 0;
-      newCommission = 0;
-    }
+    console.log('📊 Recalculating tier after disconnect:', {
+      creatorId: creator.id,
+      disconnectedPlatform: platform,
+      remainingMetrics: metrics,
+      remainingAccounts: remainingAccounts?.length || 0,
+    });
 
-    // Update creator tier (tier 0 is valid for unqualified creators)
-    // Set to NULL if tier is 0 to match database constraint (or update constraint to allow 0)
-    const tierValue = newTier === 0 ? null : newTier;
+    // Calculate tier using aggregated followers from remaining accounts
+    const tierResult = calculateTier(metrics);
+
+    console.log('🎯 Tier recalculation after disconnect:', {
+      creatorId: creator.id,
+      tier: tierResult.tier,
+      tierName: tierResult.tierName,
+      totalFollowers: tierResult.totalFollowers,
+      engagementRate: tierResult.engagementRate,
+      qualityScore: tierResult.qualityScore,
+    });
+
+    const newTier = tierResult.tier;
+    const commissionRates: Record<number, string> = {
+      1: '3.0%',
+      2: '2.5%',
+      3: '2.0%',
+      4: '1.5%',
+    };
+    const newCommission = newTier ? commissionRates[newTier] || '0%' : '0%';
+
+    // CRITICAL: tier null (disqualified) should be stored as NULL in database
+    const tierValue = newTier === null ? null : newTier;
     
     const { error: updateError } = await adminSupabase
       .from('users')
@@ -136,19 +127,6 @@ export async function DELETE(req: NextRequest) {
 
     if (updateError) {
       console.error('Failed to update tier after disconnect:', updateError);
-      // Try with tier 0 if NULL failed (in case constraint allows 0)
-      if (tierValue === null && newTier === 0) {
-        const { error: retryError } = await adminSupabase
-          .from('users')
-          .update({
-            tier: 0,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', creator.id);
-        if (retryError) {
-          console.error('Failed to update tier with 0 after disconnect:', retryError);
-        }
-      }
       // Don't fail the request, but log the error
     }
 
@@ -172,7 +150,7 @@ export async function DELETE(req: NextRequest) {
     try {
       await adminSupabase.from('creator_analytics_history').insert({
         creator_id: creator.id,
-        tier: newTier,
+        tier: newTier || 0,
         analytics_data: updatedAnalytics,
         created_at: new Date().toISOString(),
       });
@@ -186,8 +164,12 @@ export async function DELETE(req: NextRequest) {
       platform: platform.toLowerCase(),
       disconnected: true,
       tier: newTier,
+      tierName: tierResult.tierName,
+      totalFollowers: tierResult.totalFollowers,
       commission: newCommission,
-      message: 'Social account disconnected and tier recalculated',
+      message: newTier 
+        ? `Social account disconnected. You are now a ${tierResult.tierName} creator.`
+        : 'Social account disconnected. You no longer meet minimum tier requirements.',
     });
   } catch (error) {
     const { error: errorMessage, statusCode } = handleError(error);

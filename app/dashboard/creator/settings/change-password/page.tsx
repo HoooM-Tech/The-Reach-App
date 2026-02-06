@@ -129,7 +129,7 @@ export default function CreatorChangePasswordPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Header */}
+      {/* Header 
       <header className="bg-transparent px-4 py-4 flex items-center justify-between sticky top-0 z-40">
         <button
           onClick={() => router.back()}
@@ -142,6 +142,8 @@ export default function CreatorChangePasswordPage() {
         <div></div>
         <div></div>
       </header>
+      */}
+
 
       {/* Main Content */}
       <div className="px-4 pt-6 pb-32">

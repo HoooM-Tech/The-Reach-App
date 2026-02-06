@@ -178,6 +178,7 @@ export default function DeveloperInspectionDetailPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
+            { /*
             <button
               onClick={() => router.push('/dashboard/developer/inspections')}
               className="p-2 rounded-full hover:bg-gray-100 transition-colors"
@@ -185,6 +186,7 @@ export default function DeveloperInspectionDetailPage() {
             >
               <ArrowLeft size={20} />
             </button>
+            */}
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Inspection Details</h1>
               <div className="flex items-center gap-2 mt-1">

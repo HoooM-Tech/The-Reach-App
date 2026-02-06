@@ -26,14 +26,14 @@ const ROLE_DASHBOARDS: Record<UserRole, string> = {
   developer: '/dashboard/developer',
   creator: '/dashboard/creator',
   buyer: '/dashboard/buyer',
-  admin: '/admin/properties',
+  admin: '/dashboard/admin',
 };
 
 const ROLE_LOGIN_REDIRECTS: Record<UserRole, string> = {
   developer: '/dashboard/developer',
   creator: '/dashboard/creator',
   buyer: '/dashboard/buyer',
-  admin: '/admin/properties',
+  admin: '/dashboard/admin',
 };
 
 // ===========================================
@@ -109,15 +109,16 @@ export function RoleGuard({ children, allowedRoles, fallbackPath }: RoleGuardPro
   const pathname = usePathname();
   const { user, isLoading, isAuthenticated } = useUser();
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
+  const [hasTriggeredAuthRedirect, setHasTriggeredAuthRedirect] = useState(false);
 
   useEffect(() => {
     // Wait for auth state to be determined
     if (isLoading) return;
 
-    // Not authenticated - redirect to login
+    // Not authenticated - don't redirect here, let middleware handle it
+    // This prevents client-side redirect loops
     if (!isAuthenticated || !user) {
-      const loginUrl = `/login?redirect=${encodeURIComponent(pathname)}`;
-      router.replace(loginUrl);
+      setIsAuthorized(false);
       return;
     }
 
@@ -133,29 +134,51 @@ export function RoleGuard({ children, allowedRoles, fallbackPath }: RoleGuardPro
     setIsAuthorized(true);
   }, [isLoading, isAuthenticated, user, allowedRoles, router, pathname]);
 
-  // Handle redirect for unauthorized users
+  // Fallback: if we are clearly unauthenticated on a protected route, trigger a one-time redirect to login.
+  // This guards against rare cases where middleware and client auth state get out of sync and prevents
+  // users from being stuck on "Checking authentication..." indefinitely.
+  useEffect(() => {
+    if (isLoading) return;
+    if (hasTriggeredAuthRedirect) return;
+
+    if (!isAuthenticated || !user) {
+      // Only handle dashboard-like routes; public routes are handled elsewhere
+      if (pathname.startsWith('/dashboard')) {
+        setHasTriggeredAuthRedirect(true);
+        const loginUrl = `/login?redirect=${encodeURIComponent(pathname)}`;
+        router.replace(loginUrl);
+      }
+    }
+  }, [isLoading, isAuthenticated, user, pathname, router, hasTriggeredAuthRedirect]);
+
+  // Handle redirect for unauthorized users (wrong role, not unauthenticated)
   const handleUnauthorizedRedirect = () => {
     if (!user) {
-      router.replace('/login');
+      // Don't redirect - middleware will handle authentication redirects
+      // Just show loading state
       return;
     }
     
+    // User is authenticated but wrong role - redirect to their dashboard
     const userRole = user.role as UserRole;
     const targetPath = fallbackPath || ROLE_DASHBOARDS[userRole] || '/';
+    // Use replace to avoid adding to history
     router.replace(targetPath);
   };
 
-  // Loading state
+  // Loading state - wait for auth to be determined
   if (isLoading || isAuthorized === null) {
     return <LoadingScreen message="Verifying access..." />;
   }
 
-  // Not authenticated - will redirect
+  // Not authenticated - middleware handles redirects
+  // Show loading state while middleware processes redirect
+  // DO NOT redirect here - this causes loops
   if (!isAuthenticated || !user) {
-    return <LoadingScreen message="Redirecting to login..." />;
+    return <LoadingScreen message="Checking authentication..." />;
   }
 
-  // Unauthorized - show message then redirect
+  // Unauthorized (wrong role) - redirect to correct dashboard
   if (isAuthorized === false) {
     return <UnauthorizedScreen onRedirect={handleUnauthorizedRedirect} />;
   }

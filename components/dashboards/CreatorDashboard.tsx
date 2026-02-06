@@ -11,8 +11,8 @@ const CreatorDashboard: React.FC<{ user: User }> = ({ user }) => {
   const router = useRouter();
 
   return (
-    <div className="pb-24 bg-reach-light min-h-screen">
-      <header className="p-6 bg-white flex items-center justify-between shadow-sm sticky top-0 z-40">
+    <div className="pb-24 bg-reach-light min-h-screen overflow-x-hidden">
+      <header className="px-4 sm:px-6 py-4 bg-white flex items-center justify-between shadow-sm sticky top-0 z-40">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden">
             <img src={(user as any)?.avatarUrl || '/placeholder-avatar.png'} alt="avatar" className="w-full h-full object-cover" />
@@ -35,7 +35,7 @@ const CreatorDashboard: React.FC<{ user: User }> = ({ user }) => {
         </div>
       </header>
 
-      <div className="p-6 space-y-6">
+      <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto">
         <div className="bg-gradient-to-br from-reach-navy to-reach-navy/80 p-6 rounded-[32px] text-white shadow-xl relative overflow-hidden">
            <div className="relative z-10">
               <p className="text-blue-200 text-xs font-bold tracking-widest uppercase mb-1">Total Earned</p>
@@ -50,7 +50,7 @@ const CreatorDashboard: React.FC<{ user: User }> = ({ user }) => {
            <Award className="absolute bottom-[-20px] right-[-20px] w-48 h-48 text-white/5 rotate-12" />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
            <StatCard label="Total Clicks" value="1.2k" change="+12%" />
            <StatCard label="Total Leads" value="145" change="+5%" />
            <StatCard label="Conversions" value="12" change="+2%" />
@@ -70,7 +70,7 @@ const CreatorDashboard: React.FC<{ user: User }> = ({ user }) => {
                           <img src={`https://picsum.photos/100?random=${i+10}`} className="w-full h-full object-cover" />
                        </div>
                        <div>
-                          <h4 className="font-bold text-sm text-reach-navy">Lekki Duplex Ext.</h4>
+                          <h4 className="font-bold text-sm text-reach-navy break-words">Lekki Duplex Ext.</h4>
                           <p className="text-[10px] text-gray-400">₦20M · 5% Comm.</p>
                        </div>
                     </div>

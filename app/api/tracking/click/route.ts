@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminSupabaseClient } from '@/lib/supabase/client';
+import { createAdminSupabaseClient } from '@/lib/supabase/server';
 import { handleError } from '@/lib/utils/errors';
 
 /**
@@ -77,6 +77,10 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Deduplication: Client-side deduplication prevents double-counting
+    // Server-side we track the request - deduplication happens via client session tracking
+    const sessionId = body.session_id || `session_${Date.now()}`;
+    
     // Increment click count (only for active promotions)
     const currentClicks = trackingLink.clicks || 0;
     const { error: updateError } = await supabase
@@ -93,7 +97,8 @@ export async function POST(req: NextRequest) {
       success: true, 
       tracked: true,
       clicks: currentClicks + 1,
-      action 
+      action,
+      session_id: sessionId
     });
   } catch (error) {
     // Never fail the request due to tracking errors

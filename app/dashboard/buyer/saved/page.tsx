@@ -205,7 +205,7 @@ export default function BuyerSavedPage() {
             <PropertyCard
               key={property.id}
               property={property}
-              onClick={() => router.push(`/property/${property.id}`)}
+              onClick={() => router.push(`/dashboard/buyer/properties/${property.id}`)}
             />
           ))}
         </div>

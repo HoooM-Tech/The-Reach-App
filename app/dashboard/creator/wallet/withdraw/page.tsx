@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, Bell, ChevronRight } from 'lucide-react';
 import { walletApi } from '@/lib/api/client';
-import { getAccessToken } from '@/lib/api/client';
 import toast from 'react-hot-toast';
 
 interface BankAccount {
@@ -26,38 +25,27 @@ export default function WithdrawPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const token = getAccessToken();
-        if (!token) {
-          router.push('/auth/login');
-          return;
-        }
-
-        const [balanceRes, accountsRes] = await Promise.all([
-          fetch('/api/wallet/balance', {
-            headers: { 'Authorization': `Bearer ${token}` },
-            credentials: 'include',
-          }),
-          fetch('/api/wallet/bank-accounts', {
-            headers: { 'Authorization': `Bearer ${token}` },
-            credentials: 'include',
-          }),
+        // Use walletApi methods which handle cookie-based authentication automatically
+        // Middleware will handle redirect if user is not authenticated
+        const [balanceData, accountsData] = await Promise.all([
+          walletApi.getBalance(),
+          walletApi.getBankAccounts(),
         ]);
 
-        if (balanceRes.ok) {
-          const balanceData = await balanceRes.json();
-          setBalance(balanceData.availableBalance || 0);
-        }
+        // walletApi.getBalance() returns normalized structure: { availableBalance, lockedBalance, ... }
+        setBalance(balanceData.availableBalance || 0);
 
-        if (accountsRes.ok) {
-          const accountsData = await accountsRes.json();
-          setBankAccounts(accountsData.bankAccounts || []);
-          if (accountsData.bankAccounts?.length > 0) {
-            const primary = accountsData.bankAccounts.find((acc: BankAccount) => acc.is_primary);
-            setSelectedBankId(primary?.id || accountsData.bankAccounts[0].id);
-          }
+        // walletApi.getBankAccounts() returns: { bankAccounts: [...] }
+        const accounts = accountsData.bankAccounts || [];
+        setBankAccounts(accounts);
+        if (accounts.length > 0) {
+          const primary = accounts.find((acc: BankAccount) => acc.is_primary);
+          setSelectedBankId(primary?.id || accounts[0].id);
         }
       } catch (error) {
         console.error('Error fetching data:', error);
+        // Don't redirect to login - middleware handles authentication
+        // Just show error message
         toast.error('Failed to load wallet data');
       } finally {
         setIsLoading(false);
@@ -123,18 +111,22 @@ export default function WithdrawPage() {
   return (
     <div className="min-h-screen bg-[#FFF5F5]">
       {/* Header */}
-      <header className="bg-white px-4 py-4">
+      <header className="px-4 py-4">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
+          {/*
           <button
             onClick={() => router.back()}
             className="w-12 h-12 rounded-full bg-white flex items-center justify-center"
           >
             <ChevronLeft size={24} className="text-gray-900" />
           </button>
+          */}
           <h1 className="text-xl font-semibold text-gray-900">Withdraw from Wallet</h1>
+          {/*
           <button className="w-12 h-12 rounded-full bg-white flex items-center justify-center">
             <Bell size={20} className="text-gray-600" />
           </button>
+          */}
         </div>
       </header>
 

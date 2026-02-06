@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase/client';
+import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase/server';
 import { getAuthenticatedUser } from '@/lib/utils/auth';
 import { NotFoundError, ValidationError, handleError } from '@/lib/utils/errors';
 import { notificationHelpers } from '@/lib/services/notification-helper';

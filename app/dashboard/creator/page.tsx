@@ -87,7 +87,7 @@ interface StatsGridProps {
 
 function StatsGrid({ stats }: StatsGridProps) {
   return (
-    <div className="grid grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {stats.map((stat, index) => (
         <StatCard key={index} {...stat} />
       ))}
@@ -123,7 +123,7 @@ function PromotionCard({ id, title, imageUrl, status, onViewDetails }: Promotion
   };
 
   return (
-    <div className="flex-shrink-0 w-64 bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
+    <div className="flex-shrink-0 w-4/5 sm:w-64 md:w-72 bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
       {imageUrl ? (
         <div className="relative aspect-[16/9] bg-gray-100">
           <img
@@ -213,7 +213,7 @@ function PrimaryCTAButton({ label, onClick }: PrimaryCTAButtonProps) {
 
 function DashboardSkeleton() {
   return (
-    <div className="min-h-screen bg-[#FFF5F5] p-4 space-y-6 animate-pulse">
+    <div className="min-h-screen bg-[#FFF5F5] p-4 sm:p-6 lg:p-8 space-y-6 animate-pulse">
       {/* Header Skeleton */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -230,7 +230,7 @@ function DashboardSkeleton() {
       </div>
 
       {/* Stats Grid Skeleton */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[1, 2, 3, 4].map((i) => (
           <div key={i} className="h-32 bg-gray-200 rounded-2xl" />
         ))}
@@ -241,7 +241,7 @@ function DashboardSkeleton() {
         <div className="h-6 bg-gray-200 rounded w-40" />
         <div className="flex gap-4">
           {[1, 2].map((i) => (
-            <div key={i} className="w-64 h-48 bg-gray-200 rounded-2xl" />
+            <div key={i} className="w-4/5 sm:w-64 md:w-72 h-48 bg-gray-200 rounded-2xl" />
           ))}
         </div>
       </div>

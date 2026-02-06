@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminSupabaseClient } from '@/lib/supabase/client';
+import { createAdminSupabaseClient } from '@/lib/supabase/server';
 import { getAuthenticatedUser } from '@/lib/utils/auth';
 import { handleError, ValidationError } from '@/lib/utils/errors';
 import { verifyBankAccount, createTransferRecipient } from '@/lib/services/paystack';
@@ -109,6 +109,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Check if account already exists BEFORE Paystack operations
+    // This prevents unnecessary API calls and ensures duplicate check happens first
+    // Check by wallet_id + account_number + bank_code for proper uniqueness
+    const { data: existingAccount } = await supabase
+      .from('bank_accounts')
+      .select('id')
+      .eq('wallet_id', wallet.id)
+      .eq('account_number', accountNumber)
+      .eq('bank_code', bankCode)
+      .maybeSingle();
+
+    if (existingAccount) {
+      throw new ValidationError('This bank account is already added');
+    }
+
     // Create transfer recipient in Paystack
     let recipientCode: string | null = null;
     try {
@@ -123,18 +138,6 @@ export async function POST(req: NextRequest) {
     } catch (error) {
       console.error('Failed to create Paystack recipient:', error);
       // Continue without recipient code - can be created later during withdrawal
-    }
-
-    // Check if account already exists
-    const { data: existingAccount } = await supabase
-      .from('bank_accounts')
-      .select('id')
-      .eq('wallet_id', wallet.id)
-      .eq('account_number', accountNumber)
-      .maybeSingle();
-
-    if (existingAccount) {
-      throw new ValidationError('This bank account is already added');
     }
 
     // Set as primary if it's the first account

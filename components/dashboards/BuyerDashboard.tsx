@@ -52,8 +52,8 @@ const MOCK_PROPERTIES: Property[] = [
 
 const BuyerDashboard: React.FC<{ user: User }> = ({ user }) => {
   return (
-    <div className="pb-24 bg-reach-light min-h-screen">
-      <header className="p-6 bg-white flex items-center justify-between shadow-sm sticky top-0 z-40">
+    <div className="pb-24 bg-reach-light min-h-screen overflow-x-hidden">
+      <header className="px-4 sm:px-6 py-4 bg-white flex items-center justify-between shadow-sm sticky top-0 z-40">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden">
             <img src={(user as any)?.avatarUrl || '/placeholder-avatar.png'} alt="avatar" className="w-full h-full object-cover" />
@@ -76,13 +76,13 @@ const BuyerDashboard: React.FC<{ user: User }> = ({ user }) => {
         </div>
       </header>
 
-      <div className="p-6 space-y-6">
-        <div className="flex gap-3">
+      <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto">
+        <div className="flex flex-col sm:flex-row gap-3">
            <div className="relative flex-1">
              <input type="text" placeholder="Search homes, agents..." className="w-full bg-white border border-gray-100 rounded-2xl py-4 pl-12 pr-4 outline-none shadow-sm" />
              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={20} />
            </div>
-           <button className="bg-reach-navy text-white p-4 rounded-2xl shadow-lg active:scale-95 transition-all">
+           <button className="bg-reach-navy text-white p-4 rounded-2xl shadow-lg active:scale-95 transition-all w-full sm:w-auto">
              <SlidersHorizontal size={24} />
            </button>
         </div>
