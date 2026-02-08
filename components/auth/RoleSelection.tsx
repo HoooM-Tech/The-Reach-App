@@ -17,14 +17,17 @@ const RoleSelection: React.FC = () => {
   const router = useRouter();
 
   return (
-    <div className="h-screen bg-reach-light flex flex-col">
-      <div className="p-6">
+    <div className="min-h-screen bg-white flex flex-col relative overflow-hidden">
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className="w-[320px] h-[320px] sm:w-[420px] sm:h-[420px] bg-[linear-gradient(180deg,#C1272D_0%,#D17A39_100%)] rounded-full opacity-20 blur-3xl" />
+      </div>
+      <div className="p-6 relative z-10">
         <button onClick={() => router.push('/')} className="bg-white p-2 rounded-full shadow-sm">
            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
         </button>
       </div>
 
-      <div className="flex-1 px-8">
+      <div className="flex-1 px-8 relative z-10">
         <h2 className="text-2xl font-bold text-reach-navy mt-4">Welcome to Reach, Pick your role.</h2>
         <p className="text-gray-500 mt-2 mb-8">Select your role to personalize your experience.</p>
 
@@ -49,7 +52,7 @@ const RoleSelection: React.FC = () => {
         </div>
       </div>
 
-      <div className="p-8 pb-12">
+      <div className="p-8 pb-12 relative z-10">
         <button 
           disabled={!selected}
           onClick={() => {
@@ -64,8 +67,8 @@ const RoleSelection: React.FC = () => {
               }
             }
           }}
-          className={`w-full py-4 rounded-2xl font-bold transition-all shadow-lg active:scale-95 ${
-            selected ? 'bg-reach-navy text-white' : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+          className={`w-full py-4 rounded-2xl font-semibold transition-colors ${
+            selected ? 'bg-reach-navy text-white hover:bg-reach-navy/90' : 'bg-gray-200 text-gray-400 cursor-not-allowed'
           }`}
         >
           Continue

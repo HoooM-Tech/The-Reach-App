@@ -11,7 +11,7 @@ const config: Config = {
       // Custom colors matching the Reach App design system
       colors: {
         // Primary brand colors
-        'reach-navy': '#0A1628',    // Deep navy for primary actions (legacy)
+        'reach-navy': '#15355A',    // Deep navy for primary actions (matches reach-primary)
         'reach-primary': '#15355A',  // Primary button color
         'reach-red': '#E54D4D',     // Accent red for highlights
         'reach-light': '#FBF0EE',   // Light background for all pages
@@ -58,6 +58,7 @@ const config: Config = {
         'slideDown': 'slideDown 0.3s ease-out',
         'scaleIn': 'scaleIn 0.2s ease-out',
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'float': 'float 3s ease-in-out infinite',
       },
       keyframes: {
         fadeIn: {
@@ -75,6 +76,10 @@ const config: Config = {
         scaleIn: {
           '0%': { transform: 'scale(0.95)', opacity: '0' },
           '100%': { transform: 'scale(1)', opacity: '1' },
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-10px)' },
         },
       },
       // Spacing extensions

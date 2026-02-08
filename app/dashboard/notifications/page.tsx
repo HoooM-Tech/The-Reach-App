@@ -6,6 +6,8 @@ import { useUser } from '@/contexts/UserContext';
 import { notificationsApi, ApiError } from '@/lib/api/client';
 import { AuthGuard } from '@/components/auth/RoleGuard';
 import { groupNotificationsByDate, sortDateGroups } from '@/lib/utils/date-grouping';
+import { parseTimestamp } from '@/lib/utils/time';
+import { getInspectionNotificationMessage, hasInspectionTimes } from '@/lib/utils/inspection-notification-message';
 import { resolveNotificationRoute, getNotificationActionLabel } from '@/lib/utils/notification-routing';
 import { 
   Bell, 
@@ -100,7 +102,10 @@ interface NotificationItemProps {
 
 function NotificationItem({ notification, onMarkRead, userRole }: NotificationItemProps) {
   const router = useRouter();
-  const message = notification.message || notification.body || 'You just got a new Lead';
+  const fallbackBody = notification.message || notification.body || 'You just got a new Lead';
+  const message = hasInspectionTimes(notification.type)
+    ? getInspectionNotificationMessage(notification.type, notification.data, fallbackBody)
+    : fallbackBody;
   const isUnread = !notification.is_read && !notification.read;
 
   // Get action URL using type-safe routing resolver
@@ -109,9 +114,9 @@ function NotificationItem({ notification, onMarkRead, userRole }: NotificationIt
   // Get action label using type-safe resolver
   const actionLabel = getNotificationActionLabel(notification, userRole);
 
-  // Format timestamp exactly as shown in screenshot: "Yesterday, 1:05 PM"
+  // Format timestamp: "Yesterday, 1:05 PM" - use parseTimestamp for correct UTC handling
   const formatTimestamp = (dateString: string): string => {
-    const date = new Date(dateString);
+    const date = parseTimestamp(dateString);
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const notificationDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
@@ -254,7 +259,7 @@ function NotificationsPageContent() {
       
       // Sort by newest first
       const sorted = notificationsArray.sort((a: Notification, b: Notification) => {
-        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        return parseTimestamp(b.created_at).getTime() - parseTimestamp(a.created_at).getTime();
       });
       
       setNotifications(sorted);

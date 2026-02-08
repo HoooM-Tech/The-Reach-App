@@ -399,8 +399,8 @@ const CreatorRegistration: React.FC = () => {
         <button
           onClick={handleNext}
           disabled={!isValidPersonalDetails()}
-          className={`w-full py-4 rounded-2xl font-bold shadow-lg mb-8 ${
-            isValidPersonalDetails() ? 'bg-reach-navy text-white' : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+          className={`w-full py-4 rounded-2xl font-semibold transition-colors mb-8 ${
+            isValidPersonalDetails() ? 'bg-reach-navy text-white hover:bg-reach-navy/90' : 'bg-gray-200 text-gray-400 cursor-not-allowed'
           }`}
         >
           Agree and Continue
@@ -437,8 +437,8 @@ const CreatorRegistration: React.FC = () => {
       <button
         onClick={handleNext}
         disabled={!phone || isLoading}
-        className={`w-full py-4 mt-12 rounded-2xl font-bold shadow-lg flex items-center justify-center gap-2 ${
-          phone ? 'bg-reach-navy text-white' : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+        className={`w-full py-4 mt-12 rounded-2xl font-semibold transition-colors flex items-center justify-center gap-2 ${
+          phone ? 'bg-reach-navy text-white hover:bg-reach-navy/90' : 'bg-gray-200 text-gray-400 cursor-not-allowed'
         }`}
       >
         {isLoading ? (
@@ -497,8 +497,8 @@ const CreatorRegistration: React.FC = () => {
       <button
         onClick={handleNext}
         disabled={!isValidOtp() || isLoading}
-        className={`w-full py-4 mt-4 rounded-2xl font-bold shadow-lg flex items-center justify-center gap-2 ${
-          isValidOtp() ? 'bg-reach-navy text-white' : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+        className={`w-full py-4 mt-4 rounded-2xl font-semibold transition-colors flex items-center justify-center gap-2 ${
+          isValidOtp() ? 'bg-reach-navy text-white hover:bg-reach-navy/90' : 'bg-gray-200 text-gray-400 cursor-not-allowed'
         }`}
       >
         {isLoading ? (
@@ -568,7 +568,7 @@ const CreatorRegistration: React.FC = () => {
       <button
         onClick={handleNext}
         disabled={isLoading}
-        className="w-full py-4 bg-reach-navy text-white rounded-2xl font-bold shadow-lg mb-8 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        className="w-full py-4 bg-reach-navy text-white rounded-2xl font-semibold hover:bg-reach-navy/90 transition-colors mb-8 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
       >
         {isLoading ? (
           <>
@@ -632,7 +632,7 @@ const CreatorRegistration: React.FC = () => {
           <button
             onClick={handleFinish}
             disabled={isLoading}
-            className="w-full py-4 bg-reach-navy text-white rounded-2xl font-bold shadow-lg hover:bg-blue-900 transition-all flex items-center justify-center gap-2"
+            className="w-full py-4 bg-reach-navy text-white rounded-2xl font-semibold hover:bg-reach-navy/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? (
               <>
@@ -648,19 +648,24 @@ const CreatorRegistration: React.FC = () => {
   };
 
   return (
-    <div className="h-screen bg-reach-light">
-      <div className="p-6">
-        <button type="button" onClick={() => router.back()} aria-label="Go back" className="bg-white p-2 rounded-full shadow-sm">
+    <div className="min-h-screen bg-white relative overflow-hidden">
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className="w-[320px] h-[320px] sm:w-[420px] sm:h-[420px] bg-[linear-gradient(180deg,#C1272D_0%,#D17A39_100%)] rounded-full opacity-20 blur-3xl" />
+      </div>
+      <div className="relative z-10 min-h-screen flex flex-col">
+        <div className="p-6">
+          <button type="button" onClick={() => router.back()} aria-label="Go back" className="bg-white p-2 rounded-full shadow-sm">
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
           </svg>
-        </button>
+          </button>
+        </div>
+        {step === VerifyStep.PERSONAL_DETAILS && renderPersonalDetails()}
+        {step === VerifyStep.PHONE && renderPhone()}
+        {step === VerifyStep.OTP && renderOtp()}
+        {step === VerifyStep.SOCIAL_LINKS && renderSocialLinks()}
+        {step === VerifyStep.SUCCESS && renderSuccess()}
       </div>
-      {step === VerifyStep.PERSONAL_DETAILS && renderPersonalDetails()}
-      {step === VerifyStep.PHONE && renderPhone()}
-      {step === VerifyStep.OTP && renderOtp()}
-      {step === VerifyStep.SOCIAL_LINKS && renderSocialLinks()}
-      {step === VerifyStep.SUCCESS && renderSuccess()}
     </div>
   );
 };

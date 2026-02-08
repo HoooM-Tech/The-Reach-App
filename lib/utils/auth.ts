@@ -138,3 +138,7 @@ export async function requireCreator() {
   return requireRole(['creator', 'admin'])
 }
 
+export async function requireBuyer() {
+  return requireRole('buyer')
+}
+

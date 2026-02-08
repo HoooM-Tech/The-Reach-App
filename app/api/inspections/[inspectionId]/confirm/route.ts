@@ -2,14 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase/server';
 import { getAuthenticatedUser } from '@/lib/utils/auth';
 import { NotFoundError, handleError } from '@/lib/utils/errors';
+import { notificationHelpers } from '@/lib/services/notification-helper';
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { inspectionId: string } }
 ) {
   try {
     const currentUser = await getAuthenticatedUser();
-    const inspectionId = params.id;
+    const inspectionId = params.inspectionId;
 
     const supabase = createServerSupabaseClient();
     const adminSupabase = createAdminSupabaseClient();
@@ -17,7 +18,7 @@ export async function POST(
     // Get inspection
     const { data: inspection, error: inspectionError } = await adminSupabase
       .from('inspections')
-      .select('*, properties(developer_id)')
+      .select('*, properties(developer_id, title)')
       .eq('id', inspectionId)
       .single();
 
@@ -43,6 +44,21 @@ export async function POST(
 
     if (updateError) {
       throw new Error('Failed to confirm inspection');
+    }
+
+    // Notify buyer
+    try {
+      if (inspection.buyer_id) {
+        await notificationHelpers.inspectionConfirmed({
+          buyerId: inspection.buyer_id,
+          propertyId: inspection.property_id,
+          propertyTitle: (inspection.properties as any)?.title,
+          inspectionId: inspectionId,
+          slotTime: inspection.slot_time,
+        });
+      }
+    } catch (notifError) {
+      console.error('Failed to send inspection confirmation notification:', notifError);
     }
 
     return NextResponse.json({

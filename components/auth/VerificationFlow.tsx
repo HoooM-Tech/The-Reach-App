@@ -55,7 +55,7 @@ const VerificationFlow: React.FC = () => {
             />
          </div>
       </div>
-      <button onClick={handleNext} disabled={!phone} className={`w-full py-4 mt-12 rounded-2xl font-bold shadow-lg ${phone ? 'bg-reach-navy text-white' : 'bg-gray-200 text-gray-400'}`}>
+      <button onClick={handleNext} disabled={!phone} className={`w-full py-4 mt-12 rounded-2xl font-semibold transition-colors ${phone ? 'bg-reach-navy text-white hover:bg-reach-navy/90' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>
         Continue
       </button>
     </div>
@@ -83,7 +83,7 @@ const VerificationFlow: React.FC = () => {
         ))}
       </div>
       <p className="text-center text-sm text-gray-400">Didn&apos;t get code? <span className="text-reach-red font-semibold">Resend in 33s</span></p>
-      <button onClick={handleNext} className="w-full py-4 mt-12 bg-reach-navy text-white rounded-2xl font-bold shadow-lg">
+      <button onClick={handleNext} className="w-full py-4 mt-12 bg-reach-navy text-white rounded-2xl font-semibold hover:bg-reach-navy/90 transition-colors">
         Continue
       </button>
     </div>
@@ -112,7 +112,7 @@ const VerificationFlow: React.FC = () => {
          <input type="email" placeholder="Enter business email address" className="w-full border border-gray-100 rounded-xl p-4 outline-none" />
          <textarea placeholder="Enter company registered address" className="w-full border border-gray-100 rounded-xl p-4 outline-none h-24" />
       </div>
-      <button onClick={handleNext} className="w-full py-4 mt-8 bg-reach-navy text-white rounded-2xl font-bold shadow-lg mb-8">
+      <button onClick={handleNext} className="w-full py-4 mt-8 bg-reach-navy text-white rounded-2xl font-semibold hover:bg-reach-navy/90 transition-colors mb-8">
         Continue
       </button>
     </div>
@@ -148,7 +148,7 @@ const VerificationFlow: React.FC = () => {
           <label htmlFor="kyc-upload" className="mt-4 text-reach-navy font-bold cursor-pointer underline">Browse files</label>
       </div>
 
-      <button onClick={handleNext} className="w-full py-4 bg-reach-navy text-white rounded-2xl font-bold shadow-lg">
+      <button onClick={handleNext} className="w-full py-4 bg-reach-navy text-white rounded-2xl font-semibold hover:bg-reach-navy/90 transition-colors">
         Submit & Continue
       </button>
     </div>
@@ -165,7 +165,7 @@ const VerificationFlow: React.FC = () => {
         </p>
         <button 
           onClick={handleFinish}
-          className="w-full py-4 bg-white text-reach-navy rounded-2xl font-bold shadow-lg hover:bg-gray-50 transition-all"
+          className="w-full py-4 bg-reach-navy text-white rounded-2xl font-semibold hover:bg-reach-navy/90 transition-colors"
         >
           Let&apos;s go
         </button>
@@ -173,17 +173,22 @@ const VerificationFlow: React.FC = () => {
   );
 
   return (
-    <div className="h-screen bg-reach-light">
-      <div className="p-6">
-        <button onClick={() => router.back()} className="bg-white p-2 rounded-full shadow-sm">
-           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
-        </button>
+    <div className="min-h-screen bg-white relative overflow-hidden">
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className="w-[320px] h-[320px] sm:w-[420px] sm:h-[420px] bg-[linear-gradient(180deg,#C1272D_0%,#D17A39_100%)] rounded-full opacity-20 blur-3xl" />
       </div>
-      {step === VerifyStep.PHONE && renderPhone()}
-      {step === VerifyStep.OTP && renderOtp()}
-      {step === VerifyStep.DETAILS && renderDetails()}
-      {step === VerifyStep.KYC && renderKYC()}
-      {step === VerifyStep.SUCCESS && renderSuccess()}
+      <div className="relative z-10 min-h-screen flex flex-col">
+        <div className="p-6">
+          <button onClick={() => router.back()} className="bg-white p-2 rounded-full shadow-sm">
+           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
+          </button>
+        </div>
+        {step === VerifyStep.PHONE && renderPhone()}
+        {step === VerifyStep.OTP && renderOtp()}
+        {step === VerifyStep.DETAILS && renderDetails()}
+        {step === VerifyStep.KYC && renderKYC()}
+        {step === VerifyStep.SUCCESS && renderSuccess()}
+      </div>
     </div>
   );
 };

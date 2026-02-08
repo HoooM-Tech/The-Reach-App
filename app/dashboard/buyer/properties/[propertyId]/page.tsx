@@ -727,6 +727,7 @@ export default function BuyerPropertyDetailsPage() {
                 <ChevronLeft className="w-6 h-6" />
               </button>
               <h1 className="text-base sm:text-lg font-semibold">Request Inspection</h1>
+              {/*
               <button
                 className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm relative"
                 aria-label="Notifications"
@@ -735,6 +736,7 @@ export default function BuyerPropertyDetailsPage() {
                 <Bell className="w-5 h-5" />
                 {hasUnread && <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />}
               </button>
+              */}
             </header>
 
             <div className="px-4 pb-6">

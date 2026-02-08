@@ -21,6 +21,8 @@ export interface NotificationData {
   developer_id?: string;
   creator_id?: string;
   promotion_id?: string;
+  slot_time?: string;
+  old_slot_time?: string;
   [key: string]: any;
 }
 
@@ -114,6 +116,17 @@ export function resolveNotificationRoute(
   // DEVELOPER ROUTES
   // ===========================================
   if (userRole === 'developer') {
+    // Handover notifications → Developer handover page
+    if (
+      type === 'handover_documents_signed' ||
+      type === 'handover_completed'
+    ) {
+      if (data.handover_id) {
+        return `/dashboard/developer/handover/${data.handover_id}`;
+      }
+      return '/dashboard/developer/handover';
+    }
+
     // Property verified → Developer property page
     if (type === 'property_verified' && data.property_id) {
       if (data.contract_id) {
@@ -135,9 +148,16 @@ export function resolveNotificationRoute(
       return `/dashboard/developer/properties/${data.property_id}`;
     }
 
-    // Inspection booked → Developer inspections page
-    if (type === 'inspection_booked') {
+    // Inspection booked/rescheduled/cancelled → Developer inspections page
+    if (type === 'inspection_booked' || type === 'inspection_rescheduled_by_buyer' || type === 'inspection_cancelled') {
+      if (data.inspection_id) {
+        return `/dashboard/developer/inspections/${data.inspection_id}`;
+      }
       return '/dashboard/developer/inspections';
+    }
+
+    if (type === 'inspection_paid' && data.inspection_id) {
+      return `/dashboard/developer/inspections/${data.inspection_id}`;
     }
 
     // Contract executed → Contracts page
@@ -163,14 +183,38 @@ export function resolveNotificationRoute(
   // BUYER ROUTES
   // ===========================================
   if (userRole === 'buyer') {
-    // Inspection booked → Buyer inspections page
-    if (type === 'inspection_booked' || type === 'inspection_confirmed' || type === 'inspection_rescheduled') {
+    // Inspection updates → Buyer inspection details
+    if (
+      type === 'inspection_booked' ||
+      type === 'inspection_confirmed' ||
+      type === 'inspection_rescheduled' ||
+      type === 'inspection_cancelled' ||
+      type === 'inspection_completed' ||
+      type === 'inspection_paid'
+    ) {
+      if (data.inspection_id) {
+        return `/dashboard/buyer/inspections/${data.inspection_id}`;
+      }
       return '/dashboard/buyer/inspections';
     }
 
     // Property updates → Public property page (buyers can view)
     if (type === 'property_verified' && data.property_id) {
       return `/property/${data.property_id}`;
+    }
+
+    // Handover notifications → Buyer handover pages
+    if (type === 'handover_documents_uploaded') {
+      if (data.handover_id) {
+        return `/dashboard/buyer/handover/${data.handover_id}/documents`;
+      }
+      return '/dashboard/buyer/handover';
+    }
+    if (type === 'handover_scheduled' || type === 'handover_completed') {
+      if (data.handover_id) {
+        return `/dashboard/buyer/handover/${data.handover_id}`;
+      }
+      return '/dashboard/buyer/handover';
     }
 
     // Payment/transaction → Buyer wallet
@@ -231,6 +275,12 @@ export function getNotificationActionLabel(
     if (type === 'new_bid') {
       return 'View Bid';
     }
+    if (type === 'inspection_booked' || type === 'inspection_rescheduled_by_buyer' || type === 'inspection_cancelled') {
+      return 'View Inspection';
+    }
+    if (type === 'inspection_paid') {
+      return 'View Inspection';
+    }
     if (type === 'property_bought' || type === 'deposit_cash' || type === 'payout_processed') {
       return 'See Transaction';
     }
@@ -238,11 +288,24 @@ export function getNotificationActionLabel(
   }
 
   if (userRole === 'buyer') {
-    if (type === 'inspection_booked' || type === 'inspection_confirmed') {
+    if (
+      type === 'inspection_booked' ||
+      type === 'inspection_confirmed' ||
+      type === 'inspection_rescheduled' ||
+      type === 'inspection_cancelled' ||
+      type === 'inspection_completed' ||
+      type === 'inspection_paid'
+    ) {
       return 'View Inspection';
     }
     if (type === 'payment_confirmed') {
       return 'View Transaction';
+    }
+    if (type === 'handover_documents_uploaded') {
+      return 'View Documents';
+    }
+    if (type === 'handover_scheduled' || type === 'handover_completed') {
+      return 'View Handover';
     }
     return null;
   }

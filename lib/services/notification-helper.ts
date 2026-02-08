@@ -117,12 +117,13 @@ export const notificationHelpers = {
     buyerName?: string
     buyerPhone?: string
   }): Promise<void> {
-    // Use central time utility for consistent formatting
-    const { formatInspectionTime } = await import('@/lib/utils/time')
+    // Use central time utility - pass timeZone for correct display (server runs in UTC)
+    const { formatInspectionTime, DISPLAY_TIMEZONE } = await import('@/lib/utils/time')
     const formattedDateTime = formatInspectionTime(data.slotTime, {
       includeDate: true,
       includeTime: true,
       timeFormat: '12h',
+      timeZone: DISPLAY_TIMEZONE,
     })
     const [formattedDate, formattedTime] = formattedDateTime.split(' at ')
 
@@ -397,17 +398,19 @@ export const notificationHelpers = {
     buyerName?: string
     buyerPhone?: string
   }): Promise<void> {
-    // Use central time utility for consistent formatting
-    const { formatInspectionTime } = await import('@/lib/utils/time')
+    // Use central time utility - pass timeZone for correct display (server runs in UTC)
+    const { formatInspectionTime, DISPLAY_TIMEZONE } = await import('@/lib/utils/time')
     const oldTimeFormatted = formatInspectionTime(data.oldSlotTime, {
       includeDate: true,
       includeTime: true,
       timeFormat: '12h',
+      timeZone: DISPLAY_TIMEZONE,
     })
     const newTimeFormatted = formatInspectionTime(data.newSlotTime, {
       includeDate: true,
       includeTime: true,
       timeFormat: '12h',
+      timeZone: DISPLAY_TIMEZONE,
     })
 
     // Notify buyer if provided
@@ -427,6 +430,255 @@ export const notificationHelpers = {
         ['in_app', 'push', 'email']
       );
     }
+  },
+
+  /**
+   * Inspection rescheduled by buyer notification (developer)
+   */
+  async inspectionRescheduledByBuyer(data: {
+    developerId: string
+    buyerId?: string
+    propertyId: string
+    propertyTitle: string
+    inspectionId: string
+    oldSlotTime: string
+    newSlotTime: string
+    buyerName?: string
+    buyerPhone?: string
+  }): Promise<void> {
+    const { formatInspectionTime, DISPLAY_TIMEZONE } = await import('@/lib/utils/time')
+    const oldTimeFormatted = formatInspectionTime(data.oldSlotTime, {
+      includeDate: true,
+      includeTime: true,
+      timeFormat: '12h',
+      timeZone: DISPLAY_TIMEZONE,
+    })
+    const newTimeFormatted = formatInspectionTime(data.newSlotTime, {
+      includeDate: true,
+      includeTime: true,
+      timeFormat: '12h',
+      timeZone: DISPLAY_TIMEZONE,
+    })
+
+    await createNotification(
+      data.developerId,
+      'inspection_rescheduled_by_buyer',
+      'Inspection Rescheduled',
+      `${data.buyerName || 'A buyer'} rescheduled the inspection for "${data.propertyTitle}" from ${oldTimeFormatted} to ${newTimeFormatted}.`,
+      {
+        property_id: data.propertyId,
+        property_title: data.propertyTitle,
+        inspection_id: data.inspectionId,
+        old_slot_time: data.oldSlotTime,
+        slot_time: data.newSlotTime,
+        buyer_id: data.buyerId,
+        buyer_name: data.buyerName,
+        buyer_phone: data.buyerPhone,
+      },
+      ['in_app', 'push', 'email']
+    )
+  },
+
+  /**
+   * Inspection confirmed notification
+   */
+  async inspectionConfirmed(data: {
+    buyerId: string
+    propertyId: string
+    propertyTitle: string
+    inspectionId: string
+    slotTime: string
+  }): Promise<void> {
+    const { formatInspectionTime, DISPLAY_TIMEZONE } = await import('@/lib/utils/time')
+    const formattedDateTime = formatInspectionTime(data.slotTime, {
+      includeDate: true,
+      includeTime: true,
+      timeFormat: '12h',
+      timeZone: DISPLAY_TIMEZONE,
+    })
+    await createNotification(
+      data.buyerId,
+      'inspection_confirmed',
+      'Inspection Confirmed',
+      `Your inspection for "${data.propertyTitle}" has been confirmed for ${formattedDateTime}.`,
+      {
+        property_id: data.propertyId,
+        property_title: data.propertyTitle,
+        inspection_id: data.inspectionId,
+        slot_time: data.slotTime,
+      },
+      ['in_app', 'push', 'email']
+    )
+  },
+
+  /**
+   * Inspection cancelled notification (generic - notifies buyer)
+   */
+  async inspectionCancelled(data: {
+    buyerId: string
+    propertyId: string
+    propertyTitle: string
+    inspectionId: string
+    reason?: string
+  }): Promise<void> {
+    await createNotification(
+      data.buyerId,
+      'inspection_cancelled',
+      'Inspection Cancelled',
+      data.reason
+        ? `Your inspection for "${data.propertyTitle}" was cancelled: ${data.reason}`
+        : `Your inspection for "${data.propertyTitle}" has been cancelled.`,
+      {
+        property_id: data.propertyId,
+        property_title: data.propertyTitle,
+        inspection_id: data.inspectionId,
+        cancellation_reason: data.reason,
+      },
+      ['in_app', 'push', 'email']
+    )
+  },
+
+  /**
+   * Inspection cancelled by buyer → notify developer
+   */
+  async inspectionCancelledByBuyer(data: {
+    developerId: string
+    buyerId: string
+    propertyId: string
+    propertyTitle: string
+    inspectionId: string
+    buyerName?: string
+  }): Promise<void> {
+    await createNotification(
+      data.developerId,
+      'inspection_cancelled',
+      'Inspection Cancelled',
+      `${data.buyerName || 'A buyer'} cancelled their inspection for "${data.propertyTitle}".`,
+      {
+        property_id: data.propertyId,
+        property_title: data.propertyTitle,
+        inspection_id: data.inspectionId,
+        buyer_id: data.buyerId,
+        buyer_name: data.buyerName,
+        cancelled_by: 'buyer',
+      },
+      ['in_app', 'push', 'email']
+    )
+  },
+
+  /**
+   * Inspection cancelled by developer → notify buyer
+   */
+  async inspectionCancelledByDeveloper(data: {
+    buyerId: string
+    propertyId: string
+    propertyTitle: string
+    inspectionId: string
+  }): Promise<void> {
+    await createNotification(
+      data.buyerId,
+      'inspection_cancelled',
+      'Inspection Cancelled',
+      `The developer cancelled your inspection for "${data.propertyTitle}". You may rebook at a different time.`,
+      {
+        property_id: data.propertyId,
+        property_title: data.propertyTitle,
+        inspection_id: data.inspectionId,
+        cancelled_by: 'developer',
+      },
+      ['in_app', 'push', 'email']
+    )
+  },
+
+  /**
+   * Inspection completed notification
+   */
+  async inspectionCompleted(data: {
+    buyerId: string
+    propertyId: string
+    propertyTitle: string
+    inspectionId: string
+  }): Promise<void> {
+    await createNotification(
+      data.buyerId,
+      'inspection_completed',
+      'Inspection Completed',
+      `Your inspection for "${data.propertyTitle}" has been completed.`,
+      {
+        property_id: data.propertyId,
+        property_title: data.propertyTitle,
+        inspection_id: data.inspectionId,
+      },
+      ['in_app', 'push', 'email']
+    )
+  },
+
+  /**
+   * Inspection payment completed notification
+   */
+  async inspectionPaymentCompleted(data: {
+    buyerId: string
+    developerId: string
+    propertyId: string
+    propertyTitle: string
+    inspectionId: string
+    amount: number
+    transactionId: string
+  }): Promise<void> {
+    await createNotification(
+      data.buyerId,
+      'inspection_paid',
+      'Payment Completed',
+      `Your payment of ₦${data.amount.toLocaleString()} for "${data.propertyTitle}" is successful.`,
+      {
+        property_id: data.propertyId,
+        property_title: data.propertyTitle,
+        inspection_id: data.inspectionId,
+        amount: data.amount,
+        transaction_id: data.transactionId,
+      },
+      ['in_app', 'push', 'email']
+    )
+
+    await createNotification(
+      data.developerId,
+      'inspection_paid',
+      'Payment Received',
+      `A payment of ₦${data.amount.toLocaleString()} was received for "${data.propertyTitle}".`,
+      {
+        property_id: data.propertyId,
+        property_title: data.propertyTitle,
+        inspection_id: data.inspectionId,
+        amount: data.amount,
+        transaction_id: data.transactionId,
+      },
+      ['in_app', 'push', 'email']
+    )
+  },
+
+  /**
+   * Inspection interest withdrawn notification
+   */
+  async inspectionInterestWithdrawn(data: {
+    developerId: string
+    buyerId: string
+    propertyId: string
+    propertyTitle: string
+    inspectionId: string
+  }): Promise<void> {
+    await createNotification(
+      data.developerId,
+      'inspection_interest_withdrawn',
+      'Interest Withdrawn',
+      `A buyer withdrew interest for "${data.propertyTitle}".`,
+      {
+        property_id: data.propertyId,
+        property_title: data.propertyTitle,
+        inspection_id: data.inspectionId,
+        buyer_id: data.buyerId,
+      },
+      ['in_app', 'push', 'email']
+    )
   },
 
   /**
@@ -491,5 +743,194 @@ export const notificationHelpers = {
         ['in_app', 'push', 'email']
       )
     }
+  },
+
+  // ===========================================
+  // Handover Notifications
+  // ===========================================
+
+  /**
+   * Handover documents uploaded notification (to buyer)
+   */
+  async handoverDocumentsUploaded(data: {
+    buyerId: string
+    propertyId: string
+    propertyTitle: string
+    handoverId: string
+    documentsCount: number
+  }): Promise<void> {
+    await createNotification(
+      data.buyerId,
+      'handover_documents_uploaded',
+      'Handover Documents Ready',
+      `Documents for "${data.propertyTitle}" are ready for your review and signature.`,
+      {
+        property_id: data.propertyId,
+        property_title: data.propertyTitle,
+        handover_id: data.handoverId,
+        documents_count: data.documentsCount,
+      },
+      ['in_app', 'push', 'email']
+    )
+  },
+
+  /**
+   * Handover documents uploaded notification (to admin)
+   */
+  async handoverDocumentsUploadedAdmin(data: {
+    adminId: string
+    developerId: string
+    propertyId: string
+    propertyTitle: string
+    handoverId: string
+    documentsCount: number
+  }): Promise<void> {
+    await createNotification(
+      data.adminId,
+      'handover_documents_uploaded_admin',
+      'Handover Documents Uploaded',
+      `Developer has uploaded handover documents for "${data.propertyTitle}".`,
+      {
+        property_id: data.propertyId,
+        property_title: data.propertyTitle,
+        handover_id: data.handoverId,
+        developer_id: data.developerId,
+        documents_count: data.documentsCount,
+      },
+      ['in_app', 'push', 'email']
+    )
+  },
+
+  /**
+   * Handover documents signed notification (to developer)
+   */
+  async handoverDocumentsSigned(data: {
+    developerId: string
+    buyerId: string
+    buyerName: string
+    propertyId: string
+    propertyTitle: string
+    handoverId: string
+  }): Promise<void> {
+    await createNotification(
+      data.developerId,
+      'handover_documents_signed',
+      'Documents Signed',
+      `${data.buyerName} has reviewed and signed all handover documents for "${data.propertyTitle}".`,
+      {
+        property_id: data.propertyId,
+        property_title: data.propertyTitle,
+        handover_id: data.handoverId,
+        buyer_id: data.buyerId,
+        buyer_name: data.buyerName,
+      },
+      ['in_app', 'push', 'email']
+    )
+  },
+
+  /**
+   * Handover documents signed notification (to admin)
+   */
+  async handoverDocumentsSignedAdmin(data: {
+    adminId: string
+    buyerId: string
+    buyerName: string
+    propertyId: string
+    propertyTitle: string
+    handoverId: string
+  }): Promise<void> {
+    await createNotification(
+      data.adminId,
+      'handover_documents_signed_admin',
+      'Documents Signed - Schedule Handover',
+      `Buyer has signed documents for "${data.propertyTitle}". Ready to schedule physical handover.`,
+      {
+        property_id: data.propertyId,
+        property_title: data.propertyTitle,
+        handover_id: data.handoverId,
+        buyer_id: data.buyerId,
+        buyer_name: data.buyerName,
+      },
+      ['in_app', 'push', 'email']
+    )
+  },
+
+  /**
+   * Physical handover scheduled notification (to buyer)
+   */
+  async handoverScheduled(data: {
+    buyerId: string
+    propertyId: string
+    propertyTitle: string
+    handoverId: string
+    date: string
+    time: string
+    location: string
+  }): Promise<void> {
+    await createNotification(
+      data.buyerId,
+      'handover_scheduled',
+      'Physical Handover Scheduled',
+      `Your handover for "${data.propertyTitle}" is scheduled for ${data.date} at ${data.time}.`,
+      {
+        property_id: data.propertyId,
+        property_title: data.propertyTitle,
+        handover_id: data.handoverId,
+        handover_date: data.date,
+        handover_time: data.time,
+        handover_location: data.location,
+      },
+      ['in_app', 'push', 'email']
+    )
+  },
+
+  /**
+   * Handover completed notification (to buyer)
+   */
+  async handoverCompleted(data: {
+    buyerId: string
+    propertyId: string
+    propertyTitle: string
+    handoverId: string
+  }): Promise<void> {
+    await createNotification(
+      data.buyerId,
+      'handover_completed',
+      'Handover Complete',
+      `Congratulations! The handover for "${data.propertyTitle}" has been completed. You are now the official owner.`,
+      {
+        property_id: data.propertyId,
+        property_title: data.propertyTitle,
+        handover_id: data.handoverId,
+      },
+      ['in_app', 'push', 'email']
+    )
+  },
+
+  /**
+   * Handover completed notification (to admin)
+   */
+  async handoverCompletedAdmin(data: {
+    adminId: string
+    buyerId: string
+    developerId: string
+    propertyId: string
+    propertyTitle: string
+    handoverId: string
+  }): Promise<void> {
+    await createNotification(
+      data.adminId,
+      'handover_completed_admin',
+      'Handover Completed',
+      `Physical handover for "${data.propertyTitle}" has been successfully completed.`,
+      {
+        property_id: data.propertyId,
+        property_title: data.propertyTitle,
+        handover_id: data.handoverId,
+        buyer_id: data.buyerId,
+        developer_id: data.developerId,
+      },
+      ['in_app', 'push', 'email']
+    )
   },
 }

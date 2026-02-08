@@ -329,6 +329,22 @@ export interface BuyerDashboardData {
   leads: Array<any>;
 }
 
+export interface BuyerInspection {
+  id: string
+  property_id: string
+  buyer_id?: string | null
+  slot_time: string
+  status: string
+  type?: string
+  address?: string | null
+  reminder_days?: number | null
+  buyer_name?: string | null
+  buyer_email?: string | null
+  buyer_phone?: string | null
+  properties?: any
+  leads?: any
+}
+
 export interface Property {
   id: string;
   developer_id: string;
@@ -565,6 +581,21 @@ export const developerApi = {
     return fetchWithAuth(`/api/properties/${id}/verify`, {
       method: 'POST',
     });
+  },
+
+  /** Cancel an inspection (developer) */
+  async cancelInspection(inspectionId: string): Promise<{ message: string; inspection: any }> {
+    return fetchWithAuth(`/api/inspections/${inspectionId}/cancel`, { method: 'POST' })
+  },
+
+  /** Confirm an inspection (developer) */
+  async confirmInspection(inspectionId: string): Promise<{ message: string; inspection: any }> {
+    return fetchWithAuth(`/api/inspections/${inspectionId}/confirm`, { method: 'POST' })
+  },
+
+  /** Complete an inspection (developer) */
+  async completeInspection(inspectionId: string): Promise<{ message: string; inspection: any }> {
+    return fetchWithAuth(`/api/inspections/${inspectionId}/complete`, { method: 'PATCH' })
   },
 
   /** Upload media to property */
@@ -826,7 +857,79 @@ export const buyerApi = {
       }),
     });
   },
+
+  /** Get buyer inspections with filters */
+  async getInspections(filters?: {
+    status?: 'all' | 'scheduled' | 'completed' | 'cancelled'
+    q?: string
+    type?: string
+    page?: number
+    limit?: number
+  }): Promise<{
+    inspections: BuyerInspection[]
+    pagination: { page: number; limit: number; total: number; totalPages: number }
+    counts: { all: number; scheduled: number; completed: number; cancelled: number }
+  }> {
+    const params = new URLSearchParams()
+    if (filters?.status) params.set('status', filters.status)
+    if (filters?.q) params.set('q', filters.q)
+    if (filters?.type) params.set('type', filters.type)
+    if (filters?.page) params.set('page', filters.page.toString())
+    if (filters?.limit) params.set('limit', filters.limit.toString())
+    return fetchWithAuth(`/api/inspections?${params.toString()}`)
+  },
+
+  /** Get inspection details */
+  async getInspectionDetails(inspectionId: string): Promise<{ inspection: BuyerInspection; transactions: any[] }> {
+    return fetchWithAuth(`/api/inspections/${inspectionId}`)
+  },
+
+  /** Reschedule inspection (buyer) */
+  async rescheduleInspection(inspectionId: string, slot_time: string): Promise<{ message: string; inspection: any }> {
+    return fetchWithAuth(`/api/inspections/${inspectionId}/reschedule`, {
+      method: 'PATCH',
+      body: JSON.stringify({ slot_time }),
+    })
+  },
+
+  /** Withdraw inspection interest */
+  async withdrawInspection(inspectionId: string): Promise<{ message: string; inspection: any }> {
+    return fetchWithAuth(`/api/inspections/${inspectionId}/withdraw`, { method: 'POST' })
+  },
+
+  /** Cancel an inspection (buyer) */
+  async cancelInspection(inspectionId: string): Promise<{ message: string; inspection: any }> {
+    return fetchWithAuth(`/api/inspections/${inspectionId}/cancel`, { method: 'POST' })
+  },
+
+  /** Create inspection payment */
+  async createInspectionPayment(inspectionId: string, data: {
+    payment_method: 'wallet' | 'paystack'
+    billing_address?: any
+  }): Promise<{ message: string; transaction: any; authorization_url?: string }> {
+    return fetchWithAuth(`/api/inspections/${inspectionId}/payment`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  },
 };
+
+export const transactionsApi = {
+  /** Process wallet payment for a transaction */
+  async processWalletPayment(transactionId: string): Promise<{ message: string; transaction: any }> {
+    return fetchWithAuth(`/api/transactions/${transactionId}/process`, { method: 'POST' })
+  },
+
+  /** Verify Paystack payment for a transaction */
+  async verifyTransaction(transactionId: string): Promise<{ transaction: any }> {
+    return fetchWithAuth(`/api/transactions/${transactionId}/verify`)
+  },
+
+  /** Get transaction details */
+  async getTransaction(transactionId: string): Promise<{ transaction: any }> {
+    return fetchWithAuth(`/api/transactions/${transactionId}`)
+  },
+}
 
 // ===========================================
 // Wallet API - Shared but role-aware
@@ -1103,9 +1206,128 @@ export const uploadApi = {
 // ===========================================
 
 export const handoverApi = {
-  /** Buyer signs handover document */
+  /** Buyer signs handover document (legacy) */
   async buyerSign(propertyId: string): Promise<{ message: string }> {
     return fetchWithAuth(`/api/handover/buyer-sign/${propertyId}`, {
+      method: 'POST',
+    });
+  },
+
+  /** Get all handovers for the current buyer */
+  async getHandovers(query?: string): Promise<{ handovers: any[] }> {
+    const params = new URLSearchParams();
+    if (query) params.append('q', query);
+    const qs = params.toString();
+    return fetchWithAuth(`/api/handovers${qs ? `?${qs}` : ''}`);
+  },
+
+  /** Get a single handover's details */
+  async getHandover(handoverId: string): Promise<any> {
+    return fetchWithAuth(`/api/handovers/${handoverId}`);
+  },
+
+  /** Get handover document categories with documents */
+  async getHandoverDocuments(handoverId: string): Promise<{
+    categories: any[];
+    allSigned: boolean;
+    documentsCount: number;
+  }> {
+    return fetchWithAuth(`/api/handovers/${handoverId}/documents`);
+  },
+
+  /** Get a specific handover document */
+  async getHandoverDocument(handoverId: string, docId: string): Promise<any> {
+    return fetchWithAuth(`/api/handovers/${handoverId}/documents/${docId}`);
+  },
+
+  /** Sign all handover documents */
+  async signHandoverDocuments(handoverId: string): Promise<{
+    success: boolean;
+    handover: any;
+    notificationsSent: { developer: boolean; admin: boolean };
+  }> {
+    return fetchWithAuth(`/api/handovers/${handoverId}/sign`, {
+      method: 'POST',
+    });
+  },
+};
+
+// ===========================================
+// Developer Handover API
+// ===========================================
+
+export const developerHandoverApi = {
+  /** Get all handovers for the current developer */
+  async getHandovers(status?: string): Promise<{ handovers: any[] }> {
+    const params = new URLSearchParams();
+    params.append('role', 'developer');
+    if (status) params.append('status', status);
+    return fetchWithAuth(`/api/handovers?${params.toString()}`);
+  },
+
+  /** Get a single handover's details */
+  async getHandover(handoverId: string): Promise<any> {
+    return fetchWithAuth(`/api/handovers/${handoverId}`);
+  },
+
+  /** Get handover document categories with documents */
+  async getHandoverDocuments(handoverId: string): Promise<{
+    categories: any[];
+    allSigned: boolean;
+    documentsCount: number;
+  }> {
+    return fetchWithAuth(`/api/handovers/${handoverId}/documents`);
+  },
+
+  /** Upload a document for a handover category */
+  async uploadDocument(handoverId: string, categoryId: string, file: File): Promise<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('categoryId', categoryId);
+
+    const token = getAccessToken();
+    const response = await fetch(`/api/handovers/${handoverId}/documents`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    });
+    if (!response.ok) {
+      const data = await response.json();
+      throw new ApiError(data.error || 'Upload failed', response.status, data);
+    }
+    return response.json();
+  },
+
+  /** Delete a handover document */
+  async deleteDocument(handoverId: string, docId: string): Promise<any> {
+    return fetchWithAuth(`/api/handovers/${handoverId}/documents/${docId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  /** Submit all documents (move to awaiting buyer signature) */
+  async submitDocuments(handoverId: string): Promise<any> {
+    return fetchWithAuth(`/api/handovers/${handoverId}/submit-documents`, {
+      method: 'POST',
+    });
+  },
+
+  /** Schedule physical handover */
+  async scheduleHandover(handoverId: string, data: {
+    date: string;
+    time: string;
+    attendeeName: string;
+    location: string;
+  }): Promise<any> {
+    return fetchWithAuth(`/api/handovers/${handoverId}/schedule`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /** Developer confirms handover */
+  async confirmHandover(handoverId: string): Promise<any> {
+    return fetchWithAuth(`/api/handovers/${handoverId}/confirm`, {
       method: 'POST',
     });
   },
@@ -1126,6 +1348,7 @@ export const api = {
   kyc: kycApi,
   upload: uploadApi,
   handover: handoverApi,
+  developerHandover: developerHandoverApi,
 };
 
 export default api;

@@ -1,33 +1,36 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/contexts/UserContext';
 import { ArrowLeft, Bell } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export const dynamic = 'force-dynamic';
 
 export default function SetupPinPage() {
   const router = useRouter();
   const { user, isLoading: userLoading } = useUser();
-  
+
   const [pin, setPin] = useState('');
   const [retypePin, setRetypePin] = useState('');
   const [step, setStep] = useState<'enter' | 'retype'>('enter');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (!userLoading && !user) {
       router.push('/login');
-      return;
     }
   }, [user, userLoading, router]);
 
-  const handleNumberPress = (num: string) => {
+  const handleNumberPress = useCallback((num: string) => {
+    if (isSubmitting) return;
+
     if (step === 'enter') {
       if (pin.length < 4) {
-        setPin(pin + num);
-        if (pin.length === 3) {
-          // After 4 digits, move to retype step
+        const newPin = pin + num;
+        setPin(newPin);
+        if (newPin.length === 4) {
           setTimeout(() => setStep('retype'), 300);
         }
       }
@@ -36,9 +39,11 @@ export default function SetupPinPage() {
         setRetypePin(retypePin + num);
       }
     }
-  };
+  }, [step, pin, retypePin, isSubmitting]);
 
-  const handleBackspace = () => {
+  const handleBackspace = useCallback(() => {
+    if (isSubmitting) return;
+
     if (step === 'enter') {
       setPin(pin.slice(0, -1));
     } else {
@@ -49,32 +54,61 @@ export default function SetupPinPage() {
         setPin(pin.slice(0, -1));
       }
     }
-  };
+  }, [step, pin, retypePin, isSubmitting]);
 
-  const handleContinue = () => {
+  const handleContinue = useCallback(async () => {
     if (step === 'enter' && pin.length === 4) {
       setStep('retype');
-    } else if (step === 'retype' && retypePin.length === 4) {
-      if (pin === retypePin) {
-        // Save PIN to localStorage (in production, this would be encrypted)
-        localStorage.setItem('wallet-pin', pin);
-        localStorage.setItem('wallet-setup-complete', 'true');
-        router.push('/dashboard/developer/wallet');
-      } else {
-        alert('PINs do not match. Please try again.');
+      return;
+    }
+
+    if (step === 'retype' && retypePin.length === 4) {
+      if (pin !== retypePin) {
+        toast.error('PINs do not match. Please try again.');
         setRetypePin('');
         setPin('');
         setStep('enter');
+        return;
+      }
+
+      // Call real API to setup wallet with PIN
+      try {
+        setIsSubmitting(true);
+        const response = await fetch('/api/wallet/setup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ pin, confirmPin: retypePin }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to set up wallet');
+        }
+
+        if (data.success) {
+          toast.success('Wallet set up successfully!');
+          router.push('/dashboard/developer/wallet/setup-pin/success');
+        } else {
+          throw new Error(data.error || 'Failed to set up wallet');
+        }
+      } catch (error) {
+        console.error('Wallet setup error:', error);
+        toast.error(error instanceof Error ? error.message : 'Something went wrong. Please try again.');
+        setRetypePin('');
+        setPin('');
+        setStep('enter');
+      } finally {
+        setIsSubmitting(false);
       }
     }
-  };
+  }, [step, pin, retypePin, router]);
 
   if (userLoading) {
     return (
       <div className="min-h-screen bg-[#FDFBFA] flex items-center justify-center">
-        <div className="animate-pulse">
-          <div className="w-12 h-12 rounded-full border-4 border-reach-navy border-t-transparent animate-spin"></div>
-        </div>
+        <div className="w-12 h-12 rounded-full border-4 border-[#1E3A5F] border-t-transparent animate-spin" />
       </div>
     );
   }
@@ -82,7 +116,7 @@ export default function SetupPinPage() {
   return (
     <div className="min-h-screen bg-[#FDFBFA]">
       {/* Header */}
-      <header className="bg-transparent px-6 py-4 flex items-center justify-between sticky top-0 z-40">
+      <header className="bg-transparent px-4 sm:px-6 py-4 flex items-center justify-between sticky top-0 z-40">
         <button
           aria-label="Back"
           title="Back"
@@ -103,13 +137,13 @@ export default function SetupPinPage() {
       </header>
 
       {/* Main Content */}
-      <div className="px-6 pt-6 pb-8">
+      <div className="px-4 sm:px-6 pt-6 pb-8 max-w-lg mx-auto">
         <div className="bg-white rounded-3xl p-6 shadow-sm mb-8">
           <h2 className="text-lg font-bold text-gray-900 mb-2">
             {step === 'enter' ? 'Enter 4-digits PIN here' : 'Retype PIN'}
           </h2>
           <p className="text-sm text-gray-500 mb-6">
-            {step === 'enter' 
+            {step === 'enter'
               ? 'Choose a four digits PIN for your transaction.'
               : 'Please retype your PIN to confirm.'}
           </p>
@@ -119,23 +153,23 @@ export default function SetupPinPage() {
             {[0, 1, 2, 3].map((index) => {
               const currentPin = step === 'enter' ? pin : retypePin;
               const value = currentPin[index] || '';
-              const isActive = step === 'enter' 
-                ? pin.length === index 
+              const isActive = step === 'enter'
+                ? pin.length === index
                 : retypePin.length === index;
-              
+
               return (
                 <div
                   key={index}
-                  className={`w-14 h-14 rounded-xl border-2 flex items-center justify-center ${
-                    isActive 
-                      ? 'border-[#FF6B35] bg-[#FF6B35]/5' 
-                      : value 
-                        ? 'border-gray-300 bg-gray-50' 
+                  className={`w-14 h-14 sm:w-16 sm:h-16 rounded-xl border-2 flex items-center justify-center transition-colors ${
+                    isActive
+                      ? 'border-[#FF6B35] bg-[#FF6B35]/5'
+                      : value
+                        ? 'border-gray-300 bg-gray-50'
                         : 'border-gray-200'
                   }`}
                 >
                   {value ? (
-                    <div className="w-3 h-3 rounded-full bg-gray-900"></div>
+                    <div className="w-3 h-3 rounded-full bg-gray-900" />
                   ) : null}
                 </div>
               );
@@ -146,60 +180,58 @@ export default function SetupPinPage() {
           <button
             onClick={handleContinue}
             disabled={
+              isSubmitting ||
               (step === 'enter' && pin.length !== 4) ||
               (step === 'retype' && retypePin.length !== 4)
             }
             className={`w-full py-4 rounded-2xl font-semibold transition-colors ${
-              (step === 'enter' && pin.length === 4) ||
-              (step === 'retype' && retypePin.length === 4)
-                ? 'bg-reach-navy text-white hover:bg-reach-navy/90'
-                : 'bg-gray-300 text-white cursor-not-allowed'
+              !isSubmitting && ((step === 'enter' && pin.length === 4) || (step === 'retype' && retypePin.length === 4))
+                ? 'bg-[#1E3A5F] text-white hover:bg-[#1E3A5F]/90'
+                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
             }`}
           >
-            Continue
+            {isSubmitting ? 'Setting up...' : 'Continue'}
           </button>
         </div>
 
         {/* Numeric Keypad */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-3 sm:gap-4 max-w-xs mx-auto">
           {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
             <button
               key={num}
               onClick={() => handleNumberPress(num.toString())}
-              className="aspect-square bg-white rounded-2xl flex flex-col items-center justify-center shadow-sm hover:bg-gray-50 transition-colors"
+              disabled={isSubmitting}
+              className="aspect-square bg-white rounded-2xl flex flex-col items-center justify-center shadow-sm hover:bg-gray-50 active:scale-95 transition-all disabled:opacity-50"
             >
-              <span className="text-2xl font-semibold text-gray-900">{num}</span>
-              {num === 2 && <span className="text-xs text-gray-400 mt-0.5">ABC</span>}
-              {num === 3 && <span className="text-xs text-gray-400 mt-0.5">DEF</span>}
-              {num === 4 && <span className="text-xs text-gray-400 mt-0.5">GHI</span>}
-              {num === 5 && <span className="text-xs text-gray-400 mt-0.5">JKL</span>}
-              {num === 6 && <span className="text-xs text-gray-400 mt-0.5">MNO</span>}
-              {num === 7 && <span className="text-xs text-gray-400 mt-0.5">PQRS</span>}
-              {num === 8 && <span className="text-xs text-gray-400 mt-0.5">TUV</span>}
-              {num === 9 && <span className="text-xs text-gray-400 mt-0.5">WXYZ</span>}
+              <span className="text-xl sm:text-2xl font-semibold text-gray-900">{num}</span>
+              {num === 2 && <span className="text-[10px] text-gray-400 mt-0.5">ABC</span>}
+              {num === 3 && <span className="text-[10px] text-gray-400 mt-0.5">DEF</span>}
+              {num === 4 && <span className="text-[10px] text-gray-400 mt-0.5">GHI</span>}
+              {num === 5 && <span className="text-[10px] text-gray-400 mt-0.5">JKL</span>}
+              {num === 6 && <span className="text-[10px] text-gray-400 mt-0.5">MNO</span>}
+              {num === 7 && <span className="text-[10px] text-gray-400 mt-0.5">PQRS</span>}
+              {num === 8 && <span className="text-[10px] text-gray-400 mt-0.5">TUV</span>}
+              {num === 9 && <span className="text-[10px] text-gray-400 mt-0.5">WXYZ</span>}
             </button>
           ))}
-          
-          <div></div>
+
+          <div />
           <button
             onClick={() => handleNumberPress('0')}
-            className="aspect-square bg-white rounded-2xl flex items-center justify-center shadow-sm hover:bg-gray-50 transition-colors"
+            disabled={isSubmitting}
+            className="aspect-square bg-white rounded-2xl flex items-center justify-center shadow-sm hover:bg-gray-50 active:scale-95 transition-all disabled:opacity-50"
           >
-            <span className="text-2xl font-semibold text-gray-900">0</span>
+            <span className="text-xl sm:text-2xl font-semibold text-gray-900">0</span>
           </button>
           <button
             onClick={handleBackspace}
-            className="aspect-square bg-gray-900 rounded-2xl flex items-center justify-center shadow-sm hover:bg-gray-800 transition-colors"
+            disabled={isSubmitting}
+            className="aspect-square bg-gray-900 rounded-2xl flex items-center justify-center shadow-sm hover:bg-gray-800 active:scale-95 transition-all disabled:opacity-50"
           >
-            <span className="text-white text-xl font-bold">×</span>
+            <span className="text-white text-xl font-bold">&#x232B;</span>
           </button>
         </div>
       </div>
-
-      {/* Home Indicator */}
-      <div className="h-0.5 bg-gray-900 w-32 mx-auto mb-2 rounded-full"></div>
     </div>
   );
 }
-
-

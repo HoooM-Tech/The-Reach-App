@@ -70,6 +70,11 @@ const getAdminNavItems = (
     icon: Wallet 
   },
   { 
+    label: 'My Wallet', 
+    href: '/dashboard/admin/wallet', 
+    icon: CreditCard 
+  },
+  { 
     label: 'Settings', 
     href: '/dashboard/admin/settings', 
     icon: Settings 

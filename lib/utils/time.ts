@@ -9,50 +9,71 @@
  * - No implicit conversions
  * - No manual hour adjustments
  * - Consistent AM/PM handling
+ * 
+ * For server-side formatting (e.g. notification bodies), pass timeZone: 'Africa/Lagos' so times
+ * display correctly for Nigerian users regardless of server timezone.
  */
 
+/** Default display timezone for server-side formatting (Nigeria) */
+export const DISPLAY_TIMEZONE = 'Africa/Lagos'
+
 /**
- * Convert a local date/time string to UTC ISO string for storage
- * 
+ * Parse a timestamp from the database. Ensures correct interpretation:
+ * - ISO strings with Z or offset are parsed as UTC
+ * - Strings without timezone (e.g. from Postgres) are treated as UTC
+ */
+export function parseTimestamp(value: string): Date {
+  if (!value) return new Date(NaN)
+  let str = String(value).trim()
+  if (!str) return new Date(NaN)
+  const hasTimezone = str.endsWith('Z') || /[+-]\d{2}:?\d{2}$/.test(str)
+  if (!hasTimezone) {
+    if (str.includes(' ')) {
+      str = str.replace(' ', 'T') + 'Z'
+    } else if (str.includes('T')) {
+      str = str + 'Z'
+    } else {
+      str = str + 'T00:00:00.000Z'
+    }
+  }
+  return new Date(str)
+}
+
+/**
+ * Convert a local date/time string (in user's timezone) to UTC ISO string for storage
+ *
+ * CRITICAL: The input time is interpreted as Africa/Lagos (Nigeria, UTC+1), not server timezone.
+ * This ensures "9:15 AM" selected by a user in Nigeria is stored as 8:15 UTC, not 9:15 UTC.
+ *
  * @param dateString - Date in YYYY-MM-DD format
- * @param timeString - Time in HH:MM format (24-hour, local time)
+ * @param timeString - Time in HH:MM format (24-hour, user's local time in Lagos)
  * @returns ISO 8601 UTC string ready for database storage
- * 
- * Example:
- *   localToUTC('2024-01-15', '12:20') -> '2024-01-15T12:20:00.000Z' (if UTC+0)
- *   localToUTC('2024-01-15', '00:20') -> '2024-01-15T00:20:00.000Z' (midnight, not previous day)
+ *
+ * Example (Africa/Lagos UTC+1):
+ *   localToUTC('2024-01-15', '09:15') -> '2024-01-15T08:15:00.000Z' (9:15 AM Lagos = 8:15 UTC)
  */
 export function localToUTC(dateString: string, timeString: string): string {
   if (!dateString || !timeString) {
     throw new Error('Date and time strings are required');
   }
 
-  // Parse date components
   const [year, month, day] = dateString.split('-').map(Number);
   const [hours, minutes] = timeString.split(':').map(Number);
 
-  // Validate inputs
   if (isNaN(year) || isNaN(month) || isNaN(day) || isNaN(hours) || isNaN(minutes)) {
     throw new Error('Invalid date or time format');
   }
 
-  // Create Date object in LOCAL timezone (this is the key - no timezone specified)
-  // JavaScript Date constructor interprets this as local time
-  const localDate = new Date(year, month - 1, day, hours, minutes, 0, 0);
+  // Interpret the time as Africa/Lagos (UTC+1) - append +01:00 so JS parses correctly
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const isoWithOffset = `${year}-${pad(month)}-${pad(day)}T${pad(hours)}:${pad(minutes)}:00+01:00`;
+  const date = new Date(isoWithOffset);
 
-  // Validate the date was created correctly
-  if (
-    localDate.getFullYear() !== year ||
-    localDate.getMonth() !== month - 1 ||
-    localDate.getDate() !== day ||
-    localDate.getHours() !== hours ||
-    localDate.getMinutes() !== minutes
-  ) {
+  if (isNaN(date.getTime())) {
     throw new Error('Invalid date/time values');
   }
 
-  // Convert to UTC ISO string for storage
-  return localDate.toISOString();
+  return date.toISOString();
 }
 
 /**
@@ -61,24 +82,20 @@ export function localToUTC(dateString: string, timeString: string): string {
  * @param utcISOString - ISO 8601 UTC string from database
  * @returns Date string in YYYY-MM-DD format (local timezone)
  */
-export function utcToLocalDate(utcISOString: string): string {
-  if (!utcISOString) {
-    throw new Error('UTC ISO string is required');
-  }
-
-  const date = new Date(utcISOString);
-  
-  // Validate date
-  if (isNaN(date.getTime())) {
-    throw new Error('Invalid UTC ISO string');
-  }
-
-  // Get local date components
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-
-  return `${year}-${month}-${day}`;
+export function utcToLocalDate(utcISOString: string, timeZone?: string): string {
+  if (!utcISOString) throw new Error('UTC ISO string is required');
+  const date = parseTimestamp(utcISOString);
+  if (isNaN(date.getTime())) throw new Error('Invalid UTC ISO string');
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    ...(timeZone && { timeZone }),
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  const y = parts.find(p => p.type === 'year')?.value ?? '';
+  const m = parts.find(p => p.type === 'month')?.value ?? '';
+  const d = parts.find(p => p.type === 'day')?.value ?? '';
+  return `${y}-${m}-${d}`;
 }
 
 /**
@@ -87,30 +104,27 @@ export function utcToLocalDate(utcISOString: string): string {
  * @param utcISOString - ISO 8601 UTC string from database
  * @returns Time string in HH:MM format (24-hour, local timezone)
  */
-export function utcToLocalTime(utcISOString: string): string {
-  if (!utcISOString) {
-    throw new Error('UTC ISO string is required');
-  }
-
-  const date = new Date(utcISOString);
-  
-  // Validate date
-  if (isNaN(date.getTime())) {
-    throw new Error('Invalid UTC ISO string');
-  }
-
-  // Get local time components
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-
-  return `${hours}:${minutes}`;
+export function utcToLocalTime(utcISOString: string, timeZone?: string): string {
+  if (!utcISOString) throw new Error('UTC ISO string is required');
+  const date = parseTimestamp(utcISOString);
+  if (isNaN(date.getTime())) throw new Error('Invalid UTC ISO string');
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    ...(timeZone && { timeZone }),
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(date);
+  const h = parts.find(p => p.type === 'hour')?.value ?? '09';
+  const m = parts.find(p => p.type === 'minute')?.value ?? '00';
+  return `${h}:${m}`;
 }
 
 /**
  * Format UTC ISO string for display with date and time
  * 
  * @param utcISOString - ISO 8601 UTC string from database
- * @param options - Formatting options
+ * @param options - Formatting options. Pass timeZone for server-side (e.g. notifications) to ensure
+ *   correct display regardless of server timezone. Omit for client-side to use user's local timezone.
  * @returns Formatted date/time string
  */
 export function formatInspectionTime(
@@ -119,6 +133,7 @@ export function formatInspectionTime(
     includeDate?: boolean;
     includeTime?: boolean;
     timeFormat?: '12h' | '24h';
+    timeZone?: string;
   } = {}
 ): string {
   if (!utcISOString) {
@@ -129,95 +144,81 @@ export function formatInspectionTime(
     includeDate = true,
     includeTime = true,
     timeFormat = '12h',
+    timeZone,
   } = options;
 
-  const date = new Date(utcISOString);
-  
-  // Validate date
+  // CRITICAL: Use parseTimestamp so DB values without 'Z' are always treated as UTC
+  const date = parseTimestamp(utcISOString);
+
   if (isNaN(date.getTime())) {
     return '';
   }
 
-  const parts: string[] = [];
+  // Use Intl with timeZone - NO manual offset. DB stores UTC; Intl converts for display.
+  const locale = 'en-US'
+  const tz = timeZone || undefined
+  const dateOpts: Intl.DateTimeFormatOptions = {
+    ...(tz && { timeZone: tz }),
+    month: 'long' as const,
+    day: 'numeric' as const,
+    year: 'numeric' as const,
+  }
+  const timeOpts: Intl.DateTimeFormatOptions = {
+    ...(tz && { timeZone: tz }),
+    hour: 'numeric' as const,
+    minute: '2-digit' as const,
+    hour12: timeFormat === '12h',
+  }
+
+  const parts: string[] = []
 
   if (includeDate) {
-    const dateStr = date.toLocaleDateString('en-US', {
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric',
-    });
-    parts.push(dateStr);
+    parts.push(new Intl.DateTimeFormat(locale, dateOpts).format(date))
   }
 
   if (includeTime) {
-    let timeStr: string;
-    if (timeFormat === '12h') {
-      timeStr = date.toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true,
-      });
-    } else {
-      timeStr = date.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-      });
-    }
-    parts.push(timeStr);
+    parts.push(new Intl.DateTimeFormat(locale, timeOpts).format(date))
   }
 
-  return parts.join(' at ');
+  return parts.join(' at ')
 }
 
 /**
  * Format UTC ISO string for display (time only, 12-hour format)
  * 
  * @param utcISOString - ISO 8601 UTC string from database
+ * @param timeZone - Optional timezone (e.g. 'Africa/Lagos') for server-side formatting
  * @returns Formatted time string (e.g., "12:20 AM" or "11:20 AM")
  */
-export function formatInspectionTimeOnly(utcISOString: string): string {
-  if (!utcISOString) {
-    return '';
-  }
-
-  const date = new Date(utcISOString);
-  
-  // Validate date
-  if (isNaN(date.getTime())) {
-    return '';
-  }
-
-  return date.toLocaleTimeString('en-US', {
+export function formatInspectionTimeOnly(utcISOString: string, timeZone?: string): string {
+  if (!utcISOString) return '';
+  const date = parseTimestamp(utcISOString);
+  if (isNaN(date.getTime())) return '';
+  return new Intl.DateTimeFormat('en-US', {
+    ...(timeZone && { timeZone }),
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
-  });
+  }).format(date);
 }
 
 /**
  * Format UTC ISO string for display (date only)
  * 
  * @param utcISOString - ISO 8601 UTC string from database
+ * @param timeZone - Optional timezone (e.g. 'Africa/Lagos') for server-side formatting
  * @returns Formatted date string
  */
-export function formatInspectionDate(utcISOString: string): string {
-  if (!utcISOString) {
-    return '';
-  }
-
-  const date = new Date(utcISOString);
-  
-  // Validate date
-  if (isNaN(date.getTime())) {
-    return '';
-  }
-
-  return date.toLocaleDateString('en-US', {
+export function formatInspectionDate(utcISOString: string, timeZone?: string): string {
+  if (!utcISOString) return '';
+  const date = parseTimestamp(utcISOString);
+  if (isNaN(date.getTime())) return '';
+  return new Intl.DateTimeFormat('en-US', {
+    ...(timeZone && { timeZone }),
     month: '2-digit',
     day: '2-digit',
     year: 'numeric',
-  });
+  }).format(date);
 }
 
 /**
@@ -226,19 +227,14 @@ export function formatInspectionDate(utcISOString: string): string {
  * @param utcISOString - ISO 8601 UTC string from database
  * @returns Day of week (e.g., "Monday")
  */
-export function getDayOfWeek(utcISOString: string): string {
-  if (!utcISOString) {
-    return '';
-  }
-
-  const date = new Date(utcISOString);
-  
-  // Validate date
-  if (isNaN(date.getTime())) {
-    return '';
-  }
-
-  return date.toLocaleDateString('en-US', { weekday: 'long' });
+export function getDayOfWeek(utcISOString: string, timeZone?: string): string {
+  if (!utcISOString) return '';
+  const date = parseTimestamp(utcISOString);
+  if (isNaN(date.getTime())) return '';
+  return new Intl.DateTimeFormat('en-US', {
+    ...(timeZone && { timeZone }),
+    weekday: 'long',
+  }).format(date);
 }
 
 /**
@@ -248,11 +244,8 @@ export function getDayOfWeek(utcISOString: string): string {
  * @returns true if valid, false otherwise
  */
 export function isValidInspectionTime(utcISOString: string): boolean {
-  if (!utcISOString) {
-    return false;
-  }
-
-  const date = new Date(utcISOString);
+  if (!utcISOString) return false;
+  const date = parseTimestamp(utcISOString);
   return !isNaN(date.getTime());
 }
 
@@ -264,13 +257,9 @@ export function isValidInspectionTime(utcISOString: string): boolean {
  * @returns true if first is before second
  */
 export function isBefore(utcISOString1: string, utcISOString2: string): boolean {
-  const date1 = new Date(utcISOString1);
-  const date2 = new Date(utcISOString2);
-  
-  if (isNaN(date1.getTime()) || isNaN(date2.getTime())) {
-    return false;
-  }
-  
+  const date1 = parseTimestamp(utcISOString1);
+  const date2 = parseTimestamp(utcISOString2);
+  if (isNaN(date1.getTime()) || isNaN(date2.getTime())) return false;
   return date1.getTime() < date2.getTime();
 }
 
@@ -282,12 +271,8 @@ export function isBefore(utcISOString1: string, utcISOString2: string): boolean 
  * @returns true if first is after second
  */
 export function isAfter(utcISOString1: string, utcISOString2: string): boolean {
-  const date1 = new Date(utcISOString1);
-  const date2 = new Date(utcISOString2);
-  
-  if (isNaN(date1.getTime()) || isNaN(date2.getTime())) {
-    return false;
-  }
-  
+  const date1 = parseTimestamp(utcISOString1);
+  const date2 = parseTimestamp(utcISOString2);
+  if (isNaN(date1.getTime()) || isNaN(date2.getTime())) return false;
   return date1.getTime() > date2.getTime();
 }

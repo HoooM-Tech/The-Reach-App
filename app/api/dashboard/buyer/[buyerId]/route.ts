@@ -3,6 +3,7 @@ import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/sup
 import { getAuthenticatedUser } from '@/lib/utils/auth'
 import { NotFoundError, handleError } from '@/lib/utils/errors'
 import { normalizeNigerianPhone } from '@/lib/utils/phone'
+import { parseTimestamp } from '@/lib/utils/time'
 
 export async function GET(
   req: NextRequest,
@@ -105,13 +106,14 @@ export async function GET(
       self.findIndex((i: any) => i.id === inspection.id) === index
     )
 
-    // Filter into upcoming vs past
+    // Filter into upcoming vs past (parseTimestamp ensures UTC interpretation)
+    const now = Date.now()
     const upcomingInspectionsUnsorted = uniqueInspections.filter(
-      (i: any) => new Date(i.slot_time) > new Date() && i.status !== 'cancelled'
+      (i: any) => i.slot_time && parseTimestamp(i.slot_time).getTime() > now && i.status !== 'cancelled'
     ) || []
 
     const pastInspectionsUnsorted = uniqueInspections.filter(
-      (i: any) => new Date(i.slot_time) <= new Date() || i.status === 'completed'
+      (i: any) => i.status === 'completed' || (i.slot_time && parseTimestamp(i.slot_time).getTime() <= now)
     ) || []
 
     // Sort by created_at descending so the most recently booked inspection shows first

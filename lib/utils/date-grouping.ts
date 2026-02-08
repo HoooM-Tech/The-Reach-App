@@ -3,6 +3,8 @@
  * Groups notifications by date (Yesterday, November 2025, October, etc.)
  */
 
+import { parseTimestamp } from './time'
+
 export interface DateGroup {
   label: string
   date: Date
@@ -17,7 +19,7 @@ export function groupNotificationsByDate(notifications: Array<{ created_at: stri
   yesterday.setDate(yesterday.getDate() - 1)
 
   notifications.forEach((notification) => {
-    const notificationDate = new Date(notification.created_at)
+    const notificationDate = parseTimestamp(notification.created_at)
     const notificationDateOnly = new Date(notificationDate.getFullYear(), notificationDate.getMonth(), notificationDate.getDate())
     
     let groupKey: string

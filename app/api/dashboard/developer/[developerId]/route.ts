@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase/server'
 import { getAuthenticatedUser } from '@/lib/utils/auth'
 import { NotFoundError, handleError } from '@/lib/utils/errors'
+import { parseTimestamp } from '@/lib/utils/time'
 
 export async function GET(
   req: NextRequest,
@@ -182,11 +183,11 @@ export async function GET(
       .in('property_id', propertyIds)
       .order('created_at', { ascending: false })
 
-    // Separate upcoming inspections (future slot_time) and sort them by slot_time for display
-    const now = new Date()
+    // Separate upcoming inspections (future slot_time) - parseTimestamp ensures UTC
+    const now = Date.now()
     const upcomingInspections = inspections?.filter(
-      (i) => new Date(i.slot_time) > now
-    ).sort((a, b) => new Date(a.slot_time).getTime() - new Date(b.slot_time).getTime()) || []
+      (i) => i.slot_time && parseTimestamp(i.slot_time).getTime() > now
+    ).sort((a, b) => parseTimestamp(a.slot_time).getTime() - parseTimestamp(b.slot_time).getTime()) || []
     
     // Most recently booked inspections (by created_at)
     const recentlyBookedInspections = inspections?.slice(0, 10) || []
@@ -231,6 +232,31 @@ export async function GET(
       (i) => i.status === 'booked' || i.status === 'confirmed'
     ).length
 
+    // Get pending handovers for the developer
+    const { data: pendingHandovers } = await adminSupabase
+      .from('handovers')
+      .select('id, property_id, buyer_id, status, created_at, properties(id, title, location, asking_price)')
+      .eq('developer_id', developerId)
+      .not('status', 'eq', 'completed')
+      .order('created_at', { ascending: false })
+
+    const handoversList = (pendingHandovers || []).map((h: any) => {
+      const prop = h.properties || {}
+      const loc = prop.location || {}
+      return {
+        id: h.id,
+        propertyId: h.property_id,
+        property: {
+          id: prop.id,
+          title: prop.title || 'Property',
+          location: [loc.address, loc.city, loc.state].filter(Boolean).join(', ') || 'Location not available',
+          price: prop.asking_price || 0,
+        },
+        status: h.status,
+        createdAt: h.created_at,
+      }
+    })
+
     return NextResponse.json({
       properties: propertiesSummary,
       leads: {
@@ -251,6 +277,7 @@ export async function GET(
         paid_out: totalRevenue - pendingEscrow,
         transactions: escrowTransactions?.slice(0, 10) || [],
       },
+      handovers: handoversList,
     })
   } catch (error) {
     const { error: errorMessage, statusCode } = handleError(error)

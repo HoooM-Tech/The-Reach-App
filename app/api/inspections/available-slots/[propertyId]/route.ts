@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase/server'
 import { NotFoundError, handleError } from '@/lib/utils/errors'
-import { localToUTC } from '@/lib/utils/time'
+import { localToUTC, parseTimestamp } from '@/lib/utils/time'
 
 export async function GET(
   req: NextRequest,
@@ -74,10 +74,7 @@ export async function GET(
 
     // Create a Set of booked slot times for O(1) lookup
     const bookedSlots = new Set(
-      (existingBookings || []).map((booking: any) => {
-        // Normalize slot_time to ISO string for comparison
-        return new Date(booking.slot_time).toISOString()
-      })
+      (existingBookings || []).map((booking: any) => parseTimestamp(booking.slot_time).toISOString())
     )
 
     // Check if requested date is in the past

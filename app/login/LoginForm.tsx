@@ -139,8 +139,11 @@ export default function LoginForm({
   }
 
   return (
-    <div className="min-h-screen bg-reach-light flex flex-col">
-      <header className="p-6">
+    <div className="min-h-screen bg-white flex flex-col relative overflow-hidden">
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className="w-[320px] h-[320px] sm:w-[420px] sm:h-[420px] bg-[linear-gradient(180deg,#C1272D_0%,#D17A39_100%)] rounded-full opacity-20 blur-3xl" />
+      </div>
+      <header className="p-6 relative z-10">
         <button 
           aria-label="Go back to home"
           onClick={() => router.push('/')} 
@@ -151,7 +154,7 @@ export default function LoginForm({
         </button>
       </header>
 
-      <main className="flex-1 flex flex-col justify-center px-8 pb-12">
+      <main className="flex-1 flex flex-col justify-center px-8 pb-12 relative z-10">
         <div className="max-w-md mx-auto w-full">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-reach-navy mb-2">
@@ -241,10 +244,10 @@ export default function LoginForm({
             <button
               type="submit"
               disabled={isSubmitting}
-              className={`w-full py-4 rounded-2xl font-bold text-white transition-all shadow-lg ${
+              className={`w-full py-4 rounded-2xl font-semibold transition-colors ${
                 isSubmitting 
-                  ? 'bg-gray-400 cursor-not-allowed' 
-                  : 'bg-reach-navy hover:bg-reach-navy/90'
+                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
+                  : 'bg-reach-navy text-white hover:bg-reach-navy/90'
               }`}
             >
               {isSubmitting ? (

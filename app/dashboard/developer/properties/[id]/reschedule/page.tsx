@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useUser } from '@/contexts/UserContext';
 import { getAccessToken } from '@/lib/api/client';
-import { utcToLocalDate, utcToLocalTime, localToUTC } from '@/lib/utils/time';
+import { utcToLocalDate, utcToLocalTime, localToUTC, DISPLAY_TIMEZONE } from '@/lib/utils/time';
 import { motion } from 'framer-motion';
 import { 
   ArrowLeft, 
@@ -54,12 +54,10 @@ export default function RescheduleInspectionPage() {
             setInspection(data.inspection);
             setScheduleType(data.inspection.type === 'video_chat' || data.inspection.type === 'video' ? 'video' : 'in-person');
             
-            // Pre-fill date and time
-            // Parse UTC time from database and convert to local time for display
+            // Pre-fill date and time (Lagos timezone - inspections are Nigeria-focused)
             if (data.inspection.slot_time) {
-              // Use central time utility for consistent conversion
-              const localDate = utcToLocalDate(data.inspection.slot_time);
-              const localTime = utcToLocalTime(data.inspection.slot_time);
+              const localDate = utcToLocalDate(data.inspection.slot_time, DISPLAY_TIMEZONE);
+              const localTime = utcToLocalTime(data.inspection.slot_time, DISPLAY_TIMEZONE);
               setDate(localDate);
               setTime(localTime);
             }

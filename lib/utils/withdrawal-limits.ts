@@ -13,7 +13,7 @@ export interface WithdrawalLimits {
  * Get withdrawal limits for a user type
  */
 export async function getWithdrawalLimits(
-  userType: 'developer' | 'creator'
+  userType: 'developer' | 'creator' | 'buyer'
 ): Promise<WithdrawalLimits> {
   const supabase = createAdminSupabaseClient();
   const { data, error } = await supabase
