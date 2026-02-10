@@ -544,6 +544,11 @@ export const developerApi = {
     return fetchWithAuth(`/api/dashboard/developer/${developerId}`);
   },
 
+  /** Get inspection by ID (developer or admin). Single source of truth for inspection details. */
+  async getInspectionDetails(inspectionId: string): Promise<{ inspection: any; transactions?: any[] }> {
+    return fetchWithAuth(`/api/inspections/${inspectionId}`);
+  },
+
   /** Get developer's properties */
   async getMyProperties(): Promise<{ properties: Property[] }> {
     return fetchWithAuth('/api/properties/my-properties');
@@ -593,9 +598,20 @@ export const developerApi = {
     return fetchWithAuth(`/api/inspections/${inspectionId}/confirm`, { method: 'POST' })
   },
 
-  /** Complete an inspection (developer) */
-  async completeInspection(inspectionId: string): Promise<{ message: string; inspection: any }> {
-    return fetchWithAuth(`/api/inspections/${inspectionId}/complete`, { method: 'PATCH' })
+  /** Complete an inspection (developer). Only allowed when status is confirmed and slot_time has passed. */
+  async completeInspection(
+    inspectionId: string,
+    options?: { notes?: string; completedAt?: string }
+  ): Promise<{ success?: boolean; message: string; inspection: any }> {
+    return fetchWithAuth(`/api/inspections/${inspectionId}/complete`, {
+      method: 'POST',
+      body: options?.notes != null || options?.completedAt != null
+        ? JSON.stringify({
+            notes: options.notes,
+            completedAt: options.completedAt ?? new Date().toISOString(),
+          })
+        : undefined,
+    })
   },
 
   /** Upload media to property */
@@ -893,8 +909,11 @@ export const buyerApi = {
   },
 
   /** Withdraw inspection interest */
-  async withdrawInspection(inspectionId: string): Promise<{ message: string; inspection: any }> {
-    return fetchWithAuth(`/api/inspections/${inspectionId}/withdraw`, { method: 'POST' })
+  async withdrawInspection(inspectionId: string, options?: { reason?: string }): Promise<{ message: string; inspection: any }> {
+    return fetchWithAuth(`/api/inspections/${inspectionId}/withdraw`, {
+      method: 'POST',
+      body: options?.reason != null ? JSON.stringify({ reason: options.reason }) : undefined,
+    })
   },
 
   /** Cancel an inspection (buyer) */
@@ -911,6 +930,103 @@ export const buyerApi = {
       method: 'POST',
       body: JSON.stringify(data),
     })
+  },
+
+  /** Get buyer profile (settings/profile) */
+  async getProfile(): Promise<{
+    buyer: {
+      id: string;
+      fullName: string;
+      email: string;
+      phoneNumber: string;
+      profilePicture?: string;
+      createdAt: string;
+    };
+  }> {
+    return fetchWithAuth('/api/buyer/profile');
+  },
+
+  /** Update buyer profile; pass FormData for avatar upload */
+  async updateProfile(data: FormData | {
+    fullName?: string;
+    email?: string;
+    phoneNumber?: string;
+    profilePicture?: File | string | null;
+  }): Promise<{ success: boolean; buyer: any }> {
+    if (data instanceof FormData) {
+      const token = getAccessToken();
+      const baseUrl = getApiBaseUrl();
+      return fetch(`${baseUrl}/api/buyer/profile`, {
+        method: 'PATCH',
+        body: data,
+        credentials: 'include',
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      }).then(async (res) => {
+        const json = await res.json();
+        if (!res.ok) throw new ApiError(json.error ?? 'Update failed', res.status);
+        return json;
+      });
+    }
+    const body: Record<string, unknown> = {};
+    if (data.fullName != null) body.fullName = data.fullName;
+    if (data.phoneNumber != null) body.phoneNumber = data.phoneNumber;
+    if (data.profilePicture != null && typeof data.profilePicture === 'string') body.profilePicture = data.profilePicture;
+    return fetchWithAuth('/api/buyer/profile', { method: 'PATCH', body: JSON.stringify(body) });
+  },
+
+  /** Get buyer stats (earned/spent, sold/purchased, rating) */
+  async getStats(): Promise<{
+    stats: { totalSpent: number; propertiesPurchased: number; rating: number };
+  }> {
+    return fetchWithAuth('/api/buyer/stats');
+  },
+
+  /** Request password reset code (sends to email) */
+  async requestPasswordReset(email?: string): Promise<{ success: boolean }> {
+    return fetchWithAuth('/api/buyer/password/request-reset', {
+      method: 'POST',
+      body: JSON.stringify(email != null ? { email } : {}),
+    });
+  },
+
+  /** Reset password with code */
+  async resetPassword(email: string, resetCode: string, newPassword: string): Promise<{ success: boolean }> {
+    return fetchWithAuth('/api/buyer/password/reset', {
+      method: 'POST',
+      body: JSON.stringify({ email, resetCode, newPassword }),
+    });
+  },
+
+  /** Get notification preferences */
+  async getNotificationPreferences(): Promise<{
+    preferences: {
+      contractUpdate: boolean;
+      newLeads: boolean;
+      inspectionBookings: boolean;
+      handoverReminders: boolean;
+      payoutUpdate: boolean;
+    };
+  }> {
+    return fetchWithAuth('/api/buyer/notifications/preferences');
+  },
+
+  /** Update notification preferences */
+  async updateNotificationPreferences(prefs: Partial<{
+    contractUpdate: boolean;
+    newLeads: boolean;
+    inspectionBookings: boolean;
+    handoverReminders: boolean;
+    payoutUpdate: boolean;
+  }>): Promise<{ success: boolean; preferences: any }> {
+    return fetchWithAuth('/api/buyer/notifications/preferences', {
+      method: 'PATCH',
+      body: JSON.stringify(prefs),
+    });
+  },
+
+  /** Delete buyer account */
+  async deleteAccount(): Promise<{ success: boolean }> {
+    return fetchWithAuth('/api/buyer/account', { method: 'DELETE' });
   },
 };
 

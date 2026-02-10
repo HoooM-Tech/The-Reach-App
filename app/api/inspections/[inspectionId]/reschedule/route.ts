@@ -39,6 +39,11 @@ export async function POST(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
+    const devStatus = (inspection.status || '').toLowerCase()
+    if (devStatus === 'cancelled' || devStatus === 'completed' || devStatus === 'withdrawn') {
+      throw new ValidationError('Cannot reschedule a cancelled or completed inspection')
+    }
+
     const { data: existingBookings } = await adminSupabase
       .from('inspections')
       .select('id')
@@ -201,14 +206,26 @@ export async function PATCH(
       throw new ValidationError('This time slot is already booked')
     }
 
+    // Block invalid transitions: cannot reschedule cancelled or completed
+    const status = (inspection.status || '').toLowerCase()
+    if (status === 'cancelled' || status === 'completed' || status === 'withdrawn') {
+      throw new ValidationError('Cannot reschedule a cancelled or completed inspection')
+    }
+
     const oldSlotTime = inspection.slot_time
+
+    // Buyer reschedule: reset to booked and clear confirmation so developer must reconfirm
+    const updatePayload: Record<string, unknown> = {
+      slot_time,
+      status: 'booked',
+      confirmed_at: null,
+      confirmed_by: null,
+      updated_at: new Date().toISOString(),
+    }
 
     const { data: updatedInspection, error: updateError } = await adminSupabase
       .from('inspections')
-      .update({
-        slot_time,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updatePayload)
       .eq('id', inspectionId)
       .select()
       .single()

@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
 import { useParams, useRouter } from 'next/navigation'
+import toast from 'react-hot-toast'
 import { buyerApi, BuyerInspection, ApiError } from '@/lib/api/client'
 import { formatInspectionTimeOnly, parseTimestamp } from '@/lib/utils/time'
 import {
@@ -112,6 +113,9 @@ export default function BuyerInspectionDetailsClient() {
     () => (inspection ? getDerivedStatus(inspection.status) : 'scheduled'),
     [inspection]
   )
+  const rawStatus = (inspection?.status || '').toLowerCase()
+  const isCompleted = rawStatus === 'completed'
+  const isWithdrawn = rawStatus === 'withdrawn'
 
   const property = inspection?.properties as any
 
@@ -168,6 +172,8 @@ export default function BuyerInspectionDetailsClient() {
       setSelectedSlot('')
       setAvailableSlots([])
       await fetchInspection()
+      toast.success('Inspection rescheduled. Awaiting developer confirmation.')
+      router.refresh()
     } catch (err) {
       const message = err instanceof ApiError ? err.message : 'Failed to reschedule'
       setActionError(message)
@@ -228,7 +234,7 @@ export default function BuyerInspectionDetailsClient() {
           <p className="text-gray-500 mb-4">{error || 'Unable to load inspection details.'}</p>
           <button
             onClick={() => router.push('/dashboard/buyer/inspections')}
-            className="px-5 py-2 rounded-xl bg-[#E54D4D] text-white text-sm font-semibold"
+            className="px-5 py-2 rounded-xl bg-[#15355A] text-white text-sm font-semibold"
           >
             Back to inspections
           </button>
@@ -306,7 +312,7 @@ export default function BuyerInspectionDetailsClient() {
             </p>
             <button
               onClick={() => setShowMore((prev) => !prev)}
-              className="text-sm font-semibold text-[#E54D4D]"
+              className="text-sm font-semibold text-[#15355A]"
             >
               {showMore ? 'Show less' : 'More'}
             </button>
@@ -330,10 +336,16 @@ export default function BuyerInspectionDetailsClient() {
                   ? 'Completed Inspection'
                   : 'Scheduled Inspection'}
               </h3>
-              {status === 'completed' && (
+              {status === 'completed' && !isWithdrawn && (
                 <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-100 px-3 py-1 rounded-full">
                   <CheckCircle size={12} />
                   Completed
+                </span>
+              )}
+              {isWithdrawn && (
+                <span className="inline-flex items-center gap-1 text-xs font-semibold text-gray-700 bg-gray-100 px-3 py-1 rounded-full">
+                  <XCircle size={12} />
+                  Interest Withdrawn
                 </span>
               )}
               {status === 'cancelled' && (
@@ -365,6 +377,18 @@ export default function BuyerInspectionDetailsClient() {
               </div>
             </div>
 
+            {isCompleted && (inspection as any)?.completed_at && (
+              <p className="text-sm text-gray-600">
+                Completed on {parseTimestamp((inspection as any).completed_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+              </p>
+            )}
+            {isCompleted && (inspection as any)?.completion_notes && (
+              <div className="pt-3 border-t border-gray-200">
+                <p className="text-sm font-medium text-gray-700 mb-1">Notes from developer</p>
+                <p className="text-sm text-gray-600">{(inspection as any).completion_notes}</p>
+              </div>
+            )}
+
             {status === 'cancelled' && (inspection as any)?.cancelled_by && (
               <div className="text-sm text-red-700">
                 Cancelled by {(inspection as any).cancelled_by === 'buyer' ? 'you' : (inspection as any).cancelled_by}
@@ -376,7 +400,7 @@ export default function BuyerInspectionDetailsClient() {
               <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={() => setIsRescheduleOpen(true)}
-                  className="px-5 py-2 rounded-xl bg-[#E54D4D] text-white text-sm font-semibold"
+                  className="px-5 py-2 rounded-xl bg-[#15355A] text-white text-sm font-semibold"
                 >
                   Re-schedule
                 </button>
@@ -391,8 +415,21 @@ export default function BuyerInspectionDetailsClient() {
             )}
           </div>
 
-          {/* Actions for completed */}
-          {status === 'completed' && (
+          {/* Withdrawn: no next steps */}
+          {isWithdrawn && (
+            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+              <h3 className="text-base font-semibold text-gray-900 mb-2">Interest withdrawn</h3>
+              <p className="text-sm text-gray-500">
+                You have withdrawn your interest in this property after the inspection.
+              </p>
+              {(inspection as any)?.withdrawal_reason && (
+                <p className="text-sm text-gray-600 mt-2">Reason: {(inspection as any).withdrawal_reason}</p>
+              )}
+            </div>
+          )}
+
+          {/* Actions for completed (not withdrawn) */}
+          {isCompleted && !isWithdrawn && (
             <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-3">
               <h3 className="text-base font-semibold text-gray-900">Next steps</h3>
               <p className="text-sm text-gray-500">
@@ -411,14 +448,14 @@ export default function BuyerInspectionDetailsClient() {
                 </button>
                 <button
                   onClick={handlePayment}
-                  className="flex-1 px-5 py-3 rounded-xl bg-[#E54D4D] text-white text-sm font-semibold"
+                  className="flex-1 px-5 py-3 rounded-xl bg-[#15355A] text-white text-sm font-semibold"
                 >
                   Make payment
                 </button>
               </div>
               <button
                 onClick={() => router.push(`/dashboard/buyer/properties/${inspection.property_id}`)}
-                className="text-sm font-semibold text-[#E54D4D]"
+                className="text-sm font-semibold text-[#15355A]"
               >
                 Submit a bid
               </button>
@@ -486,7 +523,7 @@ export default function BuyerInspectionDetailsClient() {
                     onClick={() => setSelectedSlot(slot.time)}
                     className={`px-3 py-2 rounded-lg text-xs border ${
                       selectedSlot === slot.time
-                        ? 'bg-[#E54D4D] text-white border-[#E54D4D]'
+                        ? 'bg-[#15355A] text-white border-[#15355A]'
                         : 'border-gray-200 text-gray-600'
                     } ${!slot.available ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
@@ -504,7 +541,7 @@ export default function BuyerInspectionDetailsClient() {
             <button
               onClick={handleReschedule}
               disabled={!selectedSlot || isSubmitting}
-              className="w-full px-5 py-3 rounded-xl bg-[#E54D4D] text-white text-sm font-semibold disabled:opacity-60"
+              className="w-full px-5 py-3 rounded-xl bg-[#15355A] text-white text-sm font-semibold disabled:opacity-60"
             >
               Confirm reschedule
             </button>

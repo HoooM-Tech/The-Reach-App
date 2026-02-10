@@ -4,7 +4,8 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useUser } from '@/contexts/UserContext';
 import { developerApi, ApiError } from '@/lib/api/client';
-import { formatInspectionTimeOnly, parseTimestamp } from '@/lib/utils/time';
+import { formatInspectionDate, formatInspectionTimeOnly, getDayOfWeek, parseTimestamp, isBefore } from '@/lib/utils/time';
+import toast from 'react-hot-toast';
 import { 
   ArrowLeft, 
   Calendar, 
@@ -101,6 +102,191 @@ function CancelConfirmationModal({
 }
 
 // ===========================================
+// Schedule Details Modal (same as property details page)
+// ===========================================
+
+function ScheduleDetailsModal({
+  isOpen,
+  onClose,
+  inspection,
+  locationString,
+  canConfirm,
+  canShowRescheduleConfirm,
+  onConfirm,
+  isConfirming,
+  onReschedule,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  inspection: any;
+  locationString: string;
+  canConfirm: boolean;
+  canShowRescheduleConfirm: boolean;
+  onConfirm: () => void;
+  isConfirming: boolean;
+  onReschedule: () => void;
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl shadow-xl max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between rounded-t-2xl">
+          <h3 className="text-lg font-semibold text-gray-900">Schedule details</h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-2 rounded-full hover:bg-gray-100 text-gray-500"
+            aria-label="Close"
+          >
+            <X size={20} />
+          </button>
+        </div>
+        <div className="p-6 space-y-4">
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <span className="font-medium">{getDayOfWeek(inspection?.slot_time)}</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <Calendar size={16} className="text-gray-400" />
+            <span>{inspection?.slot_time ? formatInspectionDate(inspection.slot_time) : '—'}</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <Clock size={16} className="text-gray-400" />
+            <span>{inspection?.slot_time ? formatInspectionTimeOnly(inspection.slot_time) : '—'}</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <MapPin size={16} className="text-red-500" />
+            <span>{locationString}</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <User size={16} className="text-gray-400" />
+            <span>{inspection?.leads?.buyer_name || '—'}</span>
+          </div>
+          {(inspection?.reminder_days != null && inspection.reminder_days >= 0) && (
+            <div className="pt-3 border-t border-gray-100">
+              <h4 className="font-medium text-gray-900 text-sm mb-1">Reminder</h4>
+              <p className="text-sm text-gray-600">Notify {inspection.reminder_days} day before due date</p>
+            </div>
+          )}
+          {canShowRescheduleConfirm && (
+            <div className="flex flex-wrap gap-3 pt-2">
+              <button
+                type="button"
+                onClick={onReschedule}
+                className="flex-1 min-w-[120px] px-4 py-2.5 bg-white border-2 border-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors"
+              >
+                Re-schedule
+              </button>
+              {canConfirm && (
+                <button
+                  type="button"
+                  onClick={onConfirm}
+                  disabled={isConfirming}
+                  className="flex-1 min-w-[120px] px-4 py-2.5 bg-[#15355A] text-white rounded-xl font-medium hover:bg-[#0f2842] transition-colors disabled:opacity-60"
+                >
+                  {isConfirming ? 'Confirming...' : 'Confirm'}
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ===========================================
+// Complete Inspection Modal
+// ===========================================
+
+function CompleteInspectionModal({
+  inspection,
+  isOpen,
+  onClose,
+  onConfirm,
+}: {
+  inspection: any;
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (updated: any) => void;
+}) {
+  const [notes, setNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleConfirm = async () => {
+    if (!inspection?.id) return;
+    try {
+      setIsSubmitting(true);
+      const res = await developerApi.completeInspection(inspection.id, {
+        notes: notes.trim() || undefined,
+        completedAt: new Date().toISOString(),
+      });
+      const data = res as { success?: boolean; inspection?: any; error?: string };
+      if (data.success !== false && data.inspection) {
+        toast.success('Inspection marked as complete');
+        onConfirm(data.inspection);
+        onClose();
+      } else {
+        toast.error((data as { error?: string }).error || 'Failed to complete inspection');
+      }
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : 'Something went wrong';
+      toast.error(message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  const propertyTitle = inspection?.properties?.title || 'this property';
+  const buyerName = inspection?.leads?.buyer_name || 'the buyer';
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-50">
+      <div className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl p-6 space-y-4">
+        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+          <CheckCircle size={24} className="text-green-600" />
+        </div>
+        <h2 className="text-xl font-bold text-center">Complete Inspection</h2>
+        <p className="text-gray-600 text-center text-sm">
+          Confirm that the physical inspection for <strong>{propertyTitle}</strong> has been completed with {buyerName}.
+        </p>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Notes (optional)</label>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Add any notes about the inspection..."
+            rows={3}
+            className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
+          />
+        </div>
+        <div className="flex gap-3 pt-2">
+          <button
+            onClick={onClose}
+            disabled={isSubmitting}
+            className="flex-1 px-4 py-3 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-60"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={isSubmitting}
+            className="flex-1 px-4 py-3 rounded-xl bg-green-600 text-white text-sm font-semibold hover:bg-green-700 disabled:opacity-60"
+          >
+            {isSubmitting ? 'Confirming...' : 'Confirm Complete'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ===========================================
 // Main Page
 // ===========================================
 
@@ -116,6 +302,10 @@ export default function DeveloperInspectionDetailPage() {
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
+  const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Fetch inspection from dashboard API
@@ -135,17 +325,11 @@ export default function DeveloperInspectionDetailPage() {
     setError(null);
 
     try {
-      const dashboard = await developerApi.getDashboard(user.id);
-      const allInspections = [
-        ...(dashboard.inspections?.upcoming || []),
-        ...(dashboard.inspections?.recently_booked || []),
-      ];
-      const foundInspection = allInspections.find((i: any) => i.id === inspectionId);
-      
-      // Only update state if request wasn't aborted
+      const res = await developerApi.getInspectionDetails(inspectionId);
+      const data = res as { inspection?: any };
       if (!abortController.signal.aborted) {
-        if (foundInspection) {
-          setInspection(foundInspection);
+        if (data.inspection) {
+          setInspection(data.inspection);
         } else {
           setError('Inspection not found');
         }
@@ -193,13 +377,29 @@ export default function DeveloperInspectionDetailPage() {
     try {
       await developerApi.cancelInspection(inspectionId);
       setIsCancelModalOpen(false);
-      // Optimistically update the local state
-      setInspection((prev: any) => prev ? { ...prev, status: 'cancelled', cancelled_by: 'developer', cancelled_at: new Date().toISOString() } : prev);
+      await fetchInspection();
     } catch (err) {
       const message = err instanceof ApiError ? err.message : 'Failed to cancel inspection';
       setCancelError(message);
     } finally {
       setIsCancelling(false);
+    }
+  };
+
+  const handleConfirmInspection = async () => {
+    if (!inspectionId) return;
+    setIsConfirming(true);
+    setConfirmError(null);
+    try {
+      await developerApi.confirmInspection(inspectionId);
+      toast.success('Inspection confirmed. The buyer has been notified.');
+      await fetchInspection();
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : 'Failed to confirm inspection';
+      setConfirmError(message);
+      toast.error(message);
+    } finally {
+      setIsConfirming(false);
     }
   };
 
@@ -245,34 +445,47 @@ export default function DeveloperInspectionDetailPage() {
     );
   }
 
+  // State-driven UI from inspection.status (from API/Supabase). No local-only state for status.
   const inspectionDate = parseTimestamp(inspection.slot_time);
   const currentStatus = (inspection.status || '').toLowerCase();
   const canCancel = currentStatus === 'booked' || currentStatus === 'pending' || currentStatus === 'confirmed';
+  const scheduledTimePassed = inspection.slot_time && isBefore(inspection.slot_time, new Date().toISOString());
+  // Allow "Mark as Complete" when slot has passed and status is confirmed OR still booked (developer can complete without having confirmed first)
+  const canComplete = scheduledTimePassed && (currentStatus === 'confirmed' || currentStatus === 'booked');
+  // Show "Confirm Inspection" only when status is booked or pending (e.g. after buyer reschedule); hide when already confirmed/cancelled/completed
+  const canConfirm = (currentStatus === 'booked' || currentStatus === 'pending') && !scheduledTimePassed;
+  const propLocation = inspection.properties?.location;
+  const locationString = inspection.address || propLocation?.address || (propLocation?.city && propLocation?.state ? `${propLocation.city}, ${propLocation.state}` : propLocation?.city || propLocation?.state || 'Address not specified');
 
   return (
     <div className="p-6 pb-24 lg:pb-6">
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Inspection Details</h1>
-              <div className="flex items-center gap-2 mt-1">
-                <StatusBadge status={inspection.status} />
-              </div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Inspection Details</h1>
+            <div className="flex items-center gap-2 mt-1">
+              <StatusBadge status={inspection.status} />
             </div>
           </div>
-          {canCancel && (
+          <div className="flex flex-wrap gap-2 sm:flex-shrink-0">
             <button
-              onClick={() => setIsCancelModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-red-200 text-red-700 rounded-xl font-medium hover:bg-red-50 transition-colors"
+              type="button"
+              onClick={() => setShowScheduleModal(true)}
+              className="flex flex-1 min-w-0 items-center justify-center gap-2 px-4 py-2.5 bg-white border-2 border-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors sm:flex-initial"
             >
-              <X size={18} />
-              Cancel
+              <Calendar size={18} className="flex-shrink-0" />
+              <span className="truncate">Schedule details</span>
             </button>
-          )}
+          </div>
         </div>
 
+        {/* Confirm error banner */}
+        {confirmError && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
+            {confirmError}
+          </div>
+        )}
         {/* Cancel error banner */}
         {cancelError && (
           <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
@@ -322,40 +535,62 @@ export default function DeveloperInspectionDetailPage() {
           </div>
         )}
 
-        {/* Inspection Details */}
-        <div className="bg-white rounded-2xl p-6 border border-gray-100 space-y-6">
-          <h2 className="font-semibold text-gray-900">Inspection Details</h2>
+        {/* Scheduled Inspection – same layout as property details page */}
+        <div className="bg-white rounded-2xl p-4 shadow-sm">
+          <h3 className="font-semibold text-gray-900 mb-4">Scheduled Inspection</h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="flex items-start gap-3">
-              <div className="p-2 bg-gray-100 rounded-lg">
-                <Calendar className="text-gray-600" size={20} />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Scheduled Date</p>
-                <p className="font-semibold text-gray-900">
-                  {inspectionDate.toLocaleDateString('en-US', { 
-                    weekday: 'long',
-                    month: 'long', 
-                    day: 'numeric', 
-                    year: 'numeric' 
-                  })}
-                </p>
-              </div>
+          <div className="space-y-3 mb-4">
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <span className="font-medium">{getDayOfWeek(inspection.slot_time)}</span>
             </div>
-
-            <div className="flex items-start gap-3">
-              <div className="p-2 bg-gray-100 rounded-lg">
-                <Clock className="text-gray-600" size={20} />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Scheduled Time</p>
-                <p className="font-semibold text-gray-900">
-                  {formatInspectionTimeOnly(inspection.slot_time)}
-                </p>
-              </div>
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <Calendar size={16} className="text-gray-400" />
+              <span>{formatInspectionDate(inspection.slot_time)}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <Clock size={16} className="text-gray-400" />
+              <span>{formatInspectionTimeOnly(inspection.slot_time)}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <MapPin size={16} className="text-red-500" />
+              <span>{locationString}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <User size={16} className="text-gray-400" />
+              <span>{inspection.leads?.buyer_name || '1'}</span>
             </div>
           </div>
+
+          {(inspection.reminder_days != null && inspection.reminder_days >= 0) && (
+            <div className="mb-4 pt-3 border-t border-gray-100">
+              <h4 className="font-medium text-gray-900 text-sm mb-1">Reminder</h4>
+              <p className="text-sm text-gray-600">Notify {inspection.reminder_days} day before due date</p>
+            </div>
+          )}
+
+          {(currentStatus === 'booked' || currentStatus === 'pending' || currentStatus === 'confirmed') && (
+            <div className="flex flex-wrap gap-3">
+              {inspection.property_id && (
+                <button
+                  type="button"
+                  onClick={() => router.push(`/dashboard/developer/properties/${inspection.property_id}/reschedule`)}
+                  className="flex-1 min-w-[120px] px-4 py-2.5 bg-white border-2 border-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors"
+                >
+                  Re-schedule
+                </button>
+              )}
+              {(currentStatus === 'booked' || currentStatus === 'pending') && (
+                <button
+                  type="button"
+                  onClick={handleConfirmInspection}
+                  disabled={isConfirming}
+                  className="flex-1 min-w-[120px] px-4 py-2.5 bg-[#15355A] text-white rounded-xl font-medium hover:bg-[#0f2842] transition-colors disabled:opacity-60"
+                >
+                  {isConfirming ? 'Confirming...' : 'Confirm'}
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Buyer Information */}
@@ -400,6 +635,21 @@ export default function DeveloperInspectionDetailPage() {
           </div>
         )}
 
+        {/* Completion info (when completed) */}
+        {currentStatus === 'completed' && (inspection.completed_at || inspection.completion_notes) && (
+          <div className="bg-white rounded-2xl p-6 border border-gray-100">
+            <h2 className="font-semibold text-gray-900 mb-3">Completion</h2>
+            {inspection.completed_at && (
+              <p className="text-sm text-gray-600 mb-2">
+                Completed on {parseTimestamp(inspection.completed_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+              </p>
+            )}
+            {inspection.completion_notes && (
+              <p className="text-sm text-gray-600 leading-relaxed">{inspection.completion_notes}</p>
+            )}
+          </div>
+        )}
+
         {/* Notes */}
         {inspection.notes && (
           <div className="bg-white rounded-2xl p-6 border border-gray-100">
@@ -407,7 +657,52 @@ export default function DeveloperInspectionDetailPage() {
             <p className="text-sm text-gray-600 leading-relaxed">{inspection.notes}</p>
           </div>
         )}
+
+        {/* Action buttons – bottom */}
+        {(canConfirm || canComplete || canCancel) && (
+          <div className="flex flex-wrap gap-3 pt-2">
+            {canConfirm && (
+              <button
+                onClick={handleConfirmInspection}
+                disabled={isConfirming}
+                className="flex-1 min-w-[140px] flex items-center justify-center gap-2 px-4 py-2.5 bg-[#15355A] text-white rounded-xl font-medium hover:bg-[#0f2842] transition-colors disabled:opacity-60"
+              >
+                <CheckCircle size={18} className="flex-shrink-0" />
+                <span className="truncate">{isConfirming ? 'Confirming...' : 'Confirm inspection'}</span>
+              </button>
+            )}
+            {canComplete && (
+              <button
+                onClick={() => setIsCompleteModalOpen(true)}
+                className="flex-1 min-w-[140px] flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition-colors"
+              >
+                <CheckCircle size={18} className="flex-shrink-0" />
+                <span className="truncate">Mark as Complete</span>
+              </button>
+            )}
+            {canCancel && (
+              <button
+                onClick={() => setIsCancelModalOpen(true)}
+                className="flex-1 min-w-[140px] flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-red-200 text-red-700 rounded-xl font-medium hover:bg-red-50 transition-colors"
+              >
+                <X size={18} className="flex-shrink-0" />
+                <span className="truncate">Cancel</span>
+              </button>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Complete Inspection Modal */}
+      <CompleteInspectionModal
+        inspection={inspection}
+        isOpen={isCompleteModalOpen}
+        onClose={() => setIsCompleteModalOpen(false)}
+        onConfirm={async () => {
+          setIsCompleteModalOpen(false);
+          await fetchInspection();
+        }}
+      />
 
       {/* Cancel Confirmation Modal */}
       <CancelConfirmationModal
@@ -418,6 +713,25 @@ export default function DeveloperInspectionDetailPage() {
         }}
         onConfirm={handleCancelInspection}
         isSubmitting={isCancelling}
+      />
+
+      {/* Schedule Details Modal – same as property details page */}
+      <ScheduleDetailsModal
+        isOpen={showScheduleModal}
+        onClose={() => setShowScheduleModal(false)}
+        inspection={inspection}
+        locationString={locationString}
+        canConfirm={canConfirm}
+        canShowRescheduleConfirm={currentStatus === 'booked' || currentStatus === 'pending' || currentStatus === 'confirmed'}
+        onConfirm={() => {
+          setShowScheduleModal(false);
+          handleConfirmInspection();
+        }}
+        isConfirming={isConfirming}
+        onReschedule={() => {
+          setShowScheduleModal(false);
+          if (inspection.property_id) router.push(`/dashboard/developer/properties/${inspection.property_id}/reschedule`);
+        }}
       />
     </div>
   );

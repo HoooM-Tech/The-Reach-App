@@ -184,7 +184,7 @@ export default function BuyerInspectionsPage() {
                 value={searchValue}
                 onChange={(event) => setSearchValue(event.target.value)}
                 placeholder="Search inspections by location or property..."
-                className="w-full bg-white border border-gray-100 rounded-xl py-3 pl-11 pr-4 outline-none focus:ring-2 focus:ring-[#E54D4D]/20 focus:border-[#E54D4D] text-sm text-gray-900 placeholder:text-gray-400"
+                className="w-full bg-white border border-gray-100 rounded-xl py-3 pl-11 pr-4 outline-none focus:ring-2 focus:ring-[#15355A]/20 focus:border-[#15355A] text-sm text-gray-900 placeholder:text-gray-400"
               />
             </div>
             <div className="flex items-center gap-3">
@@ -198,7 +198,7 @@ export default function BuyerInspectionsPage() {
               </button>
               <button
                 type="submit"
-                className="h-11 px-5 rounded-xl bg-[#E54D4D] text-white text-sm font-semibold"
+                className="h-11 px-5 rounded-xl bg-[#15355A] text-white text-sm font-semibold"
               >
                 Search
               </button>
@@ -216,7 +216,7 @@ export default function BuyerInspectionsPage() {
                   }}
                   className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                     activeTab === tab.key
-                      ? 'bg-[#E54D4D] text-white'
+                      ? 'bg-[#15355A] text-white'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
@@ -234,7 +234,7 @@ export default function BuyerInspectionsPage() {
               onClick={() => setActiveTab(tab.key)}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                 activeTab === tab.key
-                  ? 'bg-[#E54D4D] text-white'
+                  ? 'bg-[#15355A] text-white'
                   : 'bg-white text-gray-600 border border-gray-100 hover:bg-gray-50'
               }`}
             >
@@ -269,7 +269,7 @@ export default function BuyerInspectionsPage() {
             <p className="text-gray-600 mb-4">{error}</p>
             <button
               onClick={() => fetchInspections(page, inspections.length === 0)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-[#E54D4D] text-white rounded-lg"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-[#15355A] text-white rounded-lg"
             >
               <RefreshCw size={16} />
               Try Again
@@ -288,7 +288,7 @@ export default function BuyerInspectionsPage() {
             </p>
             <button
               onClick={() => router.push('/properties')}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-[#E54D4D] text-white rounded-xl font-medium"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-[#15355A] text-white rounded-xl font-medium"
             >
               Browse Properties
             </button>
@@ -332,7 +332,7 @@ export default function BuyerInspectionsPage() {
                     <div className="p-4 space-y-2">
                       {reviewCount > 0 && (
                         <div className="flex items-center gap-2 text-sm text-gray-500">
-                          <Star size={14} className="text-[#E54D4D]" />
+                          <Star size={14} className="text-[#15355A]" />
                           <span className="font-medium text-gray-700">
                             {rating.toFixed(1)}
                           </span>

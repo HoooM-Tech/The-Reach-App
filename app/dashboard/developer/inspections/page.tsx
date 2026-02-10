@@ -3,12 +3,12 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/contexts/UserContext';
-import { developerApi, DeveloperDashboardData, ApiError } from '@/lib/api/client';
+import { developerApi, ApiError } from '@/lib/api/client';
 import { isBefore, formatInspectionTimeOnly, parseTimestamp } from '@/lib/utils/time';
+import toast from 'react-hot-toast';
 import { 
   Calendar, 
   Clock,
-  Building2,
   RefreshCw,
   AlertCircle,
   User,
@@ -20,15 +20,103 @@ import {
 export const dynamic = 'force-dynamic';
 
 // ===========================================
+// Complete Inspection Modal
+// ===========================================
+
+function CompleteInspectionModal({
+  inspection,
+  isOpen,
+  onClose,
+  onConfirm,
+}: {
+  inspection: any;
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (updated: any) => void;
+}) {
+  const [notes, setNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleConfirm = async () => {
+    try {
+      setIsSubmitting(true);
+      const res = await developerApi.completeInspection(inspection.id, {
+        notes: notes.trim() || undefined,
+        completedAt: new Date().toISOString(),
+      });
+      const data = res as { success?: boolean; inspection?: any; error?: string };
+      if (data.success !== false && data.inspection) {
+        toast.success('Inspection marked as complete');
+        onConfirm(data.inspection);
+        onClose();
+      } else {
+        toast.error((data as { error?: string }).error || 'Failed to complete inspection');
+      }
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : 'Something went wrong';
+      toast.error(message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  const propertyTitle = inspection?.properties?.title || 'this property';
+  const buyerName = inspection?.leads?.buyer_name || 'the buyer';
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-50">
+      <div className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl p-6 space-y-4">
+        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+          <CheckCircle className="w-8 h-8 text-green-600" />
+        </div>
+        <h2 className="text-xl font-bold text-center">Complete Inspection</h2>
+        <p className="text-gray-600 text-center text-sm">
+          Confirm that the physical inspection for <strong>{propertyTitle}</strong> has been completed with {buyerName}.
+        </p>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Notes (optional)</label>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Add any notes about the inspection..."
+            rows={3}
+            className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
+          />
+        </div>
+        <div className="flex gap-3 pt-2">
+          <button
+            onClick={onClose}
+            disabled={isSubmitting}
+            className="flex-1 px-4 py-3 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-60"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={isSubmitting}
+            className="flex-1 px-4 py-3 rounded-xl bg-green-600 text-white text-sm font-semibold hover:bg-green-700 disabled:opacity-60"
+          >
+            {isSubmitting ? 'Confirming...' : 'Confirm Complete'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ===========================================
 // Inspection Card Component
 // ===========================================
 
 interface InspectionCardProps {
   inspection: any;
   onClick: () => void;
+  onComplete?: (inspection: any) => void;
 }
 
-function InspectionCard({ inspection, onClick }: InspectionCardProps) {
+function InspectionCard({ inspection, onClick, onComplete }: InspectionCardProps) {
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
       booked: { label: 'Booked', color: 'bg-orange-100 text-orange-700', icon: <Clock size={12} /> },
@@ -44,12 +132,14 @@ function InspectionCard({ inspection, onClick }: InspectionCardProps) {
   const statusInfo = getStatusBadge(inspection.status);
   const inspectionDate = parseTimestamp(inspection.slot_time);
   const isPast = isBefore(inspection.slot_time, new Date().toISOString());
+  const statusLower = (inspection.status || '').toLowerCase();
+  const isConfirmed = statusLower === 'confirmed';
+  const isBooked = statusLower === 'booked';
+  // Allow "Mark as Complete" when slot has passed and status is confirmed OR still booked
+  const canComplete = isPast && (isConfirmed || isBooked) && onComplete;
 
   return (
-    <button
-      onClick={onClick}
-      className="w-full bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 hover:shadow-lg transition-all text-left"
-    >
+    <div className="w-full bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 hover:shadow-lg transition-all">
       <div className="flex items-start gap-3 sm:gap-4">
         <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex flex-col items-center justify-center flex-shrink-0 ${
           isPast ? 'bg-gray-100' : 'bg-[#15355A]'
@@ -93,9 +183,31 @@ function InspectionCard({ inspection, onClick }: InspectionCardProps) {
               </span>
             </div>
           )}
+
+          <div className="flex flex-wrap gap-2 mt-3">
+            <button
+              type="button"
+              onClick={onClick}
+              className="flex-1 min-w-[120px] py-2 rounded-xl border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              View Details
+            </button>
+            {canComplete && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onComplete?.(inspection);
+                }}
+                className="flex-1 min-w-[120px] py-2 rounded-xl bg-green-600 text-white text-sm font-medium hover:bg-green-700"
+              >
+                Mark as Complete
+              </button>
+            )}
+          </div>
         </div>
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -114,6 +226,7 @@ export default function DeveloperInspectionsPage() {
   const [activeTab, setActiveTab] = useState<'upcoming' | 'recent'>('upcoming');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [completeModalInspection, setCompleteModalInspection] = useState<any>(null);
 
   // Fetch inspections from dashboard API
   const fetchInspections = async () => {
@@ -145,6 +258,18 @@ export default function DeveloperInspectionsPage() {
   const displayedInspections = activeTab === 'upcoming' 
     ? inspections.upcoming 
     : inspections.recently_booked;
+
+  const handleCompleteConfirm = (updatedInspection: any) => {
+    setInspections((prev) => ({
+      ...prev,
+      upcoming: prev.upcoming.filter((i: any) => i.id !== updatedInspection?.id),
+      recently_booked: prev.recently_booked.map((i: any) =>
+        i.id === updatedInspection?.id ? updatedInspection : i
+      ),
+      completed: prev.completed + (updatedInspection?.status === 'completed' ? 1 : 0),
+    }));
+    setCompleteModalInspection(null);
+  };
 
   return (
     <div className="min-h-screen bg-reach-bg pb-24 lg:pb-6">
@@ -236,11 +361,19 @@ export default function DeveloperInspectionsPage() {
               key={inspection.id}
               inspection={inspection}
               onClick={() => router.push(`/dashboard/developer/inspections/${inspection.id}`)}
+              onComplete={setCompleteModalInspection}
             />
           ))}
         </div>
         )}
       </div>
+
+      <CompleteInspectionModal
+        inspection={completeModalInspection || {}}
+        isOpen={!!completeModalInspection}
+        onClose={() => setCompleteModalInspection(null)}
+        onConfirm={handleCompleteConfirm}
+      />
     </div>
   );
 }

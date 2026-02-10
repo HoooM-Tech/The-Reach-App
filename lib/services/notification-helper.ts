@@ -463,8 +463,8 @@ export const notificationHelpers = {
     await createNotification(
       data.developerId,
       'inspection_rescheduled_by_buyer',
-      'Inspection Rescheduled',
-      `${data.buyerName || 'A buyer'} rescheduled the inspection for "${data.propertyTitle}" from ${oldTimeFormatted} to ${newTimeFormatted}.`,
+      'Inspection rescheduled — confirmation required',
+      `${data.buyerName || 'A buyer'} rescheduled the inspection for "${data.propertyTitle}" from ${oldTimeFormatted} to ${newTimeFormatted}. Please confirm the new time.`,
       {
         property_id: data.propertyId,
         property_title: data.propertyTitle,
@@ -608,6 +608,62 @@ export const notificationHelpers = {
         property_id: data.propertyId,
         property_title: data.propertyTitle,
         inspection_id: data.inspectionId,
+      },
+      ['in_app', 'push', 'email']
+    )
+  },
+
+  /**
+   * Inspection confirmed – notify admin
+   */
+  async inspectionConfirmedAdmin(data: {
+    adminId: string
+    propertyId: string
+    propertyTitle: string
+    inspectionId: string
+    slotTime?: string
+    developerId?: string
+    buyerId?: string
+  }): Promise<void> {
+    await createNotification(
+      data.adminId,
+      'inspection_confirmed_admin',
+      'Inspection Confirmed',
+      `A developer confirmed an inspection for "${data.propertyTitle}".`,
+      {
+        property_id: data.propertyId,
+        property_title: data.propertyTitle,
+        inspection_id: data.inspectionId,
+        slot_time: data.slotTime,
+        developer_id: data.developerId,
+        buyer_id: data.buyerId,
+      },
+      ['in_app', 'push', 'email']
+    )
+  },
+
+  /**
+   * Inspection completed – notify admin
+   */
+  async inspectionCompletedAdmin(data: {
+    adminId: string
+    propertyId: string
+    propertyTitle: string
+    inspectionId: string
+    developerId?: string
+    buyerId?: string
+  }): Promise<void> {
+    await createNotification(
+      data.adminId,
+      'inspection_completed_admin',
+      'Inspection Completed',
+      `An inspection for "${data.propertyTitle}" has been marked complete.`,
+      {
+        property_id: data.propertyId,
+        property_title: data.propertyTitle,
+        inspection_id: data.inspectionId,
+        developer_id: data.developerId,
+        buyer_id: data.buyerId,
       },
       ['in_app', 'push', 'email']
     )

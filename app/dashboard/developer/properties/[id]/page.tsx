@@ -5,7 +5,6 @@ import { useRouter, useParams } from 'next/navigation';
 import { useUser } from '@/contexts/UserContext';
 import { developerApi, ApiError, getAccessToken } from '@/lib/api/client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { formatInspectionDate, formatInspectionTimeOnly, getDayOfWeek as getDayOfWeekFromUtil } from '@/lib/utils/time';
 import { 
   ArrowLeft, 
   Bell,
@@ -16,7 +15,6 @@ import {
   RefreshCw,
   AlertCircle,
   CheckCircle,
-  Clock,
   XCircle,
   FileEdit,
   Eye,
@@ -41,17 +39,14 @@ interface PropertyDetails {
   stats: { views: number; leads: number };
   bid: { amount: number; id: string } | null;
   note: { note_text: string; id: string } | null;
-  inspection: {
+  inspections: Array<{
     id: string;
     slot_time: string;
     status: string;
-    type: string;
+    type?: string;
     buyer_name?: string;
-    buyer_email?: string;
-    buyer_phone?: string;
     address?: string;
-    reminder_days: number;
-  } | null;
+  }>;
   contract: { id: string; contract_url: string } | null;
   rejectionFeedback: string | null;
 }
@@ -202,47 +197,6 @@ export default function DeveloperPropertyDetailPage() {
     }).format(price);
   };
 
-  // Format date using central time utility
-  const formatDate = (dateString: string) => {
-    return formatInspectionDate(dateString);
-  };
-
-  // Format time using central utility
-  const formatTime = (dateString: string) => {
-    return formatInspectionTimeOnly(dateString);
-  };
-
-  // Get day of week using central utility
-  const getDayOfWeek = (dateString: string) => {
-    return getDayOfWeekFromUtil(dateString);
-  };
-
-  // Handle confirm inspection
-  const handleConfirmInspection = async () => {
-    if (!details?.inspection) return;
-
-    try {
-      const token = getAccessToken();
-      const response = await fetch(`/api/inspections/${details.inspection.id}/confirm`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` }),
-        },
-      });
-
-      if (response.ok) {
-        await fetchPropertyDetails();
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        alert(errorData.error || 'Failed to confirm inspection');
-      }
-    } catch (err: any) {
-      alert(err.message || 'Failed to confirm inspection');
-    }
-  };
-
   // Check for reduced motion
   const prefersReducedMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -289,7 +243,7 @@ export default function DeveloperPropertyDetailPage() {
     );
   }
 
-  const { property, stats, bid, note, inspection, contract, rejectionFeedback } = details;
+  const { property, stats, bid, note, inspections, contract, rejectionFeedback } = details;
   const status = property.verification_status || property.status || 'draft';
   const isVerified = status === 'verified';
   const isRejected = status === 'rejected';
@@ -540,52 +494,35 @@ export default function DeveloperPropertyDetailPage() {
               />
             </div>
 
-            {/* Scheduled Inspection */}
-            {inspection && (
+            {/* Inspections – link to inspection details page for all actions */}
+            {(inspections?.length ?? 0) > 0 && (
               <div className="bg-white rounded-2xl p-4 shadow-sm">
-                <h3 className="font-semibold text-gray-900 mb-4">Scheduled Inspection</h3>
-                
-                <div className="space-y-3 mb-4">
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <span className="font-medium">{getDayOfWeek(inspection.slot_time)}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Calendar size={16} className="text-gray-400" />
-                    <span>{formatDate(inspection.slot_time)}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Clock size={16} className="text-gray-400" />
-                    <span>{formatTime(inspection.slot_time)}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <MapPin size={16} className="text-red-500" />
-                    <span>{inspection.address || locationString}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <User size={16} className="text-gray-400" />
-                    <span>1</span>
-                  </div>
-                </div>
-
-                <div className="mb-4 pt-3 border-t border-gray-100">
-                  <h4 className="font-medium text-gray-900 text-sm mb-1">Reminder</h4>
-                  <p className="text-sm text-gray-600">Notify {inspection.reminder_days} day before due date</p>
-                </div>
-
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => router.push(`/dashboard/developer/properties/${property.id}/reschedule`)}
-                    className="flex-1 px-4 py-2.5 bg-white border-2 border-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors"
-                  >
-                    Re-schedule
-                  </button>
-                  <button
-                    onClick={handleConfirmInspection}
-                    className="flex-1 px-4 py-2.5 bg-reach-primary text-white rounded-xl font-medium hover:bg-reach-primary/90 transition-colors"
-                  >
-                    Confirm
-                  </button>
-              </div>
+                <h3 className="font-semibold text-gray-900 mb-3">Inspections</h3>
+                <p className="text-sm text-gray-500 mb-4">
+                  View and manage inspections from the inspection details page.
+                </p>
+                <ul className="space-y-2">
+                  {inspections.map((insp) => (
+                    <li key={insp.id}>
+                      <button
+                        type="button"
+                        onClick={() => router.push(`/dashboard/developer/inspections/${insp.id}`)}
+                        className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl text-left transition-colors"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <Calendar size={18} className="text-gray-500 flex-shrink-0" />
+                          <div className="min-w-0">
+                            <span className="text-sm font-medium text-gray-900 block truncate">
+                              {insp.buyer_name || 'Inspection'}
+                            </span>
+                            <span className="text-xs text-gray-500 capitalize">{insp.status}</span>
+                          </div>
+                        </div>
+                        <ChevronRight size={18} className="text-gray-400 flex-shrink-0 ml-2" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
           </div>

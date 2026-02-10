@@ -50,22 +50,23 @@ export default function RescheduleInspectionPage() {
 
         if (response.ok) {
           const data = await response.json();
-          if (data.inspection) {
-            setInspection(data.inspection);
-            setScheduleType(data.inspection.type === 'video_chat' || data.inspection.type === 'video' ? 'video' : 'in-person');
+          const insp = data.inspections?.[0] ?? data.inspection;
+          if (insp) {
+            setInspection(insp);
+            setScheduleType(insp.type === 'video_chat' || insp.type === 'video' ? 'video' : 'in-person');
             
             // Pre-fill date and time (Lagos timezone - inspections are Nigeria-focused)
-            if (data.inspection.slot_time) {
-              const localDate = utcToLocalDate(data.inspection.slot_time, DISPLAY_TIMEZONE);
-              const localTime = utcToLocalTime(data.inspection.slot_time, DISPLAY_TIMEZONE);
+            if (insp.slot_time) {
+              const localDate = utcToLocalDate(insp.slot_time, DISPLAY_TIMEZONE);
+              const localTime = utcToLocalTime(insp.slot_time, DISPLAY_TIMEZONE);
               setDate(localDate);
               setTime(localTime);
             }
             
             // Pre-fill contact info
-            setName(data.inspection.buyer_name || '');
-            setEmail(data.inspection.buyer_email || '');
-            setPhone(data.inspection.buyer_phone || '');
+            setName(insp.buyer_name || '');
+            setEmail(insp.buyer_email || '');
+            setPhone(insp.buyer_phone || '');
           }
         }
       } catch (err) {

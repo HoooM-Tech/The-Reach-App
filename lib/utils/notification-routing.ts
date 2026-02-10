@@ -227,6 +227,29 @@ export function resolveNotificationRoute(
   }
 
   // ===========================================
+  // ADMIN ROUTES
+  // ===========================================
+  if (userRole === 'admin') {
+    if (type === 'inspection_confirmed_admin' || type === 'inspection_completed_admin') {
+      if (data.inspection_id) {
+        return `/dashboard/developer/inspections/${data.inspection_id}`;
+      }
+      return '/dashboard/admin';
+    }
+    if (
+      type === 'handover_documents_uploaded_admin' ||
+      type === 'handover_documents_signed_admin' ||
+      type === 'handover_completed_admin'
+    ) {
+      if (data.handover_id) {
+        return `/dashboard/developer/handover/${data.handover_id}`;
+      }
+      return '/dashboard/admin';
+    }
+    return null;
+  }
+
+  // ===========================================
   // FALLBACK (for backwards compatibility)
   // ===========================================
   // Only allow public property routes for buyers or unauthenticated users
@@ -283,6 +306,20 @@ export function getNotificationActionLabel(
     }
     if (type === 'property_bought' || type === 'deposit_cash' || type === 'payout_processed') {
       return 'See Transaction';
+    }
+    return null;
+  }
+
+  if (userRole === 'admin') {
+    if (type === 'inspection_confirmed_admin' || type === 'inspection_completed_admin') {
+      return 'View Inspection';
+    }
+    if (
+      type === 'handover_documents_uploaded_admin' ||
+      type === 'handover_documents_signed_admin' ||
+      type === 'handover_completed_admin'
+    ) {
+      return 'View Handover';
     }
     return null;
   }

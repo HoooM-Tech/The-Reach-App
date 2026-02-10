@@ -36,12 +36,22 @@ export async function POST(
       throw new ValidationError('Only completed inspections can be withdrawn')
     }
 
+    let reason: string | undefined
+    try {
+      const body = await req.json().catch(() => ({}))
+      reason = typeof body.reason === 'string' ? body.reason.trim() || undefined : undefined
+    } catch {
+      // no body
+    }
+
+    const withdrawnAt = new Date().toISOString()
     const { data: updatedInspection, error: updateError } = await adminSupabase
       .from('inspections')
       .update({
         status: 'withdrawn',
-        updated_at: new Date().toISOString(),
-        cancelled_at: new Date().toISOString(),
+        withdrawn_at: withdrawnAt,
+        withdrawal_reason: reason ?? null,
+        updated_at: withdrawnAt,
       })
       .eq('id', inspectionId)
       .select()

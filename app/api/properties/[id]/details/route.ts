@@ -80,14 +80,13 @@ export async function GET(
       .order('created_at', { ascending: false })
       .limit(1);
 
-    // Get inspections (upcoming or most recent)
+    // Get all inspections for this property (for "View Inspection" links on property page)
     const { data: inspections } = await adminSupabase
       .from('inspections')
-      .select('*, leads(buyer_name, buyer_email, buyer_phone)')
+      .select('id, slot_time, status, type, address, reminder_days, leads(buyer_name, buyer_email, buyer_phone)')
       .eq('property_id', propertyId)
-      .in('status', ['booked', 'confirmed'])
-      .order('slot_time', { ascending: true })
-      .limit(1);
+      .order('slot_time', { ascending: false })
+      .limit(20);
 
     // Get contract
     const { data: contracts } = await adminSupabase
@@ -138,17 +137,16 @@ export async function GET(
         note_text: notes[0].note_text,
         id: notes[0].id,
       } : null,
-      inspection: inspections && inspections.length > 0 ? {
-        id: inspections[0].id,
-        slot_time: inspections[0].slot_time,
-        status: inspections[0].status,
-        type: inspections[0].type || 'in_person',
-        buyer_name: inspections[0].leads?.buyer_name || inspections[0].buyer_name || '',
-        buyer_email: inspections[0].leads?.buyer_email || inspections[0].buyer_email || '',
-        buyer_phone: inspections[0].leads?.buyer_phone || inspections[0].buyer_phone || '',
-        address: inspections[0].address || property.location?.address || '',
-        reminder_days: inspections[0].reminder_days || 1,
-      } : null,
+      inspections: (inspections || []).map((i: any) => ({
+        id: i.id,
+        slot_time: i.slot_time,
+        status: i.status,
+        type: i.type || 'in_person',
+        buyer_name: i.leads?.buyer_name || i.buyer_name || '',
+        buyer_email: i.leads?.buyer_email || i.buyer_email || '',
+        buyer_phone: i.leads?.buyer_phone || i.buyer_phone || '',
+        address: i.address || property.location?.address || '',
+      })),
       contract: contracts && contracts.length > 0 ? {
         id: contracts[0].id,
         contract_url: contractUrl,
