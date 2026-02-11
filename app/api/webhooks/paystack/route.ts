@@ -284,7 +284,54 @@ export async function POST(req: NextRequest) {
         // Still process if webhook signature is valid
       }
 
-      // Use database transaction for atomicity
+      const metadata = (transaction.metadata as any) || {};
+      const isPropertyPurchase = metadata.payment_type === 'property_purchase';
+
+      if (isPropertyPurchase) {
+        // PROPERTY PURCHASE: do NOT credit buyer wallet. Credit developer locked balance, create escrow + handover.
+        const { error: updateError } = await supabase
+          .from('transactions')
+          .update({
+            status: 'successful',
+            payment_gateway: 'paystack',
+            gateway_reference: reference,
+            paystack_reference: reference,
+            paystack_status: 'success',
+            completed_at: new Date().toISOString(),
+            webhook_received: true,
+            webhook_payload: event.data,
+            webhook_received_at: new Date().toISOString(),
+          })
+          .eq('id', transaction.id)
+          .in('status', ['pending', 'processing']);
+
+        if (updateError) {
+          console.error('Error updating property purchase transaction:', updateError);
+          return NextResponse.json({ received: true });
+        }
+
+        try {
+          const { completePropertyPurchase } = await import('@/lib/utils/property-purchase-completion');
+          const transactionAmount = parseFloat(transaction.amount);
+          const { data: prop } = await supabase.from('properties').select('title').eq('id', metadata.property_id).single();
+          await completePropertyPurchase({
+            transactionId: transaction.id,
+            amount: transactionAmount,
+            propertyId: metadata.property_id,
+            developerId: metadata.developer_id,
+            buyerId: metadata.buyer_id || transaction.user_id,
+            inspectionId: metadata.inspection_id,
+            propertyTitle: prop?.title || 'Property',
+            reference,
+          });
+        } catch (e) {
+          console.error('Property purchase completion error:', e);
+        }
+        console.log(`Property purchase processed: ${reference}, Amount: ${toNaira(amount)} NGN`);
+        return NextResponse.json({ received: true });
+      }
+
+      // WALLET TOP-UP (deposit): credit buyer wallet
       const wallet = transaction.wallets;
       if (!wallet) {
         console.error(`Wallet not found for transaction ${reference}`);
@@ -295,8 +342,6 @@ export async function POST(req: NextRequest) {
       const currentBalance = parseFloat(wallet.available_balance || 0);
       const transactionAmount = parseFloat(transaction.amount);
 
-      // Update transaction status and wallet balance atomically
-      // Handle both 'pending' and 'processing' statuses to prevent stuck transactions
       const { error: updateError } = await supabase
         .from('transactions')
         .update({
@@ -311,14 +356,13 @@ export async function POST(req: NextRequest) {
           webhook_received_at: new Date().toISOString(),
         })
         .eq('id', transaction.id)
-        .in('status', ['pending', 'processing']); // Update if pending or processing
+        .in('status', ['pending', 'processing']);
 
       if (updateError) {
         console.error('Error updating transaction:', updateError);
         return NextResponse.json({ received: true });
       }
 
-      // Update wallet balance
       const newBalance = currentBalance + transactionAmount;
       await supabase
         .from('wallets')
@@ -327,7 +371,6 @@ export async function POST(req: NextRequest) {
         })
         .eq('id', wallet.id);
 
-      // Log wallet activity
       await logWalletActivity({
         wallet_id: wallet.id,
         user_id: transaction.user_id || wallet.user_id,
@@ -339,7 +382,6 @@ export async function POST(req: NextRequest) {
         description: `Deposit of ${amountInNaira} NGN completed`,
       });
 
-      // Send email notification
       try {
         const { data: user } = await supabase
           .from('users')
@@ -358,7 +400,6 @@ export async function POST(req: NextRequest) {
         }
       } catch (emailError) {
         console.error('Failed to send deposit confirmation email:', emailError);
-        // Don't fail webhook if email fails
       }
 
       console.log(`Deposit processed: ${reference}, Amount: ${amountInNaira} NGN`);

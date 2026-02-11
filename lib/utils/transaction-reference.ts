@@ -8,7 +8,7 @@ import crypto from 'crypto';
  * @returns Globally unique transaction reference
  */
 export function generateTransactionReference(
-  type: 'deposit' | 'withdrawal'
+  type: 'deposit' | 'withdrawal' | 'property_purchase'
 ): string {
   // Use crypto.randomUUID() for globally unique references
   // This ensures Paystack never sees duplicate references

@@ -354,7 +354,11 @@ export default function EditPropertyPage() {
           <h1 className="text-2xl font-bold text-gray-900">Edit Property</h1>
         </div>
 
-        <form className="space-y-6">
+        <form
+          className="space-y-6"
+          onSubmit={(e) => e.preventDefault()}
+          noValidate
+        >
           {/* Basic Information */}
           <div className="bg-white rounded-2xl p-6 border border-gray-100 space-y-4">
             <h2 className="text-lg font-semibold text-gray-900">Basic Information</h2>
@@ -508,29 +512,32 @@ export default function EditPropertyPage() {
               onChange={(value) => setValue('visibility', value)}
             />
           </div>
+        </form>
 
-          {/* Media Upload */}
-          <div className="bg-white rounded-2xl p-6 border border-gray-100">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Media</h2>
-            <MediaUploader
-              media={media}
-              onChange={setMedia}
-              maxImages={10}
-              allowVideo={true}
-            />
-          </div>
+        {/* Media Upload - outside form so file inputs never trigger form submit */}
+        <div className="bg-white rounded-2xl p-6 border border-gray-100">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Media</h2>
+          <MediaUploader
+            propertyId={propertyId}
+            media={media}
+            onChange={setMedia}
+            maxImages={10}
+            allowVideo={true}
+          />
+        </div>
 
-          {/* Documents */}
-          <div className="bg-white rounded-2xl p-6 border border-gray-100">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Documents</h2>
-            <DocumentUploader
-              documents={documents}
-              onChange={setDocuments}
-              listingType={listingType}
-            />
-          </div>
+        {/* Documents - outside form so file inputs never trigger form submit */}
+        <div className="bg-white rounded-2xl p-6 border border-gray-100">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Documents</h2>
+          <DocumentUploader
+            propertyId={propertyId}
+            documents={documents}
+            onChange={setDocuments}
+            listingType={listingType}
+          />
+        </div>
 
-          {/* Actions */}
+        {/* Actions */}
           <div className="flex gap-4 pt-4">
             <button
               type="button"
@@ -564,7 +571,6 @@ export default function EditPropertyPage() {
               </button>
             )}
           </div>
-        </form>
       </div>
   );
 }

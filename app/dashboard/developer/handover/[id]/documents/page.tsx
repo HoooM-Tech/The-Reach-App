@@ -264,6 +264,7 @@ export default function HandoverDocumentsPage() {
                     </label>
 
                     <button
+                      type="button"
                       disabled
                       className="mt-3 px-6 py-2 bg-white border-2 border-gray-300 rounded-xl font-medium text-gray-400 cursor-not-allowed"
                     >
@@ -290,6 +291,7 @@ export default function HandoverDocumentsPage() {
 
                     <div className="flex items-center gap-2 flex-shrink-0 ml-4">
                       <button
+                        type="button"
                         onClick={() =>
                           handleViewDocument(category.document!.url)
                         }
@@ -300,6 +302,7 @@ export default function HandoverDocumentsPage() {
                         <Eye className="w-5 h-5 text-gray-600" />
                       </button>
                       <button
+                        type="button"
                         onClick={() =>
                           handleDeleteDocument(category.document!.id)
                         }

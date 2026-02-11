@@ -670,7 +670,8 @@ export const notificationHelpers = {
   },
 
   /**
-   * Inspection payment completed notification
+   * Property purchase completed (buyer + developer notifications).
+   * Inspections are FREE; this is for PROPERTY PURCHASE only.
    */
   async inspectionPaymentCompleted(data: {
     buyerId: string
@@ -683,9 +684,9 @@ export const notificationHelpers = {
   }): Promise<void> {
     await createNotification(
       data.buyerId,
-      'inspection_paid',
-      'Payment Completed',
-      `Your payment of ₦${data.amount.toLocaleString()} for "${data.propertyTitle}" is successful.`,
+      'property_purchase_completed',
+      'Property Purchase Completed',
+      `Your property purchase of ₦${data.amount.toLocaleString()} for "${data.propertyTitle}" was successful. Handover in progress.`,
       {
         property_id: data.propertyId,
         property_title: data.propertyTitle,
@@ -695,18 +696,28 @@ export const notificationHelpers = {
       },
       ['in_app', 'push', 'email']
     )
+  },
 
+  /**
+   * Notify developer: property payment received, handover can begin.
+   */
+  async propertyPaymentReceivedDeveloper(data: {
+    developerId: string
+    propertyId: string
+    propertyTitle: string
+    amount: number
+    handoverId?: string
+  }): Promise<void> {
     await createNotification(
       data.developerId,
-      'inspection_paid',
-      'Payment Received',
-      `A payment of ₦${data.amount.toLocaleString()} was received for "${data.propertyTitle}".`,
+      'property_payment_received',
+      'Property payment received. Handover can begin.',
+      `A payment of ₦${data.amount.toLocaleString()} was received for "${data.propertyTitle}". You can now start the handover process.`,
       {
         property_id: data.propertyId,
         property_title: data.propertyTitle,
-        inspection_id: data.inspectionId,
         amount: data.amount,
-        transaction_id: data.transactionId,
+        handover_id: data.handoverId,
       },
       ['in_app', 'push', 'email']
     )

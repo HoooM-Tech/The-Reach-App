@@ -76,12 +76,12 @@ export async function POST(
       await logWalletActivity({
         wallet_id: wallet.id,
         user_id: transaction.user_id || wallet.user_id,
-        action: 'inspection_payment',
+        action: 'property_purchase',
         previous_balance: availableBalance,
         new_balance: availableBalance - totalAmount,
         amount_changed: totalAmount,
         transaction_id: transaction.id,
-        description: `Inspection payment of ${totalAmount} NGN`,
+        description: `Property purchase – ${totalAmount} NGN`,
       })
     } catch (logError) {
       console.error('Error logging wallet activity:', logError)
@@ -89,27 +89,21 @@ export async function POST(
 
     try {
       const metadata = (transaction.metadata as any) || {}
-      if (metadata?.property_id && metadata?.inspection_id) {
-        const { data: property } = await adminSupabase
-          .from('properties')
-          .select('id, title, developer_id')
-          .eq('id', metadata.property_id)
-          .single()
-
-        if (property?.developer_id) {
-          await notificationHelpers.inspectionPaymentCompleted({
-            buyerId: authUser.id,
-            developerId: property.developer_id,
-            propertyId: property.id,
-            propertyTitle: property.title,
-            inspectionId: metadata.inspection_id,
-            amount: totalAmount,
-            transactionId: transaction.id,
-          })
-        }
+      if (metadata?.payment_type === 'property_purchase' && metadata?.property_id && metadata?.developer_id && metadata?.inspection_id) {
+        const { completePropertyPurchase } = await import('@/lib/utils/property-purchase-completion')
+        await completePropertyPurchase({
+          transactionId: transaction.id,
+          amount: totalAmount,
+          propertyId: metadata.property_id,
+          developerId: metadata.developer_id,
+          buyerId: authUser.id,
+          inspectionId: metadata.inspection_id,
+          propertyTitle: (await adminSupabase.from('properties').select('title').eq('id', metadata.property_id).single()).data?.title || 'Property',
+          reference: transaction.reference,
+        })
       }
     } catch (notifError) {
-      console.error('Failed to send payment notification:', notifError)
+      console.error('Failed to complete property purchase:', notifError)
     }
 
     return NextResponse.json({

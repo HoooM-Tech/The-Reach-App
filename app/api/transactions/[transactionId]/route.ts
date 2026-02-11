@@ -27,7 +27,16 @@ export async function GET(
       throw new NotFoundError('Transaction')
     }
 
-    return NextResponse.json({ transaction })
+    const out: any = { transaction }
+    if (transaction.property_id && (transaction.category === 'property_purchase' || (transaction.metadata as any)?.payment_type === 'property_purchase')) {
+      const { data: property } = await adminSupabase.from('properties').select('id, title, developer_id').eq('id', transaction.property_id).single()
+      if (property?.developer_id) {
+        const { data: dev } = await adminSupabase.from('users').select('id, full_name').eq('id', property.developer_id).single()
+        out.propertyTitle = property.title
+        out.developerName = dev?.full_name || 'Developer'
+      }
+    }
+    return NextResponse.json(out)
   } catch (error) {
     const { error: errorMessage, statusCode } = handleError(error)
     return NextResponse.json({ error: errorMessage }, { status: statusCode })

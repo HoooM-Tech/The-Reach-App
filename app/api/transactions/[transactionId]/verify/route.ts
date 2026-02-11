@@ -3,7 +3,6 @@ import { createAdminSupabaseClient } from '@/lib/supabase/server'
 import { createRouteHandlerClient } from '@/lib/supabase/route-handler'
 import { handleError, NotFoundError } from '@/lib/utils/errors'
 import { verifyPayment } from '@/lib/services/paystack'
-import { notificationHelpers } from '@/lib/services/notification-helper'
 
 export async function GET(
   req: NextRequest,
@@ -58,28 +57,24 @@ export async function GET(
         .single()
 
       try {
-        const metadata = (updatedTransaction?.metadata as any) || {}
-        if (metadata?.property_id && metadata?.inspection_id) {
-          const { data: property } = await adminSupabase
-            .from('properties')
-            .select('id, title, developer_id')
-            .eq('id', metadata.property_id)
-            .single()
-
-          if (property?.developer_id) {
-            await notificationHelpers.inspectionPaymentCompleted({
-              buyerId: authUser.id,
-              developerId: property.developer_id,
-              propertyId: property.id,
-              propertyTitle: property.title,
-              inspectionId: metadata.inspection_id,
-              amount: parseFloat(updatedTransaction?.amount || 0),
-              transactionId: updatedTransaction?.id,
-            })
-          }
+        const meta = (updatedTransaction?.metadata as any) || {}
+        if (meta?.payment_type === 'property_purchase' && meta?.property_id && meta?.developer_id && meta?.inspection_id) {
+          const { completePropertyPurchase } = await import('@/lib/utils/property-purchase-completion')
+          const amount = parseFloat(updatedTransaction?.amount || 0)
+          const { data: prop } = await adminSupabase.from('properties').select('title').eq('id', meta.property_id).single()
+          await completePropertyPurchase({
+            transactionId: updatedTransaction?.id,
+            amount,
+            propertyId: meta.property_id,
+            developerId: meta.developer_id,
+            buyerId: authUser.id,
+            inspectionId: meta.inspection_id,
+            propertyTitle: prop?.title || 'Property',
+            reference,
+          })
         }
       } catch (notifError) {
-        console.error('Failed to send payment notification:', notifError)
+        console.error('Failed to complete property purchase:', notifError)
       }
 
       return NextResponse.json({ transaction: updatedTransaction })

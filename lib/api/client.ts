@@ -614,7 +614,7 @@ export const developerApi = {
     })
   },
 
-  /** Upload media to property */
+  /** Upload media to property (legacy FormData - prefer addMedia with URLs) */
   async uploadMedia(propertyId: string, formData: FormData): Promise<any> {
     const token = getAccessToken();
     const response = await fetch(`/api/properties/${propertyId}/media`, {
@@ -627,6 +627,17 @@ export const developerApi = {
       throw new ApiError(data.error || 'Upload failed', response.status, data);
     }
     return response.json();
+  },
+
+  /** Add media to property by URLs (after uploading file to storage) */
+  async addMedia(
+    propertyId: string,
+    payload: { image_urls?: string[]; video_urls?: string[] }
+  ): Promise<{ media: Array<{ id: string; url: string; media_type: string; order_index: number }> }> {
+    return fetchWithAuth(`/api/properties/${propertyId}/media`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
   },
 };
 

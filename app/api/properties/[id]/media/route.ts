@@ -5,8 +5,12 @@ import { ValidationError, NotFoundError, handleError } from '@/lib/utils/errors'
 import { z } from 'zod'
 
 const addMediaSchema = z.object({
-  image_urls: z.array(z.string().url()).min(1, 'At least one image URL is required'),
-})
+  image_urls: z.array(z.string().url()).optional().default([]),
+  video_urls: z.array(z.string().url()).optional().default([]),
+}).refine(
+  (data) => data.image_urls.length > 0 || data.video_urls.length > 0,
+  { message: 'At least one image or video URL is required' }
+)
 
 export async function POST(
   req: NextRequest,
@@ -16,7 +20,7 @@ export async function POST(
     const developer = await requireDeveloper()
     const propertyId = params.id
     const body = await req.json()
-    const { image_urls } = addMediaSchema.parse(body)
+    const { image_urls, video_urls } = addMediaSchema.parse(body)
 
     const supabase = createAdminSupabaseClient()
 
@@ -43,13 +47,20 @@ export async function POST(
       ? (existingMedia[0].order_index || 0) + 1 
       : 0
 
-    // Insert media records
-    const mediaRecords = image_urls.map((url, index) => ({
+    // Build media records: images then videos
+    const imageRecords = image_urls.map((url, index) => ({
       property_id: propertyId,
-      media_type: 'image',
+      media_type: 'image' as const,
       url,
       order_index: startIndex + index,
     }))
+    const videoRecords = video_urls.map((url, index) => ({
+      property_id: propertyId,
+      media_type: 'video' as const,
+      url,
+      order_index: startIndex + imageRecords.length + index,
+    }))
+    const mediaRecords = [...imageRecords, ...videoRecords]
 
     const { data: media, error } = await supabase
       .from('property_media')

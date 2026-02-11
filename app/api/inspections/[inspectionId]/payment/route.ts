@@ -40,10 +40,26 @@ export async function POST(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
+    const status = (inspection.status || '').toLowerCase()
+    if (status !== 'completed') {
+      throw new ValidationError('Property purchase is only available after the inspection is completed')
+    }
+
     const property = inspection.properties as any
     const amount = Number(property?.asking_price || 0)
     if (!amount || Number.isNaN(amount)) {
       throw new ValidationError('Property price is not available')
+    }
+
+    const { count: existingPay } = await adminSupabase
+      .from('transactions')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', authUser.id)
+      .eq('property_id', property.id)
+      .eq('category', 'property_purchase')
+      .in('status', ['successful', 'completed'])
+    if ((existingPay ?? 0) > 0) {
+      throw new ValidationError('This property has already been paid for')
     }
 
     // Get or create wallet
@@ -76,28 +92,30 @@ export async function POST(
 
     const vat = Math.round(amount * 0.075 * 100) / 100
     const totalAmount = amount + vat
-    const reference = generateTransactionReference('withdrawal')
+    const reference = generateTransactionReference('property_purchase')
 
     const transactionPayload: any = {
       wallet_id: wallet?.id,
       user_id: authUser.id,
       type: 'debit',
-      category: 'withdrawal',
+      category: 'property_purchase',
       amount: totalAmount,
       fee: vat,
       total_amount: totalAmount,
       net_amount: totalAmount,
       currency: 'NGN',
-      title: 'Inspection Payment',
-      description: `Inspection payment for ${property?.title || 'property'}`,
+      title: 'Property Purchase',
+      description: 'Property Purchase',
       reference,
       status: 'pending',
       property_id: property?.id,
       payment_gateway: payment_method === 'paystack' ? 'paystack' : 'wallet',
       metadata: {
-        inspection_id: inspectionId,
+        payment_type: 'property_purchase',
         property_id: property?.id,
         developer_id: property?.developer_id,
+        buyer_id: authUser.id,
+        inspection_id: inspectionId,
         billing_address,
         vat,
       },
@@ -125,13 +143,21 @@ export async function POST(
         ? `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/buyer/inspections/${inspectionId}/payment/success?reference=${reference}&transactionId=${transaction.id}`
         : undefined
 
+    const propertyTitle = (property?.title || 'Property').trim()
+    const narration = `Property Purchase – ${propertyTitle}`
+
     const paymentResponse = await initializePayment({
       email: authUser.email || '',
       amount: Math.round(totalAmount * 100),
       reference,
       metadata: {
+        payment_type: 'property_purchase',
+        property_id: property?.id,
+        developer_id: property?.developer_id,
+        buyer_id: authUser.id,
         inspection_id: inspectionId,
         transaction_id: transaction.id,
+        narration,
       },
       callback_url: callbackUrl,
     })

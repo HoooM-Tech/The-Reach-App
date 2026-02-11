@@ -5,6 +5,7 @@ import { Upload, X, FileText } from 'lucide-react';
 import { PropertyDocument, DocType, ListingType } from '../../types/property';
 
 interface DocumentUploaderProps {
+  propertyId?: string;
   documents: PropertyDocument[];
   onChange: (documents: PropertyDocument[]) => void;
   listingType: ListingType;
@@ -25,7 +26,12 @@ const REQUIRED_DOCS: Record<ListingType, DocType[]> = {
   [ListingType.LEAD_GEN]: []
 };
 
-export function DocumentUploader({ documents, onChange, listingType }: DocumentUploaderProps) {
+export function DocumentUploader({
+  propertyId: _propertyId,
+  documents,
+  onChange,
+  listingType,
+}: DocumentUploaderProps) {
   const fileInputRefs = useRef<Partial<Record<DocType, HTMLInputElement | null>>>({});
 
   const requiredDocs = REQUIRED_DOCS[listingType];
@@ -91,13 +97,16 @@ export function DocumentUploader({ documents, onChange, listingType }: DocumentU
                   </div>
                   {hasDoc ? (
                     <button
+                      type="button"
                       onClick={() => removeDocument(docType)}
                       className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                      aria-label={`Remove ${DOC_TYPE_LABELS[docType]}`}
                     >
                       <X size={18} />
                     </button>
                   ) : (
                     <button
+                      type="button"
                       onClick={() => fileInputRefs.current[docType]?.click()}
                       className="px-4 py-2 text-sm font-medium text-reach-red border border-reach-red rounded-lg hover:bg-reach-red/5 transition-colors"
                     >
@@ -118,6 +127,7 @@ export function DocumentUploader({ documents, onChange, listingType }: DocumentU
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) handleFileSelect(file, docType);
+                      e.target.value = '';
                     }}
                   />
                 </div>
@@ -153,13 +163,16 @@ export function DocumentUploader({ documents, onChange, listingType }: DocumentU
                   </div>
                   {hasDoc ? (
                     <button
+                      type="button"
                       onClick={() => removeDocument(docType)}
                       className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                      aria-label={`Remove ${DOC_TYPE_LABELS[docType]}`}
                     >
                       <X size={18} />
                     </button>
                   ) : (
                     <button
+                      type="button"
                       onClick={() => fileInputRefs.current[docType]?.click()}
                       className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                     >
@@ -174,12 +187,15 @@ export function DocumentUploader({ documents, onChange, listingType }: DocumentU
                         delete fileInputRefs.current[docType];
                       }
                     }}
+                    id={`doc-upload-opt-${docType}`}
                     type="file"
                     accept=".pdf,.doc,.docx"
                     className="hidden"
+                    aria-label={`Upload ${DOC_TYPE_LABELS[docType]}`}
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) handleFileSelect(file, docType);
+                      e.target.value = '';
                     }}
                   />
                 </div>

@@ -108,7 +108,7 @@ export default function BuyerInspectionPaymentPage() {
           >
             <ArrowLeft size={18} className="text-gray-700" />
           </button>
-          <h1 className="text-base sm:text-lg font-semibold text-gray-900">Payment</h1>
+          <h1 className="text-base sm:text-lg font-semibold text-gray-900">Property Purchase</h1>
           <div className="w-10 h-10" />
         </div>
       </div>
@@ -191,7 +191,7 @@ export default function BuyerInspectionPaymentPage() {
           </div>
 
           <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
-            <h2 className="text-base font-semibold text-gray-900">Order Summary</h2>
+            <h2 className="text-base font-semibold text-gray-900">Property purchase summary</h2>
             <div className="flex items-center justify-between text-sm text-gray-600">
               <span>{property?.title || 'Property'}</span>
               <span className="text-gray-900 font-semibold">₦{summary.price.toLocaleString()}</span>

@@ -433,7 +433,7 @@ export default function BuyerInspectionDetailsClient() {
             <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-3">
               <h3 className="text-base font-semibold text-gray-900">Next steps</h3>
               <p className="text-sm text-gray-500">
-                Proceed to payment or withdraw your interest in this property.
+                Proceed to property purchase or withdraw your interest in this property.
               </p>
               {actionError && (
                 <p className="text-sm text-red-600">{actionError}</p>
@@ -465,7 +465,7 @@ export default function BuyerInspectionDetailsClient() {
           {/* Recent payment */}
           {transactions.length > 0 && (
             <div className="bg-white rounded-2xl border border-gray-100 p-5">
-              <h3 className="text-base font-semibold text-gray-900 mb-3">Recent payments</h3>
+              <h3 className="text-base font-semibold text-gray-900 mb-3">Recent transactions</h3>
               <div className="space-y-3">
                 {transactions.slice(0, 3).map((tx) => (
                   <div
