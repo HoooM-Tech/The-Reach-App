@@ -94,6 +94,7 @@ export default function BuyerInspectionDetailsClient() {
   const inspectionId = params?.inspectionId
   const [inspection, setInspection] = useState<BuyerInspection | null>(null)
   const [transactions, setTransactions] = useState<any[]>([])
+  const [propertyPaid, setPropertyPaid] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [hasUnread, setHasUnread] = useState(false)
@@ -127,6 +128,7 @@ export default function BuyerInspectionDetailsClient() {
       const response = await buyerApi.getInspectionDetails(inspectionId)
       setInspection(response.inspection)
       setTransactions(response.transactions || [])
+      setPropertyPaid(response.propertyPaid ?? false)
     } catch (err) {
       const message = err instanceof ApiError ? err.message : 'Failed to load inspection'
       setError(message)
@@ -428,37 +430,51 @@ export default function BuyerInspectionDetailsClient() {
             </div>
           )}
 
-          {/* Actions for completed (not withdrawn) */}
+          {/* Actions for completed (not withdrawn) - hide Make payment if already paid */}
           {isCompleted && !isWithdrawn && (
             <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-3">
               <h3 className="text-base font-semibold text-gray-900">Next steps</h3>
-              <p className="text-sm text-gray-500">
-                Proceed to property purchase or withdraw your interest in this property.
-              </p>
-              {actionError && (
-                <p className="text-sm text-red-600">{actionError}</p>
+              {propertyPaid ? (
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-500">
+                    You have already purchased this property. The developer will begin the handover process.
+                  </p>
+                  <div className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-green-50 text-green-800 text-sm font-medium">
+                    <CheckCircle size={18} />
+                    Property purchased
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <p className="text-sm text-gray-500">
+                    Proceed to property purchase or withdraw your interest in this property.
+                  </p>
+                  {actionError && (
+                    <p className="text-sm text-red-600">{actionError}</p>
+                  )}
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <button
+                      onClick={handleWithdraw}
+                      disabled={isSubmitting}
+                      className="flex-1 px-5 py-3 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-60"
+                    >
+                      Withdraw interest
+                    </button>
+                    <button
+                      onClick={handlePayment}
+                      className="flex-1 px-5 py-3 rounded-xl bg-[#15355A] text-white text-sm font-semibold"
+                    >
+                      Make payment
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => router.push(`/dashboard/buyer/properties/${inspection.property_id}`)}
+                    className="text-sm font-semibold text-[#15355A]"
+                  >
+                    Submit a bid
+                  </button>
+                </>
               )}
-              <div className="flex flex-col sm:flex-row gap-3">
-                <button
-                  onClick={handleWithdraw}
-                  disabled={isSubmitting}
-                  className="flex-1 px-5 py-3 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-60"
-                >
-                  Withdraw interest
-                </button>
-                <button
-                  onClick={handlePayment}
-                  className="flex-1 px-5 py-3 rounded-xl bg-[#15355A] text-white text-sm font-semibold"
-                >
-                  Make payment
-                </button>
-              </div>
-              <button
-                onClick={() => router.push(`/dashboard/buyer/properties/${inspection.property_id}`)}
-                className="text-sm font-semibold text-[#15355A]"
-              >
-                Submit a bid
-              </button>
             </div>
           )}
 

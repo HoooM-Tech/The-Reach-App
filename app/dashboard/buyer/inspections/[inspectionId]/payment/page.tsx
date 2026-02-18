@@ -36,6 +36,11 @@ export default function BuyerInspectionPaymentPage() {
       ])
       setInspection(inspectionResponse.inspection)
       setWalletBalance(balanceResponse.availableBalance || 0)
+      // Redirect if property already paid - no need to pay again
+      if (inspectionResponse.propertyPaid) {
+        router.replace(`/dashboard/buyer/inspections/${inspectionId}`)
+        return
+      }
     } catch (err) {
       const message = err instanceof ApiError ? err.message : 'Failed to load payment'
       setError(message)
@@ -60,7 +65,7 @@ export default function BuyerInspectionPaymentPage() {
     setIsSubmitting(true)
     setError(null)
     try {
-      const paymentResponse = await buyerApi.createInspectionPayment(inspectionId, {
+      const paymentResponse = await buyerApi.createPropertyPayment(inspectionId, {
         payment_method: paymentMethod,
         billing_address: billing,
       })

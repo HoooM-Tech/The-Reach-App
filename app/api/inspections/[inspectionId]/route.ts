@@ -66,9 +66,23 @@ export async function GET(
       .contains('metadata', { inspection_id: inspectionId })
       .order('created_at', { ascending: false })
 
+    // Check if buyer has already paid for this property (for buyer role only)
+    let propertyPaid = false
+    if (currentUser.role === 'buyer' && property?.id) {
+      const { count } = await adminSupabase
+        .from('transactions')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', currentUser.id)
+        .eq('property_id', property.id)
+        .eq('category', 'property_purchase')
+        .in('status', ['successful', 'completed'])
+      propertyPaid = (count ?? 0) > 0
+    }
+
     return NextResponse.json({
       inspection,
       transactions: transactions || [],
+      propertyPaid,
     })
   } catch (error) {
     const { error: errorMessage, statusCode } = handleError(error)

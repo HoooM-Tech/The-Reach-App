@@ -907,7 +907,7 @@ export const buyerApi = {
   },
 
   /** Get inspection details */
-  async getInspectionDetails(inspectionId: string): Promise<{ inspection: BuyerInspection; transactions: any[] }> {
+  async getInspectionDetails(inspectionId: string): Promise<{ inspection: BuyerInspection; transactions: any[]; propertyPaid?: boolean }> {
     return fetchWithAuth(`/api/inspections/${inspectionId}`)
   },
 
@@ -932,8 +932,8 @@ export const buyerApi = {
     return fetchWithAuth(`/api/inspections/${inspectionId}/cancel`, { method: 'POST' })
   },
 
-  /** Create inspection payment */
-  async createInspectionPayment(inspectionId: string, data: {
+  /** Create property payment (after inspection completed). Inspections are free. */
+  async createPropertyPayment(inspectionId: string, data: {
     payment_method: 'wallet' | 'paystack'
     billing_address?: any
   }): Promise<{ message: string; transaction: any; authorization_url?: string }> {
