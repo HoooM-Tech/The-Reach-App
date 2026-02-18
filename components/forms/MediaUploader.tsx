@@ -138,10 +138,10 @@ export function MediaUploader({
     <div className="space-y-4">
       {/* Images Section */}
       <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-2">
+        <label className="block text-sm font-semibold text-gray-700 mb-2" htmlFor="media-upload-images">
           Images {images.length > 0 && `(${images.length}/${maxImages})`}
         </label>
-        
+
         {images.length > 0 && (
           <div className="grid grid-cols-3 gap-4 mb-4">
             {images.map((item) => (
@@ -206,7 +206,7 @@ export function MediaUploader({
               e.target.value = '';
             }}
           />
-        </label>
+        </div>
       </div>
 
       {/* Video Section */}
