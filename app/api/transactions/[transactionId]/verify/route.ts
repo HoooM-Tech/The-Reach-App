@@ -60,7 +60,7 @@ export async function GET(
         const meta = (updatedTransaction?.metadata as any) || {}
         if (meta?.payment_type === 'property_purchase' && meta?.property_id && meta?.developer_id && meta?.inspection_id) {
           const { completePropertyPurchase } = await import('@/lib/utils/property-purchase-completion')
-          const amount = parseFloat(updatedTransaction?.amount || 0)
+          const amount = parseFloat(updatedTransaction?.amount || updatedTransaction?.total_amount || '0')
           const { data: prop } = await adminSupabase.from('properties').select('title').eq('id', meta.property_id).single()
           await completePropertyPurchase({
             transactionId: updatedTransaction?.id,

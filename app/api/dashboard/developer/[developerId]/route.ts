@@ -232,17 +232,43 @@ export async function GET(
       (i) => i.status === 'booked' || i.status === 'confirmed'
     ).length
 
-    // Get pending handovers for the developer
+    // Get pending handovers for the developer (join escrow for amount, buyer for name)
     const { data: pendingHandovers } = await adminSupabase
       .from('handovers')
-      .select('id, property_id, buyer_id, status, created_at, properties(id, title, location, asking_price)')
+      .select(`
+        id,
+        property_id,
+        buyer_id,
+        status,
+        created_at,
+        transaction_id,
+        properties(id, title, location, asking_price),
+        escrow_transactions:transaction_id(amount, splits)
+      `)
       .eq('developer_id', developerId)
       .not('status', 'eq', 'completed')
       .order('created_at', { ascending: false })
 
+    // Fetch buyer names for handovers
+    const buyerIds = [...new Set((pendingHandovers || []).map((h: any) => h.buyer_id).filter(Boolean))]
+    const buyerNames: Record<string, string> = {}
+    if (buyerIds.length > 0) {
+      const { data: buyers } = await adminSupabase
+        .from('users')
+        .select('id, full_name, first_name, last_name')
+        .in('id', buyerIds)
+      buyers?.forEach((b: any) => {
+        buyerNames[b.id] = b.full_name || [b.first_name, b.last_name].filter(Boolean).join(' ') || 'Buyer'
+      })
+    }
+
     const handoversList = (pendingHandovers || []).map((h: any) => {
       const prop = h.properties || {}
       const loc = prop.location || {}
+      const escrow = h.escrow_transactions
+      const amount = escrow?.amount ?? prop.asking_price ?? 0
+      const splits = escrow?.splits || {}
+      const developerPayout = splits.developer_amount ?? amount * 0.85
       return {
         id: h.id,
         propertyId: h.property_id,
@@ -252,6 +278,9 @@ export async function GET(
           location: [loc.address, loc.city, loc.state].filter(Boolean).join(', ') || 'Location not available',
           price: prop.asking_price || 0,
         },
+        buyerName: buyerNames[h.buyer_id] || 'Buyer',
+        propertyPaymentAmount: amount,
+        developerPayout,
         status: h.status,
         createdAt: h.created_at,
       }

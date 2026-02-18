@@ -21,20 +21,33 @@ export async function POST(req: NextRequest) {
     const signature = req.headers.get('x-paystack-signature');
 
     if (!signature) {
+      console.error('[Paystack Webhook] Missing x-paystack-signature header');
       return NextResponse.json({ error: 'Missing signature' }, { status: 401 });
     }
 
-    // Verify webhook signature
+    // Verify webhook signature (Paystack: use secret key; optional PAYSTACK_WEBHOOK_SECRET for dashboard override)
+    const webhookSecret = process.env.PAYSTACK_WEBHOOK_SECRET || process.env.PAYSTACK_SECRET_KEY;
+    if (!webhookSecret) {
+      console.error('[Paystack Webhook] No PAYSTACK_SECRET_KEY or PAYSTACK_WEBHOOK_SECRET configured');
+      return NextResponse.json({ error: 'Webhook not configured' }, { status: 500 });
+    }
     const hash = crypto
-      .createHmac('sha512', process.env.PAYSTACK_SECRET_KEY!)
+      .createHmac('sha512', webhookSecret)
       .update(body)
       .digest('hex');
 
     if (hash !== signature) {
+      console.error('[Paystack Webhook] Invalid signature');
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
 
     const event = JSON.parse(body);
+    console.log('[Paystack Webhook] Received:', {
+      event: event.event,
+      reference: event.data?.reference,
+      status: event.data?.status,
+      amount: event.data?.amount,
+    });
     const supabase = createAdminSupabaseClient();
 
     // Handle transfer events (withdrawals)
@@ -236,20 +249,22 @@ export async function POST(req: NextRequest) {
     if (event.event === 'charge.success') {
       const { reference, amount, customer } = event.data;
 
-      // Find transaction by reference
+      console.log('[Paystack Webhook] Processing charge.success:', { reference, amount: amount / 100 });
+
+      // Find transaction by reference (Paystack may send reference in event.data.reference)
       const { data: transaction, error: transactionError } = await supabase
         .from('transactions')
         .select('*, wallets!inner(*)')
-        .eq('reference', reference)
+        .or(`reference.eq.${reference},paystack_reference.eq.${reference},gateway_reference.eq.${reference}`)
         .maybeSingle();
 
       if (transactionError) {
-        console.error('Error finding transaction:', transactionError);
+        console.error('[Paystack Webhook] Error finding transaction:', transactionError);
         return NextResponse.json({ received: true });
       }
 
       if (!transaction) {
-        console.warn(`Transaction not found for reference: ${reference}`);
+        console.warn('[Paystack Webhook] Transaction not found for reference:', reference);
         return NextResponse.json({ received: true });
       }
 
@@ -312,9 +327,9 @@ export async function POST(req: NextRequest) {
 
         try {
           const { completePropertyPurchase } = await import('@/lib/utils/property-purchase-completion');
-          const transactionAmount = parseFloat(transaction.amount);
+          const transactionAmount = parseFloat(transaction.amount ?? transaction.total_amount ?? 0);
           const { data: prop } = await supabase.from('properties').select('title').eq('id', metadata.property_id).single();
-          await completePropertyPurchase({
+          const result = await completePropertyPurchase({
             transactionId: transaction.id,
             amount: transactionAmount,
             propertyId: metadata.property_id,
@@ -324,10 +339,11 @@ export async function POST(req: NextRequest) {
             propertyTitle: prop?.title || 'Property',
             reference,
           });
+          console.log('[Paystack Webhook] Property purchase completed:', { reference, handoverId: result?.handoverId, escrowId: result?.escrowId });
         } catch (e) {
-          console.error('Property purchase completion error:', e);
+          console.error('[Paystack Webhook] Property purchase completion error:', e);
         }
-        console.log(`Property purchase processed: ${reference}, Amount: ${toNaira(amount)} NGN`);
+        console.log('[Paystack Webhook] Property purchase processed:', reference, toNaira(amount), 'NGN');
         return NextResponse.json({ received: true });
       }
 

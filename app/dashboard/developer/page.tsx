@@ -77,16 +77,21 @@ interface HandoverCardProps {
     property: {
       title: string;
       location: string;
+      price?: number;
     };
     status: string;
+    propertyPaymentAmount?: number;
+    developerPayout?: number;
+    buyerName?: string;
   };
   onStart: (handoverId: string, status: string) => void;
 }
 
 function HandoverAlertCard({ handover, onStart }: HandoverCardProps) {
-  // Determine the label and route based on status
   const getActionLabel = () => {
     switch (handover.status) {
+      case 'payment_confirmed':
+        return 'Upload Documents';
       case 'awaiting_buyer_signature':
         return 'Waiting for buyer';
       case 'documents_signed':
@@ -101,6 +106,10 @@ function HandoverAlertCard({ handover, onStart }: HandoverCardProps) {
     }
   };
 
+  const propertyWithPrice = handover.property as { title: string; location: string; price?: number } | undefined
+  const amount = handover.propertyPaymentAmount ?? propertyWithPrice?.price ?? 0
+  const payout = handover.developerPayout ?? (amount * 0.85)
+
   return (
     <div className="bg-white rounded-2xl p-5 border-2 border-orange-400 shadow-sm">
       <div className="flex items-start justify-between mb-4">
@@ -114,16 +123,27 @@ function HandoverAlertCard({ handover, onStart }: HandoverCardProps) {
       <div className="space-y-3 mb-4">
         <div className="flex items-center gap-3 text-gray-700">
           <Building2 className="w-5 h-5 flex-shrink-0" />
-          <span className="font-medium">{handover.property.title}</span>
+          <span className="font-medium">{handover.property?.title ?? 'Property'}</span>
         </div>
         <div className="flex items-center gap-3 text-gray-600">
           <MapPin className="w-5 h-5 flex-shrink-0" />
-          <span className="text-sm">{handover.property.location}</span>
+          <span className="text-sm">{handover.property?.location ?? '—'}</span>
         </div>
-        <div className="flex items-center gap-3 text-gray-600">
-          <Lock className="w-5 h-5 flex-shrink-0" />
-          <span className="text-sm">Payout</span>
-        </div>
+        {amount > 0 && (
+          <div className="bg-gray-50 rounded-lg p-3 flex items-center justify-between text-sm">
+            <span className="text-gray-600">Payment received</span>
+            <span className="font-semibold text-gray-900">₦{Number(amount).toLocaleString()}</span>
+          </div>
+        )}
+        {payout > 0 && (
+          <div className="flex items-center gap-3 text-gray-600">
+            <Lock className="w-5 h-5 flex-shrink-0" />
+            <span className="text-sm">Your payout (85%): ₦{Number(payout).toLocaleString()} — locked until handover complete</span>
+          </div>
+        )}
+        {handover.buyerName && (
+          <p className="text-sm text-gray-500">Buyer: {handover.buyerName}</p>
+        )}
       </div>
 
       <button
@@ -269,8 +289,10 @@ export default function DeveloperDashboardPage() {
 
   useEffect(() => {
     fetchDashboardData();
-    
+
+    const interval = setInterval(fetchDashboardData, 30000);
     return () => {
+      clearInterval(interval);
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }

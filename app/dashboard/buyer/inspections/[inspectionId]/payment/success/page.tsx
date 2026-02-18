@@ -29,18 +29,26 @@ export default function BuyerInspectionPaymentSuccessPage() {
       return
     }
     let cancelled = false
-    transactionsApi
-      .getTransaction(transactionId)
-      .then((res: any) => {
-        if (!cancelled) {
-          setData({
-            transaction: res.transaction,
-            propertyTitle: res.propertyTitle,
-            developerName: res.developerName,
-          })
-          setError(null)
-        }
+
+    const run = async () => {
+      try {
+        // Verify payment with Paystack when returning from redirect (backup if webhook didn't fire)
+        await transactionsApi.verifyTransaction(transactionId)
+      } catch (_) {
+        // Ignore: transaction may already be successful or not a Paystack payment
+      }
+      if (cancelled) return
+      const res = await transactionsApi.getTransaction(transactionId) as { transaction: any; propertyTitle?: string; developerName?: string }
+      if (cancelled) return
+      setData({
+        transaction: res.transaction,
+        propertyTitle: res.propertyTitle,
+        developerName: res.developerName,
       })
+      setError(null)
+    }
+
+    run()
       .catch((err) => {
         if (!cancelled) {
           setError(err instanceof ApiError ? err.message : 'Unable to load transaction')
