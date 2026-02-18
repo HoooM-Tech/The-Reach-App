@@ -321,8 +321,8 @@ export default function HandoverDocumentsPage() {
         ))}
       </div>
 
-      {/* Bottom Action */}
-      <div className="fixed bottom-0 left-0 right-0 px-4 py-4 bg-white border-t border-gray-200 z-10">
+      {/* Bottom Action - lg:left-64 so bar doesn't sit under sidebar on desktop */}
+      <div className="fixed bottom-0 left-0 right-0 lg:left-64 px-4 py-4 bg-white border-t border-gray-200 z-30">
         <button
           onClick={handleContinue}
           disabled={!hasUploadedDocs || isSubmitting || isUploading !== null}
